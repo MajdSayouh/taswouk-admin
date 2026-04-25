@@ -1,1 +1,7 @@
 @import 'tailwindcss';
+
+/* Dashboard tables: keep column headers and cells left-aligned */
+.ant-table-wrapper .ant-table-thead > tr > th,
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  text-align: start !important;
+}

@@ -1,5 +1,5 @@
 /**
- * Taswouk login/refresh responses may not match the public OpenAPI schema:
+ * Login/refresh responses may not match the public OpenAPI schema:
  * some stacks return SimpleJWT-style { access, refresh } while others use { token }.
  */
 

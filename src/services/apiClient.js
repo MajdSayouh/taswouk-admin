@@ -1,5 +1,5 @@
 /**
- * Central HTTP layer for the Taswouk admin dashboard.
+ * Central HTTP layer for the Jomran admin dashboard.
  *
  * API flow (MVVM):
  * 1. View calls a hook (ViewModel) which invokes a Service function.
@@ -8,17 +8,17 @@
  *    attaches `Authorization` so JWT-protected routes work automatically.
  *    Use `skipAuthHeader: true` for login/refresh (no access token yet).
  * 4. Response interceptor: on 401, if a `refreshToken` exists, tries
- *    `POST /api/accounts/refresh-token` once, updates tokens, retries the request.
+ *    `POST /api/accounts/auth/refresh-token` once, updates tokens, retries the request.
  *    Otherwise normalizes failures into `ApiError`; 401 with an access token clears session.
  *
- * @see https://v2.taswouk.com/api/docs
+ * @see https://test.taswouk.com/api/docs
  */
 import axios from 'axios'
 import { message } from 'antd'
 import { useAuthStore } from '../store/authStore.js'
 import { normalizeBearerToken, pickAccessToken } from '../utils/authTokens.js'
 
-const DEFAULT_BASE_URL = 'https://v2.taswouk.com'
+const DEFAULT_BASE_URL = 'https://test.taswouk.com'
 
 export class ApiError extends Error {
   constructor(messageText, { status, code, data } = {}) {
@@ -32,7 +32,15 @@ export class ApiError extends Error {
 
 function resolveBaseURL() {
   const fromEnv = import.meta.env.VITE_API_BASE_URL
-  return (fromEnv && String(fromEnv).trim()) || DEFAULT_BASE_URL
+  const trimmed = fromEnv && String(fromEnv).trim()
+  // Dev: same-origin `/api/*` so Vite can proxy and avoid browser CORS to the real API host.
+  const useDevProxy =
+    import.meta.env.DEV &&
+    String(import.meta.env.VITE_USE_DEV_PROXY ?? 'true').toLowerCase() !== 'false'
+  if (useDevProxy) {
+    return ''
+  }
+  return trimmed || DEFAULT_BASE_URL
 }
 
 function extractErrorMessage(payload) {
@@ -80,16 +88,14 @@ apiClient.interceptors.response.use(
     const cfg = error.config || {}
     const url = String(cfg.url || '')
 
-    const isAuthLogin = url.includes('/api/accounts/login')
-    const isAuthRefresh = url.includes('/api/accounts/refresh-token')
+    const isAuthLogin =
+      url.includes('/api/accounts/auth/login') || url.includes('/api/accounts/login')
+    const isAuthRefresh =
+      url.includes('/api/accounts/auth/refresh-token') ||
+      url.includes('/api/accounts/refresh-token')
 
-    if (
-      status === 401 &&
-      !cfg.skipAuthLogout &&
-      !cfg._retryRefresh &&
-      !isAuthLogin &&
-      !isAuthRefresh
-    ) {
+    // Note: do not gate refresh on skipAuthLogout — silent routes (e.g. image blobs) still need token refresh.
+    if (status === 401 && !cfg._retryRefresh && !isAuthLogin && !isAuthRefresh) {
       const refreshToken = useAuthStore.getState().refreshToken
       if (refreshToken) {
         cfg._retryRefresh = true

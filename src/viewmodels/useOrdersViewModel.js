@@ -1,20 +1,25 @@
 /**
- * Orders ViewModel — loads orders via `orderService`.
- * When `/api/orders` is available on the server, the same hook will show live data.
+ * Orders ViewModel — loads orders via `orderService` (GET `/api/orders/`).
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import * as orderService from '../services/orderService.js'
 import { createOrder } from '../models/Order.js'
+import { queryKeys } from '../query/queryKeys.js'
 
 function normalizeOrderDto(raw) {
   if (raw == null || typeof raw !== 'object') {
     return createOrder({ id: 'unknown', number: '—', customerName: '—', total: 0, status: 'pending' })
   }
   const r = raw
+  const cid = r.customer_id ?? r.customerId
+  const customerLabel =
+    r.customer_name ??
+    r.customerName ??
+    (cid != null ? `Customer #${cid}` : '—')
   return createOrder({
     id: String(r.id ?? r.order_id ?? ''),
     number: r.number ?? r.order_number ?? (r.id != null ? `#${r.id}` : '—'),
-    customerName: r.customer_name ?? r.customerName ?? r.buyer_name ?? '—',
+    customerName: customerLabel,
     total: Number(r.total ?? r.amount ?? r.grand_total ?? 0),
     status: (r.status ?? 'pending').toLowerCase(),
     createdAt: r.created_at ?? r.createdAt ?? new Date().toISOString(),
@@ -22,44 +27,19 @@ function normalizeOrderDto(raw) {
 }
 
 export function useOrdersViewModel() {
-  const [orders, setOrders] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-
-  const fetchOrders = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
+  const query = useQuery({
+    queryKey: queryKeys.orders.all(),
+    queryFn: async () => {
       const data = await orderService.getOrders()
       const list = Array.isArray(data) ? data : []
-      setOrders(list.map(normalizeOrderDto))
-    } catch (err) {
-      setError(err?.message ?? 'Failed to load orders')
-      setOrders([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchOrders()
-  }, [fetchOrders])
-
-  const summary = useMemo(
-    () => ({
-      total: orders.length,
-      pending: orders.filter((o) => o.status === 'pending').length,
-      paid: orders.filter((o) => o.status === 'paid').length,
-      shipped: orders.filter((o) => o.status === 'shipped').length,
-    }),
-    [orders],
-  )
+      return list.map(normalizeOrderDto)
+    },
+  })
 
   return {
-    orders,
-    summary,
-    loading,
-    error,
-    fetchOrders,
+    orders: query.data ?? [],
+    loading: query.isFetching,
+    error: query.error?.message ?? null,
+    fetchOrders: query.refetch,
   }
 }

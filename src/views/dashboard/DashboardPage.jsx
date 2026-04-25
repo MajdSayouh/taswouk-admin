@@ -68,13 +68,13 @@ export function DashboardPage() {
             <p className="text-2xl font-semibold text-slate-900">
               {stats.totalCustomers.toLocaleString()}
             </p>
-            <p className="text-xs text-slate-500 mt-1">Placeholder — no customers API in OpenAPI v2</p>
+            <p className="text-xs text-slate-500 mt-1">Placeholder — no customer-list endpoint in the public API</p>
           </Card>
           <Card title="Active products">
             <p className="text-2xl font-semibold text-slate-900">
               {stats.activeProducts.toLocaleString()}
             </p>
-            <p className="text-xs text-slate-500 mt-1">From GET /api/items</p>
+            <p className="text-xs text-slate-500 mt-1">From GET /api/products/</p>
           </Card>
         </div>
 
@@ -121,7 +121,9 @@ export function DashboardPage() {
                     <p className="text-sm font-semibold text-slate-900">
                       SAR {product.price.toFixed(0)}
                     </p>
-                    <p className="text-xs text-slate-500">{product.stock} in stock</p>
+                    <p className="text-xs text-slate-500">
+                      {product.storeId ? `Store #${product.storeId}` : product.category}
+                    </p>
                   </div>
                 </div>
               ))}

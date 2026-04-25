@@ -1,100 +1,118 @@
-// View layer: create item (POST /api/items) — form fields match ItemCreateSchema from the API.
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+// View: create product (POST /api/products/).
+import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate, Link } from 'react-router-dom'
+import { Alert, message } from 'antd'
+import * as storeService from '../../services/storeService.js'
+import * as productService from '../../services/productService.js'
+import { queryKeys } from '../../query/queryKeys.js'
 import { useProductsViewModel } from '../../viewmodels/useProductsViewModel'
+import { useCategoriesViewModel } from '../../viewmodels/useCategoriesViewModel.js'
+import { useAuthStore, isSellerRole } from '../../store/authStore.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Input } from '../../components/ui/Input'
-import { Alert } from 'antd'
+import { ProductEditorForm } from './ProductEditorForm.jsx'
+
+function emptyForm() {
+  return {
+    storeId: '',
+    name: '',
+    categoryId: '',
+    category: '',
+    subCategoryId: '',
+    subCategory: '',
+    sizes: [],
+    colors: [],
+    imageFiles: [],
+    description: '',
+    price: '',
+    isOffer: false,
+    newPrice: '',
+    rate: '1',
+    isActive: true,
+  }
+}
 
 export function ProductCreatePage() {
   const navigate = useNavigate()
-  const { createProduct, creating, error } = useProductsViewModel({ fetchOnMount: false })
+  const user = useAuthStore((s) => s.user)
+  const { createProduct, saving, error } = useProductsViewModel({ fetchOnMount: false })
 
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    price: '',
-    quantity: '',
+  const storesQuery = useQuery({
+    queryKey: queryKeys.stores.all(),
+    queryFn: () => storeService.listStores(),
   })
 
-  function handleChange(event) {
-    const { name, value } = event.target
-    setForm((prev) => ({ ...prev, [name]: value }))
-  }
+  const stores = Array.isArray(storesQuery.data) ? storesQuery.data : []
+  const storesLoading = storesQuery.isFetching
+  const storesError = storesQuery.error?.message ?? null
+  const {
+    categories,
+    subcategories,
+    loading: categoriesLoading,
+    error: categoriesError,
+  } = useCategoriesViewModel()
+
+  const [form, setForm] = useState(emptyForm)
+
+  useEffect(() => {
+    if (
+      user &&
+      isSellerRole(user.role) &&
+      stores.length === 1 &&
+      stores[0]?.id != null
+    ) {
+      setForm((prev) => ({ ...prev, storeId: String(stores[0].id) }))
+    }
+  }, [user, stores])
 
   async function handleSubmit(event) {
     event.preventDefault()
+    if (!form.storeId) return
     try {
-      await createProduct({
-        name: form.name.trim(),
-        description: form.description.trim() || null,
-        price: Number(form.price),
-        quantity: form.quantity === '' ? 0 : Number(form.quantity),
-      })
+      const created = await createProduct(form)
+      const pid = created?.id
+      const files = Array.isArray(form.imageFiles) ? form.imageFiles : []
+      if (pid != null && files.length > 0) {
+        try {
+          await productService.uploadProductImages(pid, files)
+        } catch (err) {
+          message.warning(
+            err?.message ??
+              'Product was created but some images failed to upload. Try editing the product to add images.',
+          )
+        }
+      }
       navigate('/admin/products')
     } catch {
-      // Error state is held on the ViewModel; optional inline feedback via Alert below.
+      // Error surfaced via Alert
     }
   }
 
   return (
     <div className="space-y-6">
-      {error ? (
-        <Alert type="error" message={error} showIcon />
-      ) : null}
+      {storesError ? <Alert type="warning" title={storesError} showIcon /> : null}
+      {error ? <Alert type="error" title={error} showIcon /> : null}
 
-      <Card title="Create product">
-        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-          <Input
-            label="Name"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            placeholder="Product name"
-            required
-            className="md:col-span-2"
-          />
-          <Input
-            label="Description (optional)"
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            placeholder="Short description"
-            className="md:col-span-2"
-          />
-          <Input
-            label="Price (SAR)"
-            name="price"
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.price}
-            onChange={handleChange}
-            required
-          />
-          <Input
-            label="Quantity in stock"
-            name="quantity"
-            type="number"
-            min="0"
-            value={form.quantity}
-            onChange={handleChange}
-            placeholder="0"
-          />
-
-          <div className="md:col-span-2 flex justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => navigate('/admin/products')}
-            >
+      <Card title="New product">
+        <form onSubmit={handleSubmit}>
+          <ProductEditorForm
+            stores={stores}
+            storesLoading={storesLoading}
+            form={form}
+            setForm={setForm}
+            categories={categories}
+            subcategories={subcategories}
+            categoriesLoading={categoriesLoading}
+            categoriesError={categoriesError}
+          >
+            <Button type="button" variant="ghost" as={Link} to="/admin/products">
               Cancel
             </Button>
-            <Button type="submit" disabled={creating}>
-              {creating ? 'Creating…' : 'Create product'}
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Creating…' : 'Create product'}
             </Button>
-          </div>
+          </ProductEditorForm>
         </form>
       </Card>
     </div>

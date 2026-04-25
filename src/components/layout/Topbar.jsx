@@ -1,28 +1,25 @@
-// View component: top bar — reads `user` from the auth store (filled after login / profile fetch).
+// View component: top bar — session + optional cached user from auth store (GET /me refreshed on layout mount).
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore.js'
 import { Button } from '../ui/Button'
 
-function initials(user) {
-  if (!user) return '?'
-  const first = user.first_name?.[0] ?? ''
-  const last = user.last_name?.[0] ?? ''
-  if (first || last) return `${first}${last}`.toUpperCase()
-  const mail = user.email?.[0] ?? user.phone?.[0] ?? 'U'
-  return mail.toUpperCase()
-}
-
 export function Topbar({ title }) {
-  const user = useAuthStore((s) => s.user)
   const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
 
-  const displayName =
-    user && (user.first_name || user.last_name)
-      ? [user.first_name, user.last_name].filter(Boolean).join(' ')
-      : user?.email || user?.phone || 'Guest'
-
-  const subtitle = user?.email || user?.phone || 'Not signed in'
+  const email = user?.email?.trim()
+  const first = user?.first_name?.trim()
+  const last = user?.last_name?.trim()
+  const labelFromName = first || last ? [first, last].filter(Boolean).join(' ') : ''
+  const displayName = token ? labelFromName || email || user?.role || 'Account' : 'Guest'
+  const subtitle = token ? email || user?.phone || 'Signed in' : 'Not signed in'
+  const avatarInitial =
+    token && (first || email)
+      ? String(first || email).charAt(0).toUpperCase()
+      : token
+        ? 'A'
+        : '?'
 
   return (
     <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur flex items-center justify-between px-4 lg:px-8">
@@ -31,7 +28,7 @@ export function Topbar({ title }) {
           {title}
         </h1>
         <p className="text-xs text-slate-500 hidden sm:block">
-          Taswouk ecommerce administration panel
+          Jomran ecommerce administration panel
         </p>
       </div>
 
@@ -56,15 +53,33 @@ export function Topbar({ title }) {
           </span>
         </button>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex flex-col items-end">
-            <span className="text-sm font-medium text-slate-900">{displayName}</span>
-            <span className="text-xs text-slate-500">{subtitle}</span>
+        {token ? (
+          <Link
+            to="/admin/profile"
+            className="flex items-center gap-3 rounded-lg hover:bg-slate-50 px-2 py-1 -mr-2 transition-colors"
+            title="View profile"
+          >
+            <div className="hidden sm:flex flex-col items-end min-w-0">
+              <span className="text-sm font-medium text-slate-900 truncate max-w-[200px]">
+                {displayName}
+              </span>
+              <span className="text-xs text-slate-500 truncate max-w-[200px]">{subtitle}</span>
+            </div>
+            <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-[#FF7D29] to-amber-400 flex items-center justify-center text-sm font-semibold text-white">
+              {avatarInitial}
+            </div>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-sm font-medium text-slate-900">{displayName}</span>
+              <span className="text-xs text-slate-500">{subtitle}</span>
+            </div>
+            <div className="h-9 w-9 shrink-0 rounded-full bg-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
+              {avatarInitial}
+            </div>
           </div>
-          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#FF7D29] to-amber-400 flex items-center justify-center text-sm font-semibold text-white">
-            {initials(user)}
-          </div>
-        </div>
+        )}
       </div>
     </header>
   )

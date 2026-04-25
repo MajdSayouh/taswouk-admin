@@ -1,6 +1,6 @@
 # Tasouwk Dashboard
 
-Admin dashboard for Taswouk, built with React 19, Vite, Ant Design, and Tailwind CSS.
+Admin dashboard for Jomran, built with React 19, Vite, Ant Design, and Tailwind CSS.
 
 ## Requirements
 
@@ -13,7 +13,7 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env` as needed. `VITE_API_BASE_URL` is the Taswouk API base URL (no trailing slash; defaults to `https://v2.taswouk.com` in code if unset). If authenticated requests fail with 401, try `VITE_AUTH_SCHEME=JWT` per `.env.example`.
+Edit `.env` as needed. `VITE_API_BASE_URL` is the API base URL (no trailing slash; defaults to `https://test.taswouk.com` in code if unset). If authenticated requests fail with 401, try `VITE_AUTH_SCHEME=JWT` per `.env.example`.
 
 ## Scripts
 

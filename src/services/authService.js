@@ -1,53 +1,34 @@
 /**
- * Auth Service — HTTP only. Maps Taswouk `/api/accounts/*` endpoints.
- * @see https://v2.taswouk.com/api/docs
+ * Auth Service — HTTP only. Maps `/api/accounts/*` endpoints (Jomran API).
+ * @see https://test.taswouk.com/api/docs
  */
 import { apiClient } from './apiClient.js'
 
 /**
  * @typedef {Object} LoginCredentials
+ * @property {string} [identifier] — email or phone (preferred by API)
  * @property {string} [email]
  * @property {string} [phone]
  * @property {string} password
  */
 
 /**
- * @typedef {Object} UserProfile
- * @property {number} id
- * @property {string} [phone]
- * @property {string} [email]
- * @property {string} [first_name]
- * @property {string} [last_name]
- * @property {string} [governorate]
- * @property {string} user_type
- * @property {boolean} is_active
- * @property {string} date_joined
- * @property {string} [store_name]
- * @property {string} [store_description]
- * @property {string} [vehicle_type]
- * @property {string} [license_number]
- * @property {boolean} [is_available]
- */
-
-/**
- * POST /api/accounts/login — returns JWT in `token` when successful.
+ * POST /api/accounts/auth/login — body `{ identifier, password }` (identifier = email or phone).
  * @param {LoginCredentials} credentials
  */
 export async function loginRequest(credentials) {
-  const { data } = await apiClient.post(
-    '/api/accounts/login',
-    credentials,
-    { skipAuthLogout: true },
-  )
-  return data
-}
-
-/**
- * GET /api/accounts/profile — requires Bearer token (attached by apiClient).
- * @returns {Promise<UserProfile>}
- */
-export async function getProfile() {
-  const { data } = await apiClient.get('/api/accounts/profile')
+  const identifier =
+    (credentials.identifier && String(credentials.identifier).trim()) ||
+    (credentials.email && String(credentials.email).trim()) ||
+    (credentials.phone && String(credentials.phone).trim()) ||
+    ''
+  const body = {
+    identifier,
+    password: credentials.password,
+  }
+  const { data } = await apiClient.post('/api/accounts/auth/login', body, {
+    skipAuthLogout: true,
+  })
   return data
 }
 
@@ -59,13 +40,13 @@ export async function logoutRequest() {
 }
 
 /**
- * POST /api/accounts/refresh-token — body: { refresh_token }.
- * Response: TokenResponse (access_token, refresh_token, expires_in).
+ * POST /api/accounts/auth/refresh-token — body: { refresh_token }.
+ * Response: TokenPairSchema (access_token, refresh_token, …).
  * @param {string} refreshToken
  */
 export async function refreshTokenRequest(refreshToken) {
   const { data } = await apiClient.post(
-    '/api/accounts/refresh-token',
+    '/api/accounts/auth/refresh-token',
     { refresh_token: refreshToken },
     {
       skipAuthHeader: true,
@@ -73,5 +54,14 @@ export async function refreshTokenRequest(refreshToken) {
       skipGlobalErrorMessage: true,
     },
   )
+  return data
+}
+
+/**
+ * GET /api/accounts/auth/me — current user profile.
+ * @returns {Promise<object>}
+ */
+export async function getProfile() {
+  const { data } = await apiClient.get('/api/accounts/auth/me')
   return data
 }
