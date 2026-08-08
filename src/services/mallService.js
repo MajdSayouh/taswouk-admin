@@ -127,12 +127,20 @@ export async function deleteMallLogo(mallId) {
 /**
  * GET /api/malls/{moll_id}/products
  * @param {number | string} mallId
+ * @param {{ signal?: AbortSignal, params?: Record<string, number> }} [options]
+ *   `params` is passed straight through as the query string — lets the caller try
+ *   different pagination conventions (`page`/`page_size` vs `offset`/`limit`) since
+ *   the exact one this endpoint honors isn't confirmed.
  */
-export async function listMallProducts(mallId) {
-  const { data } = await apiClient.get(`/api/malls/${mallId}/products`)
+export async function listMallProducts(mallId, options = {}) {
+  const { signal, params } = options
+  const { data } = await apiClient.get(`/api/malls/${mallId}/products`, {
+    signal,
+    params: params && Object.keys(params).length ? params : undefined,
+  })
   const products = extractMallProductsList(data)
-  const count = Number(data?.count ?? data?.total) || products.length
-  return { count, products }
+  const total = Number(data?.total ?? data?.count) || null
+  return { count: total ?? products.length, total, products }
 }
 
 /**

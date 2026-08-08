@@ -6,6 +6,7 @@ import * as mallService from '../services/mallService.js'
 import * as mallCatalogService from '../services/mallCatalogService.js'
 import { mapMallProductAssignmentFromApi } from '../models/MallProductAssignment.js'
 import { queryKeys } from '../query/queryKeys.js'
+import { fetchAllPages } from '../utils/fetchAllPages.js'
 
 /**
  * @param {number | string | undefined} mallId
@@ -17,9 +18,17 @@ export function useMallProductsViewModel(mallId, options = {}) {
 
   const listQuery = useQuery({
     queryKey: queryKeys.malls.products(mallId),
-    queryFn: async () => {
-      const { products } = await mallService.listMallProducts(mallId)
-      return (Array.isArray(products) ? products : []).map(mapMallProductAssignmentFromApi)
+    queryFn: async ({ signal }) => {
+      // A single request caps at the backend's default page size, which was silently
+      // truncating malls with more assigned products than that — page through all of them.
+      const rows = await fetchAllPages(
+        async (params) => {
+          const { products, total } = await mallService.listMallProducts(mallId, { signal, params })
+          return { items: Array.isArray(products) ? products : [], total }
+        },
+        (row) => (row?.id != null ? String(row.id) : null),
+      )
+      return rows.map(mapMallProductAssignmentFromApi)
     },
     enabled,
   })
