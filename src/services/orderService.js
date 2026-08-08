@@ -39,27 +39,61 @@ export async function getDeliveryAssignments() {
 }
 
 /**
- * POST /api/delivery/assign — admin assigns a delivery user to an order.
- * @see https://test.taswouk.com/api/docs#/Delivery/delivery_api_assign_order
+ * POST /api/delivery/assign — admin assigns a delivery user to a **store** order (AssignDeliverySchema).
+ * @see https://v2.taswouk.com/api/docs#/Delivery/delivery_api_assign_delivery
  *
- * Order ids collide across store and mall orders (see getOrderById/updateOrderStatus above),
- * so `order_type` is included whenever known — without it the backend has no way to tell
- * this order apart from an unrelated order sharing the same numeric id, which manifests as
- * "cannot assign order with status: X" errors quoting a completely different order's status.
+ * Store and mall orders are disambiguated by *endpoint*, not by a request field — mall orders
+ * must go through `assignMallDeliveryOrder` (`POST /api/delivery/assign-mall`) instead. Calling
+ * this one for a mall order id can resolve against an unrelated store order sharing the same
+ * numeric id, surfacing that other order's status in a "cannot assign order with status: X" error.
  *
+ * @param {number} orderId
+ * @param {number} deliveryUserId
+ * @returns {Promise<unknown>}
+ */
+export async function assignDeliveryOrder(orderId, deliveryUserId) {
+  const { data } = await apiClient.post('/api/delivery/assign', {
+    order_id: orderId,
+    delivery_user_id: deliveryUserId,
+  })
+  return data
+}
+
+/**
+ * POST /api/delivery/assign-mall — admin assigns a delivery user to a **mall** order
+ * (AssignMallDeliverySchema).
+ * @see https://v2.taswouk.com/api/docs#/Delivery/delivery_api_assign_mall_delivery
+ *
+ * Field name is a best guess (`mall_order_id`), inferred from the sibling
+ * `PATCH /api/delivery/mall-orders/{mall_order_id}/status` endpoint using that same param name —
+ * not yet confirmed against the actual AssignMallDeliverySchema. If the backend rejects this
+ * with a validation (422) error naming a different field, that's the one to fix here.
+ *
+ * @param {number} orderId
+ * @param {number} deliveryUserId
+ * @returns {Promise<unknown>}
+ */
+export async function assignMallDeliveryOrder(orderId, deliveryUserId) {
+  const { data } = await apiClient.post('/api/delivery/assign-mall', {
+    mall_order_id: orderId,
+    delivery_user_id: deliveryUserId,
+  })
+  return data
+}
+
+/**
+ * Routes to the correct assign endpoint for the order's type — store and mall orders are
+ * disambiguated by endpoint on this backend, not by a shared request field.
  * @param {number} orderId
  * @param {number} deliveryUserId
  * @param {'store' | 'mall'} [orderType]
  * @returns {Promise<unknown>}
  */
-export async function assignDeliveryOrder(orderId, deliveryUserId, orderType) {
-  const normalizedType = orderType === 'mall' ? 'mall' : orderType === 'store' ? 'store' : undefined
-  const { data } = await apiClient.post('/api/delivery/assign', {
-    order_id: orderId,
-    delivery_user_id: deliveryUserId,
-    ...(normalizedType ? { order_type: normalizedType } : {}),
-  })
-  return data
+export async function assignDeliveryOrderForType(orderId, deliveryUserId, orderType) {
+  if (String(orderType).toLowerCase() === 'mall') {
+    return assignMallDeliveryOrder(orderId, deliveryUserId)
+  }
+  return assignDeliveryOrder(orderId, deliveryUserId)
 }
 
 /**

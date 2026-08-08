@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useOrdersViewModel } from '../../viewmodels/useOrdersViewModel'
-import { assignDeliveryOrder, getOrderById, updateOrderStatus } from '../../services/orderService.js'
+import { assignDeliveryOrderForType, getOrderById, updateOrderStatus } from '../../services/orderService.js'
 import { queryClient } from '../../query/queryClient.js'
 import { queryKeys } from '../../query/queryKeys.js'
 import { DashboardTableToolbar } from '../../components/tables/DashboardTableToolbar.jsx'
@@ -341,7 +341,7 @@ export function OrdersListPage() {
           return
         }
 
-        await assignDeliveryOrder(orderNum, driverNum, record.orderType)
+        await assignDeliveryOrderForType(orderNum, driverNum, record.orderType)
         assign(record.id, String(driverNum))
         setPendingDriverEdits((p) => {
           const n = { ...p }
