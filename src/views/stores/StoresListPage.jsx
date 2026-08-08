@@ -1,20 +1,25 @@
 // View: stores — toolbar + column filter dropdowns, left-aligned.
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Table, Tag, Space, Alert, Spin, Select, Button as AntButton } from 'antd'
+import { useTranslation } from 'react-i18next'
+import { Table, Tag, Space, Alert, Spin, Select, Switch, message, Button as AntButton } from 'antd'
 import { useStoresViewModel } from '../../viewmodels/useStoresViewModel'
 import { DashboardTableToolbar } from '../../components/tables/DashboardTableToolbar.jsx'
 import { ColumnTextFilterDropdown } from '../../components/tables/ColumnTextFilterDropdown.jsx'
+import { TableRowActions } from '../../components/tables/TableRowActions.jsx'
+import { DashboardAddLinkButton } from '../../components/tables/DashboardAddButton.jsx'
+import { buildDashboardPagination, DASHBOARD_TABLE_PROPS } from '../../components/tables/tableDefaults.js'
 import {
   matchesYesNoTriState,
   rowMatchesSearch,
 } from '../../utils/tableFilters.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
+import { TruncatedTextCell } from '../../components/tables/TruncatedTextCell.jsx'
 
 const DEFAULT_PAGE_SIZE = 10
 
 function TriStateColumnFilter({ options, value, onApply, confirm }) {
+  const { t } = useTranslation('pages')
   const [local, setLocal] = useState(value || [])
   useEffect(() => {
     setLocal(value || [])
@@ -24,7 +29,7 @@ function TriStateColumnFilter({ options, value, onApply, confirm }) {
       <Select
         mode="multiple"
         allowClear
-        placeholder="Filter"
+        placeholder={t('shared.textFilter')}
         className="w-full mb-2"
         value={local}
         onChange={setLocal}
@@ -39,7 +44,7 @@ function TriStateColumnFilter({ options, value, onApply, confirm }) {
             confirm()
           }}
         >
-          Apply
+          {t('shared.apply')}
         </AntButton>
         <AntButton
           size="small"
@@ -49,20 +54,88 @@ function TriStateColumnFilter({ options, value, onApply, confirm }) {
             confirm()
           }}
         >
-          Reset
+          {t('shared.reset')}
         </AntButton>
       </Space>
     </div>
   )
 }
 
+function StoreActiveSwitch({ row, mutation }) {
+  const { t } = useTranslation('pages')
+  const [checked, setChecked] = useState(row.isActive)
+  useEffect(() => {
+    setChecked(row.isActive)
+  }, [row.id, row.isActive])
+  const pending =
+    mutation.isPending &&
+    mutation.variables != null &&
+    String(mutation.variables.storeId) === String(row.id)
+  return (
+    <Switch
+      checked={checked}
+      loading={pending}
+      disabled={pending}
+      onChange={async (next) => {
+        const prev = checked
+        setChecked(next)
+        try {
+          await mutation.mutateAsync({ storeId: row.id, isActive: next })
+        } catch (err) {
+          setChecked(prev)
+          message.error(err?.message ?? t('stores.list.activeUpdateErr'))
+        }
+      }}
+    />
+  )
+}
+
+function StoreBrandSwitch({ row, mutation }) {
+  const { t } = useTranslation('pages')
+  const [checked, setChecked] = useState(row.isBrand)
+  useEffect(() => {
+    setChecked(row.isBrand)
+  }, [row.id, row.isBrand])
+  const pending =
+    mutation.isPending &&
+    mutation.variables != null &&
+    String(mutation.variables.storeId) === String(row.id)
+  return (
+    <Switch
+      checked={checked}
+      loading={pending}
+      disabled={pending}
+      onChange={async (next) => {
+        const prev = checked
+        setChecked(next)
+        try {
+          await mutation.mutateAsync({ storeId: row.id, isBrand: next })
+        } catch (err) {
+          setChecked(prev)
+          message.error(err?.message ?? t('stores.list.brandUpdateErr'))
+        }
+      }}
+    />
+  )
+}
+
 export function StoresListPage() {
-  const { stores, loading, error, fetchStores } = useStoresViewModel()
+  const { t } = useTranslation('pages')
+  const {
+    stores,
+    loading,
+    error,
+    fetchStores,
+    deleteStore,
+    setStoreActiveMutation,
+    setStoreBrandMutation,
+  } = useStoresViewModel()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState(/** @type {'all' | 'yes' | 'no'} */ ('all'))
   const [brandFilter, setBrandFilter] = useState(/** @type {'all' | 'yes' | 'no'} */ ('all'))
+  const [deletingId, setDeletingId] = useState(null)
 
   const [colOwnerId, setColOwnerId] = useState('')
   const [colOwnerEmail, setColOwnerEmail] = useState('')
@@ -168,18 +241,18 @@ export function StoresListPage() {
 
   const titleSuffix =
     displayTotal !== stores.length
-      ? `${displayTotal} shown · ${stores.length} total`
-      : `${displayTotal}`
+      ? t('shared.shownOfTotal', { shown: displayTotal, total: stores.length })
+      : t('shared.count', { count: displayTotal })
 
   const columns = [
     {
-      title: 'Store',
+      title: t('stores.list.colStore'),
       key: 'name',
       align: 'left',
       filteredValue: colStoreName ? [colStoreName] : null,
       filterDropdown: ({ confirm }) => (
         <ColumnTextFilterDropdown
-          placeholder="Filter store name"
+          placeholder={t('stores.list.filterStore')}
           value={colStoreName}
           onApply={setColStoreName}
           onReset={() => setColStoreName('')}
@@ -194,7 +267,7 @@ export function StoresListPage() {
       ),
     },
     {
-      title: 'Seller ID',
+      title: t('stores.list.colSellerId'),
       dataIndex: 'ownerId',
       key: 'ownerId',
       align: 'left',
@@ -202,51 +275,53 @@ export function StoresListPage() {
       filteredValue: colOwnerId ? [colOwnerId] : null,
       filterDropdown: ({ confirm }) => (
         <ColumnTextFilterDropdown
-          placeholder="Filter seller ID"
+          placeholder={t('stores.list.filterSellerId')}
           value={colOwnerId}
           onApply={setColOwnerId}
           onReset={() => setColOwnerId('')}
           confirm={confirm}
         />
       ),
-      render: (v) => <span className="tabular-nums text-slate-700">{v || '—'}</span>,
+      render: (v) => (
+        <span className="tabular-nums text-slate-700">{v || t('shared.emDash')}</span>
+      ),
     },
     {
-      title: 'Seller email',
+      title: t('stores.list.colSellerEmail'),
       dataIndex: 'ownerEmail',
       key: 'ownerEmail',
       align: 'left',
       filteredValue: colOwnerEmail ? [colOwnerEmail] : null,
       filterDropdown: ({ confirm }) => (
         <ColumnTextFilterDropdown
-          placeholder="Filter email"
+          placeholder={t('stores.list.filterEmail')}
           value={colOwnerEmail}
           onApply={setColOwnerEmail}
           onReset={() => setColOwnerEmail('')}
           confirm={confirm}
         />
       ),
-      render: (v) => <span className="text-slate-700">{v || '—'}</span>,
+      render: (v) => <span className="text-slate-700">{v || t('shared.emDash')}</span>,
     },
     {
-      title: 'Phone',
+      title: t('stores.list.colPhone'),
       dataIndex: 'phone',
       key: 'phone',
       align: 'left',
       filteredValue: colPhone ? [colPhone] : null,
       filterDropdown: ({ confirm }) => (
         <ColumnTextFilterDropdown
-          placeholder="Filter phone"
+          placeholder={t('stores.list.filterPhone')}
           value={colPhone}
           onApply={setColPhone}
           onReset={() => setColPhone('')}
           confirm={confirm}
         />
       ),
-      render: (v) => <span className="text-slate-700">{v || '—'}</span>,
+      render: (v) => <span className="text-slate-700">{v || t('shared.emDash')}</span>,
     },
     {
-      title: 'Address',
+      title: t('stores.list.colAddress'),
       dataIndex: 'address',
       key: 'address',
       align: 'left',
@@ -254,35 +329,37 @@ export function StoresListPage() {
       filteredValue: colAddress ? [colAddress] : null,
       filterDropdown: ({ confirm }) => (
         <ColumnTextFilterDropdown
-          placeholder="Filter address"
+          placeholder={t('stores.list.filterAddress')}
           value={colAddress}
           onApply={setColAddress}
           onReset={() => setColAddress('')}
           confirm={confirm}
         />
       ),
-      render: (v) => <span className="text-slate-600 text-sm">{v || '—'}</span>,
+      render: (v) => <span className="text-slate-600 text-sm">{v || t('shared.emDash')}</span>,
     },
     {
-      title: 'Description',
+      title: t('stores.list.colDesc'),
       dataIndex: 'description',
       key: 'description',
       align: 'left',
-      ellipsis: true,
+      width: 260,
       filteredValue: colDesc ? [colDesc] : null,
       filterDropdown: ({ confirm }) => (
         <ColumnTextFilterDropdown
-          placeholder="Filter description"
+          placeholder={t('stores.list.filterDesc')}
           value={colDesc}
           onApply={setColDesc}
           onReset={() => setColDesc('')}
           confirm={confirm}
         />
       ),
-      render: (v) => <span className="text-slate-600 text-sm">{v || '—'}</span>,
+      render: (v) => (
+        <TruncatedTextCell text={v} emptyLabel={t('shared.emDash')} />
+      ),
     },
     {
-      title: 'Active',
+      title: t('stores.list.colActive'),
       dataIndex: 'isActive',
       key: 'isActive',
       align: 'left',
@@ -291,25 +368,18 @@ export function StoresListPage() {
       filterDropdown: ({ confirm }) => (
         <TriStateColumnFilter
           options={[
-            { value: 'yes', label: 'Yes' },
-            { value: 'no', label: 'No' },
+            { value: 'yes', label: t('shared.yes') },
+            { value: 'no', label: t('shared.no') },
           ]}
           value={colActive}
           onApply={setColActive}
           confirm={confirm}
         />
       ),
-      render: (isActive) =>
-        isActive ? (
-          <Tag color="green" style={{ marginInlineEnd: 0, borderRadius: 999 }}>
-            Yes
-          </Tag>
-        ) : (
-          <Tag style={{ marginInlineEnd: 0, borderRadius: 999 }}>No</Tag>
-        ),
+      render: (_, row) => <StoreActiveSwitch row={row} mutation={setStoreActiveMutation} />,
     },
     {
-      title: 'Brand',
+      title: t('stores.list.colBrand'),
       dataIndex: 'isBrand',
       key: 'isBrand',
       align: 'left',
@@ -318,34 +388,41 @@ export function StoresListPage() {
       filterDropdown: ({ confirm }) => (
         <TriStateColumnFilter
           options={[
-            { value: 'yes', label: 'Yes' },
-            { value: 'no', label: 'No' },
+            { value: 'yes', label: t('shared.yes') },
+            { value: 'no', label: t('shared.no') },
           ]}
           value={colBrand}
           onApply={setColBrand}
           confirm={confirm}
         />
       ),
-      render: (isBrand) =>
-        isBrand ? (
-          <Tag color="blue" style={{ marginInlineEnd: 0, borderRadius: 999 }}>
-            Yes
-          </Tag>
-        ) : (
-          <Tag style={{ marginInlineEnd: 0, borderRadius: 999 }}>No</Tag>
-        ),
+      render: (_, row) => <StoreBrandSwitch row={row} mutation={setStoreBrandMutation} />,
     },
     {
-      title: 'Actions',
+      title: t('shared.actions'),
       key: 'actions',
       align: 'left',
-      width: 100,
+      width: 140,
+      fixed: 'right',
       render: (_, row) => (
-        <Space size="small">
-          <Button as={Link} variant="ghost" to={`/admin/stores/${row.id}/edit`}>
-            Edit
-          </Button>
-        </Space>
+        <TableRowActions
+          editTo={`/stores/${row.id}/edit`}
+          showDelete
+          deleteLoading={String(deletingId) === String(row.id)}
+          onDelete={async () => {
+            setDeletingId(row.id)
+            try {
+              await deleteStore(row.id)
+              message.success(t('stores.list.deleted'))
+            } catch (err) {
+              message.error(err?.message ?? t('stores.list.deleteErr'))
+            } finally {
+              setDeletingId(null)
+            }
+          }}
+          deleteTitle={t('stores.list.deleteTitle')}
+          deleteDescription={t('stores.list.deleteDesc')}
+        />
       ),
     },
   ]
@@ -355,28 +432,26 @@ export function StoresListPage() {
       {error ? (
         <Alert
           type="error"
-          title="Could not load stores"
+          title={t('stores.list.loadError')}
           description={error}
           showIcon
           action={
             <Button type="button" variant="ghost" onClick={() => fetchStores()}>
-              Retry
+              {t('shared.retry')}
             </Button>
           }
         />
       ) : null}
 
       <Card
-        title={`Stores (${titleSuffix})`}
+        title={t('stores.list.title', { suffix: titleSuffix })}
         actions={
-          <Button as={Link} to="/admin/stores/create">
-            + New store
-          </Button>
+          <DashboardAddLinkButton to="/stores/create">{t('stores.list.newStore')}</DashboardAddLinkButton>
         }
       >
         <Spin spinning={loading}>
           <DashboardTableToolbar
-            searchPlaceholder="Search name, ID, seller, phone, address…"
+            searchPlaceholder={t('stores.list.searchPlaceholder')}
             searchValue={search}
             onSearchChange={setSearch}
             filterSlot={
@@ -386,9 +461,9 @@ export function StoresListPage() {
                   onChange={setActiveFilter}
                   className="min-w-[130px]"
                   options={[
-                    { value: 'all', label: 'Active: any' },
-                    { value: 'yes', label: 'Active: yes' },
-                    { value: 'no', label: 'Active: no' },
+                    { value: 'all', label: t('stores.list.activeAny') },
+                    { value: 'yes', label: t('stores.list.activeYes') },
+                    { value: 'no', label: t('stores.list.activeNo') },
                   ]}
                 />
                 <Select
@@ -396,9 +471,9 @@ export function StoresListPage() {
                   onChange={setBrandFilter}
                   className="min-w-[130px]"
                   options={[
-                    { value: 'all', label: 'Brand: any' },
-                    { value: 'yes', label: 'Brand: yes' },
-                    { value: 'no', label: 'Brand: no' },
+                    { value: 'all', label: t('stores.list.brandAny') },
+                    { value: 'yes', label: t('stores.list.brandYes') },
+                    { value: 'no', label: t('stores.list.brandNo') },
                   ]}
                 />
               </>
@@ -408,20 +483,17 @@ export function StoresListPage() {
             rowKey="id"
             columns={columns}
             dataSource={displayData}
-            pagination={{
-              current: page,
+            pagination={buildDashboardPagination({
+              page,
               pageSize,
               total: displayTotal,
-              showSizeChanger: true,
-              pageSizeOptions: [10, 20, 50],
-              showTotal: (t) => `${t} stores`,
+              showTotal: (total) => t('stores.list.pagination', { count: total }),
               onChange: (p, ps) => {
                 setPage(p)
                 setPageSize(ps)
               },
-            }}
-            size="middle"
-            scroll={{ x: 'max-content' }}
+            })}
+            {...DASHBOARD_TABLE_PROPS}
           />
         </Spin>
       </Card>

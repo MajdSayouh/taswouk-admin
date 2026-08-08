@@ -36,7 +36,11 @@ function extraPathPrefix() {
 export function extractProductImageStoragePath(pathOrUrl) {
   if (pathOrUrl == null || pathOrUrl === '') return ''
   const s = String(pathOrUrl).trim()
-  if (!/^https?:\/\//i.test(s)) return s.replace(/^\/+/, '')
+  if (!/^https?:\/\//i.test(s)) {
+    return s
+      .replace(/^\/+/, '')
+      .replace(/^media\/+/i, '')
+  }
 
   try {
     const u = new URL(s)

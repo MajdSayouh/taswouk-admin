@@ -8,7 +8,7 @@ export function GuestOnly() {
   const hydrated = useAuthHydrated()
   const token = useAuthStore((s) => s.token)
   const location = useLocation()
-  const redirectTo = location.state?.from ?? { pathname: '/admin/dashboard' }
+  const redirectTo = location.state?.from ?? { pathname: '/home' }
 
   if (!hydrated) {
     return (

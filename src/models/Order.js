@@ -11,13 +11,19 @@
  */
 
 export function createOrder(data) {
+  const deliveryRaw =
+    data.deliveryUserId ?? data.delivery_user_id ?? data.driver_id ?? data.delivery_user?.id
   return {
     id: data.id ?? '',
     number: data.number ?? '',
     customerName: data.customerName ?? '',
+    customerId: data.customerId ?? null,
+    customerPhone: data.customerPhone ?? '',
     total: Number(data.total ?? 0),
     status: data.status ?? 'pending',
     createdAt: data.createdAt ?? new Date().toISOString(),
+    ...(deliveryRaw != null && String(deliveryRaw).trim() !== ''
+      ? { deliveryUserId: String(deliveryRaw) }
+      : {}),
   }
 }
-

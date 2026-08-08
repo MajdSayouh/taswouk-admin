@@ -1,0 +1,170 @@
+/**
+ * Malls API (admin) — Moll entity + product assignments.
+ * @see https://test.taswouk.com/api/docs#/Malls
+ */
+import { apiClient } from './apiClient.js'
+
+function isFileLike(value) {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    ((typeof File !== 'undefined' && value instanceof File) ||
+      (typeof Blob !== 'undefined' && value instanceof Blob))
+  )
+}
+
+function multipartConfig() {
+  return {
+    transformRequest: [
+      (body, headers) => {
+        if (body instanceof FormData) {
+          delete headers['Content-Type']
+        }
+        return body
+      },
+    ],
+  }
+}
+
+/**
+ * GET /api/malls/
+ * @param {{ signal?: AbortSignal }} [options]
+ * @returns {Promise<{ count: number, malls: unknown[] }>}
+ */
+export async function listMalls(options = {}) {
+  const { data } = await apiClient.get('/api/malls/', { signal: options.signal })
+  if (data && typeof data === 'object' && Array.isArray(data.malls)) {
+    return { count: Number(data.count) || data.malls.length, malls: data.malls }
+  }
+  if (Array.isArray(data)) {
+    return { count: data.length, malls: data }
+  }
+  return { count: 0, malls: [] }
+}
+
+/**
+ * GET /api/malls/{moll_id}
+ * @param {number | string} mallId
+ */
+export async function getMall(mallId) {
+  const { data } = await apiClient.get(`/api/malls/${mallId}`)
+  return data
+}
+
+/**
+ * POST /api/malls/ — MollCreateSchema (admin)
+ * @param {Record<string, unknown>} payload
+ */
+export async function createMall(payload) {
+  const { data } = await apiClient.post('/api/malls/', payload)
+  return data
+}
+
+/**
+ * PUT /api/malls/{moll_id} — MollUpdateSchema
+ * @param {number | string} mallId
+ * @param {Record<string, unknown>} payload
+ */
+export async function updateMall(mallId, payload) {
+  const { data } = await apiClient.put(`/api/malls/${mallId}`, payload)
+  return data
+}
+
+/**
+ * PUT /api/malls/{moll_id}/exchange-rate — MollExchangeRateSchema (admin).
+ * `null` clears the mall override and falls back to the system exchange rate.
+ * @param {number | string} mallId
+ * @param {number | null} exchangeRate
+ */
+export async function setMallExchangeRate(mallId, exchangeRate) {
+  const { data } = await apiClient.put(`/api/malls/${mallId}/exchange-rate`, {
+    exchange_rate: exchangeRate,
+  })
+  return data
+}
+
+/**
+ * DELETE /api/malls/{moll_id}
+ * @param {number | string} mallId
+ */
+export async function deleteMall(mallId) {
+  await apiClient.delete(`/api/malls/${mallId}`)
+}
+
+/**
+ * PATCH /api/malls/{moll_id}/toggle-active
+ * @param {number | string} mallId
+ */
+export async function toggleMallActive(mallId) {
+  const { data } = await apiClient.patch(`/api/malls/${mallId}/toggle-active`)
+  return data
+}
+
+/**
+ * POST /api/malls/{moll_id}/logo — multipart `file`
+ * @param {number | string} mallId
+ * @param {File | Blob} file
+ */
+export async function uploadMallLogo(mallId, file) {
+  if (!isFileLike(file)) throw new Error('Logo must be a file')
+  const fd = new FormData()
+  fd.append('file', file)
+  const { data } = await apiClient.post(`/api/malls/${mallId}/logo`, fd, multipartConfig())
+  return data
+}
+
+/**
+ * DELETE /api/malls/{moll_id}/logo
+ * @param {number | string} mallId
+ */
+export async function deleteMallLogo(mallId) {
+  const { data } = await apiClient.delete(`/api/malls/${mallId}/logo`)
+  return data
+}
+
+// ——— Mall product assignments (admin) ———
+
+/**
+ * GET /api/malls/{moll_id}/products
+ * @param {number | string} mallId
+ */
+export async function listMallProducts(mallId) {
+  const { data } = await apiClient.get(`/api/malls/${mallId}/products`)
+  if (data && typeof data === 'object' && Array.isArray(data.products)) {
+    return { count: Number(data.count) || data.products.length, products: data.products }
+  }
+  if (Array.isArray(data)) {
+    return { count: data.length, products: data }
+  }
+  return { count: 0, products: [] }
+}
+
+/**
+ * POST /api/malls/{moll_id}/products — MollProductAssignSchema
+ * @param {number | string} mallId
+ * @param {{ product_id: number, price: number }} payload
+ */
+export async function assignProductToMall(mallId, payload) {
+  const { data } = await apiClient.post(`/api/malls/${mallId}/products`, payload)
+  return data
+}
+
+/**
+ * PUT /api/malls/{moll_id}/products/{product_id} — MollProductUpdateSchema
+ * @param {number | string} mallId
+ * @param {number | string} productId
+ * @param {{ price?: number | null, is_available?: boolean | null }} payload
+ */
+export async function updateMallProduct(mallId, productId, payload) {
+  const { data } = await apiClient.put(`/api/malls/${mallId}/products/${productId}`, payload)
+  return data
+}
+
+/**
+ * DELETE /api/malls/{moll_id}/products/{product_id}
+ * @param {number | string} mallId
+ * @param {number | string} productId
+ */
+export async function removeProductFromMall(mallId, productId) {
+  await apiClient.delete(`/api/malls/${mallId}/products/${productId}`)
+}

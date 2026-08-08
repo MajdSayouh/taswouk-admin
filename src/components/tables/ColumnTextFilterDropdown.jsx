@@ -1,5 +1,6 @@
 // Ant Design Table filterDropdown: text filter + apply / reset.
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button, Input, Space } from 'antd'
 
 /**
@@ -12,6 +13,7 @@ import { Button, Input, Space } from 'antd'
  * }} props
  */
 export function ColumnTextFilterDropdown({ placeholder, value, onApply, onReset, confirm }) {
+  const { t } = useTranslation('pages')
   const [local, setLocal] = useState(value)
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function ColumnTextFilterDropdown({ placeholder, value, onApply, onReset,
             confirm()
           }}
         >
-          Filter
+          {t('shared.textFilter')}
         </Button>
         <Button
           size="small"
@@ -50,7 +52,7 @@ export function ColumnTextFilterDropdown({ placeholder, value, onApply, onReset,
             confirm()
           }}
         >
-          Reset
+          {t('shared.reset')}
         </Button>
       </Space>
     </div>

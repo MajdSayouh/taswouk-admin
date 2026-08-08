@@ -1,4 +1,5 @@
 // View layer: customers screen with a simple list of mock customers.
+import { useTranslation } from 'react-i18next'
 import { Card } from '../../components/ui/Card'
 import { createCustomer } from '../../models/Customer'
 
@@ -30,9 +31,10 @@ const mockCustomers = [
 ]
 
 export function CustomersPage() {
+  const { t } = useTranslation('pages')
   return (
     <div className="space-y-6">
-      <Card title={`Customers (${mockCustomers.length})`}>
+      <Card title={t('customers.title', { count: mockCustomers.length })}>
         <div className="space-y-3 text-sm">
           {mockCustomers.map((customer) => (
             <div

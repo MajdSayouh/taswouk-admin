@@ -1,7 +1,8 @@
 // Loads media path images with axios + JWT (plain <img src> gets 401).
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Image, Spin } from 'antd'
-import { fetchProductImageBlob } from '../../services/productService.js'
+import { fetchProductImageBlobUrl } from '../../services/productService.js'
+import { resolvePublicMediaUrl } from '../../utils/mediaUrl.js'
 
 /**
  * @param {{
@@ -26,9 +27,14 @@ export function AuthenticatedProductImage({
   preview = true,
   ...imgProps
 }) {
+  const publicUrl = useMemo(
+    () => resolvePublicMediaUrl(storagePath, { productId }),
+    [storagePath, productId],
+  )
   const [blobUrl, setBlobUrl] = useState(/** @type {string | null} */ (null))
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+  const [usingFallback, setUsingFallback] = useState(false)
 
   useEffect(() => {
     const ac = new AbortController()
@@ -36,19 +42,17 @@ export function AuthenticatedProductImage({
     async function load() {
       setLoading(true)
       setFailed(false)
-      setBlobUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev)
-        return null
-      })
+      setBlobUrl(null)
+      setUsingFallback(false)
 
       try {
-        const blob = await fetchProductImageBlob(storagePath, {
+        const url = await fetchProductImageBlobUrl(storagePath, {
           signal: ac.signal,
           productId,
         })
         if (ac.signal.aborted) return
-        const url = URL.createObjectURL(blob)
         setBlobUrl(url)
+        setUsingFallback(true)
       } catch (err) {
         if (ac.signal.aborted || err?.code === 'ERR_CANCELED') return
         setFailed(true)
@@ -57,16 +61,26 @@ export function AuthenticatedProductImage({
       }
     }
 
-    if (storagePath) load()
+    if (!storagePath) {
+      setLoading(false)
+      return () => ac.abort()
+    }
+
+    if (publicUrl) {
+      setLoading(false)
+      return () => {
+        ac.abort()
+        setBlobUrl(null)
+      }
+    }
+
+    load()
 
     return () => {
       ac.abort()
-      setBlobUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev)
-        return null
-      })
+      setBlobUrl(null)
     }
-  }, [storagePath, productId])
+  }, [storagePath, productId, publicUrl])
 
   if (!storagePath) return null
 
@@ -86,7 +100,7 @@ export function AuthenticatedProductImage({
     )
   }
 
-  if (failed || !blobUrl) {
+  if (failed || (!publicUrl && !blobUrl)) {
     return (
       <span
         className={`inline-flex items-center justify-center bg-slate-100 text-[10px] text-slate-500 text-center px-1 rounded-lg border border-dashed border-slate-300 ${className ?? ''}`}
@@ -98,10 +112,11 @@ export function AuthenticatedProductImage({
   }
 
   const previewProps = preview === false ? false : preview === true ? {} : preview
+  const src = usingFallback ? blobUrl : publicUrl || blobUrl
 
   return (
     <Image
-      src={blobUrl}
+      src={src}
       alt={alt}
       width={width}
       height={height}
@@ -109,7 +124,27 @@ export function AuthenticatedProductImage({
       style={boxStyle}
       preview={previewProps}
       {...imgProps}
-      onError={() => setFailed(true)}
+      onError={async () => {
+        if (!usingFallback) {
+          const ac = new AbortController()
+          setLoading(true)
+          try {
+            const url = await fetchProductImageBlobUrl(storagePath, {
+              signal: ac.signal,
+              productId,
+            })
+            setBlobUrl(url)
+            setUsingFallback(true)
+            setFailed(false)
+          } catch {
+            setFailed(true)
+          } finally {
+            setLoading(false)
+          }
+          return
+        }
+        setFailed(true)
+      }}
     />
   )
 }

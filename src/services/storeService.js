@@ -1,6 +1,6 @@
 /**
  * Stores API — list, create, update, delete, toggle active, brand flag.
- * @see https://test.taswouk.com/api/docs
+ * @see https://v2.taswouk.com/api/docs#/Stores%20Admin
  */
 import { apiClient } from './apiClient.js'
 
@@ -47,8 +47,8 @@ function shouldUseMultipart(payload) {
  * GET /api/stores/
  * @returns {Promise<unknown[]>}
  */
-export async function listStores() {
-  const { data } = await apiClient.get('/api/stores/')
+export async function listStores(options = {}) {
+  const { data } = await apiClient.get('/api/stores/', { signal: options.signal })
   return data
 }
 
@@ -71,7 +71,8 @@ export async function getStore(storeId) {
 }
 
 /**
- * POST /api/stores/admin/create — StoreCreateByAdminSchema (admin JWT; `seller_id` required).
+ * POST /api/stores/admin/create-with-logo — multipart/form-data (admin JWT).
+ * Fields: seller_id, name, description?, phone?, address?, latitude?, longitude?, exchange_rate?, logo? (binary).
  * @param {{
  *   seller_id: number
  *   name: string
@@ -80,12 +81,23 @@ export async function getStore(storeId) {
  *   address?: string | null
  *   latitude?: number | null
  *   longitude?: number | null
+ *   exchange_rate?: number | null
  *   logo?: File | Blob | null
  * }} payload
  */
 export async function adminCreateStore(payload) {
-  const body = shouldUseMultipart(payload) ? toMultipart(payload) : payload
-  const { data } = await apiClient.post('/api/stores/admin/create', body, multipartConfig())
+  const body = toMultipart({
+    seller_id: payload.seller_id,
+    name: payload.name,
+    description: payload.description,
+    phone: payload.phone,
+    address: payload.address,
+    latitude: payload.latitude,
+    longitude: payload.longitude,
+    exchange_rate: payload.exchange_rate,
+    logo: payload.logo,
+  })
+  const { data } = await apiClient.post('/api/stores/admin/create-with-logo', body, multipartConfig())
   return data
 }
 
@@ -98,6 +110,7 @@ export async function adminCreateStore(payload) {
  *   address?: string | null
  *   latitude?: number | null
  *   longitude?: number | null
+ *   exchange_rate?: number | null
  *   logo?: File | Blob | null
  * }} payload
  */
@@ -108,7 +121,8 @@ export async function sellerCreateStore(payload) {
 }
 
 /**
- * PUT /api/stores/{store_id}
+ * PUT /api/stores/{store_id} — JSON only (`StoreUpdateSchema` has no file or exchange-rate fields).
+ * Do not send `logo` here; use {@link patchStoreLogo} after updating fields.
  * @param {number | string} storeId
  * @param {{
  *   name?: string | null
@@ -117,12 +131,43 @@ export async function sellerCreateStore(payload) {
  *   description?: string | null
  *   latitude?: number | null
  *   longitude?: number | null
- *   logo?: File | Blob | null
+ *   currency?: 'USD' | 'SYP' | null
  * }} payload
  */
 export async function updateStore(storeId, payload) {
-  const body = shouldUseMultipart(payload) ? toMultipart(payload) : payload
-  const { data } = await apiClient.put(`/api/stores/${storeId}`, body, multipartConfig())
+  const clean = { ...(payload || {}) }
+  delete clean.logo
+  // Per-store exchange rates have a dedicated admin endpoint. Sending this field to the general
+  // update endpoint is silently ignored by the API.
+  delete clean.exchange_rate
+  const { data } = await apiClient.put(`/api/stores/${storeId}`, clean)
+  return data
+}
+
+/**
+ * PUT /api/stores/{store_id}/exchange-rate — `Stores Admin` per-store rate override.
+ * Pass null to make the store use the system-wide exchange rate.
+ * @param {number | string} storeId
+ * @param {number | null} exchangeRate
+ */
+export async function updateStoreExchangeRate(storeId, exchangeRate) {
+  const { data } = await apiClient.put(`/api/stores/${storeId}/exchange-rate`, {
+    exchange_rate: exchangeRate,
+  })
+  return data
+}
+
+/**
+ * PATCH /api/stores/{store_id}/logo — multipart `logo` (binary).
+ * @param {number | string} storeId
+ * @param {File | Blob} logoFile
+ */
+export async function patchStoreLogo(storeId, logoFile) {
+  if (!isFileLike(logoFile)) {
+    throw new Error('Logo must be a file')
+  }
+  const body = toMultipart({ logo: logoFile })
+  const { data } = await apiClient.patch(`/api/stores/${storeId}/logo`, body, multipartConfig())
   return data
 }
 
@@ -155,6 +200,15 @@ export async function setStoreBrand(storeId, isBrand) {
   const { data } = await apiClient.patch(`/api/stores/${storeId}/set-brand`, {
     is_brand: isBrand,
   })
+  return data
+}
+
+/**
+ * PATCH /api/stores/{store_id}/toggle-brand — flips `is_brand` (no request body).
+ * @param {number | string} storeId
+ */
+export async function toggleStoreBrand(storeId) {
+  const { data } = await apiClient.patch(`/api/stores/${storeId}/toggle-brand`)
   return data
 }
 

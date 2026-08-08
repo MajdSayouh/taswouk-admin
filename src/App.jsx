@@ -5,7 +5,7 @@ import { AppProviders } from './app/providers'
 function App() {
   return (
     // View root: wires global providers and routing for the admin dashboard UI
-    <BrowserRouter>
+    <BrowserRouter basename="/dashboard">
       <AppProviders>
         <AppRouter />
       </AppProviders>

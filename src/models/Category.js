@@ -3,6 +3,7 @@
  *   id: string
  *   name: string
  *   isActive: boolean
+ *   logoUrl: string | null
  * }} CategoryModel
  */
 
@@ -13,6 +14,7 @@
  *   categoryId: string
  *   categoryName: string
  *   isActive: boolean
+ *   logoUrl: string | null
  * }} SubcategoryModel
  */
 
@@ -29,6 +31,7 @@ export function mapCategoryFromApi(raw) {
     id: String(id),
     name: String(r.name ?? r.title ?? '').trim() || `Category #${id}`,
     isActive: Boolean(r.is_active ?? r.active ?? true),
+    logoUrl: r.logo ?? r.logo_url ?? null,
   }
 }
 
@@ -63,6 +66,7 @@ export function mapSubcategoryFromApi(raw) {
     categoryId: cid != null ? String(cid) : '',
     categoryName: String(cname || '').trim(),
     isActive: Boolean(r.is_active ?? r.active ?? true),
+    logoUrl: r.logo ?? r.logo_url ?? null,
   }
 }
 

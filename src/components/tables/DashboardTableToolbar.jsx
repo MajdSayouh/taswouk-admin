@@ -1,4 +1,5 @@
 // Toolbar: search + optional filter controls (left-aligned).
+import { useTranslation } from 'react-i18next'
 import { Input, Space } from 'antd'
 
 /**
@@ -10,16 +11,18 @@ import { Input, Space } from 'antd'
  * }} props
  */
 export function DashboardTableToolbar({
-  searchPlaceholder = 'Search…',
+  searchPlaceholder,
   searchValue,
   onSearchChange,
   filterSlot,
 }) {
+  const { t } = useTranslation('pages')
+  const placeholder = searchPlaceholder ?? t('shared.searchEllipsis')
   return (
     <div className="flex flex-col gap-3 items-start mb-4">
       <Input.Search
         allowClear
-        placeholder={searchPlaceholder}
+        placeholder={placeholder}
         value={searchValue}
         onChange={(e) => onSearchChange(e.target.value)}
         className="w-full max-w-sm"

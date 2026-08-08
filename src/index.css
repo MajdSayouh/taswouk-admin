@@ -1,7 +1,176 @@
 @import 'tailwindcss';
 
+/*
+ * Ant Design uses `colorLink` for hyperlink styling (separate from `colorPrimary`).
+ * We set both to brand orange in providers.jsx; this guards raw <a> without utilities.
+ */
+@layer base {
+  #root a {
+    text-decoration: none;
+  }
+  #root a:not([class*='text-']):not([class*='ant-']) {
+    color: rgb(71 85 105);
+  }
+  #root a:not([class*='text-']):not([class*='ant-']):hover {
+    color: #ff7d29;
+  }
+}
+
+/* Dashboard sidebar / drawer nav: Ant `colorLink` styles `<a>` — keep labels pure black. */
+#root a.dashboard-nav-link {
+  color: #000000 !important;
+}
+#root a.dashboard-nav-link:hover,
+#root a.dashboard-nav-link:visited,
+#root a.dashboard-nav-link:active {
+  color: #000000 !important;
+}
+
+/* Ant Design global overlays — must sit above dashboard chrome (sidebar, sticky tables, top bar). */
+.ant-notification,
+.ant-notification-top,
+.ant-notification-topRight,
+.ant-notification-topLeft {
+  z-index: 10050 !important;
+}
+
+.ant-message,
+.ant-message-css-var {
+  z-index: 10060 !important;
+}
+
+.ant-app .ant-notification {
+  z-index: 10050 !important;
+}
+
+/* Push alerts from Firebase foreground — green panel; stays until dismissed (duration 0). */
+.dashboard-fcm-push-notification.ant-notification-notice {
+  background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 45%, #ecfdf5 100%) !important;
+  border: 1px solid rgba(22, 163, 74, 0.45) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 12px 40px rgba(22, 163, 74, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+}
+.dashboard-fcm-push-notification .ant-notification-notice-message {
+  color: #14532d !important;
+  font-weight: 600 !important;
+}
+.dashboard-fcm-push-notification .ant-notification-notice-description {
+  color: #166534 !important;
+}
+.dashboard-fcm-push-notification .ant-notification-notice-close {
+  color: #15803d !important;
+}
+.dashboard-fcm-push-notification .ant-notification-notice-close:hover {
+  color: #16a34a !important;
+}
+
+/* Order tracking map markers */
+.order-map-marker span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.order-map-marker--destination span {
+  background: #2563eb;
+}
+.order-map-marker--driver span {
+  background: #ea580c;
+}
+
 /* Dashboard tables: keep column headers and cells left-aligned */
 .ant-table-wrapper .ant-table-thead > tr > th,
 .ant-table-wrapper .ant-table-tbody > tr > td {
   text-align: start !important;
+}
+
+/* WYSIWYG product description (Quill) */
+.rich-text-editor .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 0.375rem 0.375rem 0 0;
+  /* The wrapper can't clip overflow (it would cut off the header/align dropdowns below), so round
+     the toolbar/editor corners individually instead of relying on the parent's overflow-hidden. */
+  overflow: visible;
+}
+.rich-text-editor .ql-container.ql-snow {
+  border: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  overflow: visible;
+}
+.rich-text-editor .ql-editor {
+  min-height: 200px;
+  font-size: 0.875rem;
+  color: rgb(15 23 42);
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+/* Dropdown popups (header/align/color/…) are absolutely positioned inside the toolbar — make sure
+   they render above surrounding form fields instead of behind them. */
+.rich-text-editor .ql-toolbar .ql-picker-options {
+  z-index: 20;
+}
+.rich-text-editor .ql-editor blockquote {
+  border-inline-start: 3px solid #e2e8f0;
+  margin: 0.5rem 0;
+  padding-inline-start: 0.75rem;
+  color: rgb(71 85 105);
+}
+.rich-text-editor .ql-editor a {
+  color: #ff7d29;
+  text-decoration: underline;
+}
+
+/* Rendered HTML (product detail) */
+.rich-html-content p {
+  margin: 0 0 0.5rem;
+}
+.rich-html-content p:last-child {
+  margin-bottom: 0;
+}
+.rich-html-content ul,
+.rich-html-content ol {
+  margin: 0.25rem 0 0.5rem;
+  padding-inline-start: 1.25rem;
+}
+.rich-html-content strong,
+.rich-html-content b {
+  font-weight: 600;
+}
+.rich-html-content a {
+  color: #ff7d29;
+  text-decoration: underline;
+}
+.rich-html-content a:hover {
+  color: #e56a1a;
+}
+.rich-html-content blockquote {
+  border-inline-start: 3px solid #e2e8f0;
+  margin: 0.5rem 0;
+  padding-inline-start: 0.75rem;
+  color: rgb(71 85 105);
+}
+.rich-html-content hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 0.75rem 0;
+}
+.rich-html-content code {
+  font-size: 0.875em;
+  background: rgb(241 245 249);
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+}
+.rich-html-content pre {
+  background: rgb(241 245 249);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+}
+.rich-html-content mark {
+  padding: 0 0.1em;
 }

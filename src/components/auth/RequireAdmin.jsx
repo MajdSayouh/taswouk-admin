@@ -19,7 +19,7 @@ export function RequireAdmin({ children }) {
   }
 
   if (!token) {
-    return <Navigate to="/admin/login" replace />
+    return <Navigate to="/login" replace />
   }
 
   if (!user) {
@@ -31,7 +31,7 @@ export function RequireAdmin({ children }) {
   }
 
   if (!isAdminRole(user.role)) {
-    return <Navigate to="/admin/dashboard" replace />
+    return <Navigate to="/home" replace />
   }
 
   if (children != null) {

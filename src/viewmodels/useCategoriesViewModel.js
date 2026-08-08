@@ -17,8 +17,8 @@ export function useCategoriesViewModel(options = {}) {
   const categoriesQuery = useQuery({
     queryKey: queryKeys.categories.all(),
     enabled,
-    queryFn: async () => {
-      const rows = await categoryService.listCategories()
+    queryFn: async ({ signal }) => {
+      const rows = await categoryService.listCategories({ signal })
       return flattenCategoryTree(rows)
     },
   })
@@ -53,6 +53,16 @@ export function useCategoriesViewModel(options = {}) {
     onSuccess: () => invalidateAll(queryClient),
   })
 
+  const uploadLogoMutation = useMutation({
+    mutationFn: ({ id, file }) => categoryService.uploadCategoryLogo(id, file),
+    onSuccess: () => invalidateAll(queryClient),
+  })
+
+  const deleteLogoMutation = useMutation({
+    mutationFn: (id) => categoryService.deleteCategoryLogo(id),
+    onSuccess: () => invalidateAll(queryClient),
+  })
+
   const categories = categoriesQuery.data?.categories ?? []
   const subcategories = categoriesQuery.data?.subcategories ?? []
   const loading = enabled && categoriesQuery.isFetching
@@ -65,6 +75,8 @@ export function useCategoriesViewModel(options = {}) {
     createSubcategoryMutation.error?.message ??
     updateSubcategoryMutation.error?.message ??
     deleteSubcategoryMutation.error?.message ??
+    uploadLogoMutation.error?.message ??
+    deleteLogoMutation.error?.message ??
     null
 
   const subcategoriesByCategory = useMemo(() => {
@@ -101,6 +113,14 @@ export function useCategoriesViewModel(options = {}) {
     (id) => deleteSubcategoryMutation.mutateAsync(id),
     [deleteSubcategoryMutation],
   )
+  const uploadCategoryLogo = useCallback(
+    (id, file) => uploadLogoMutation.mutateAsync({ id, file }),
+    [uploadLogoMutation],
+  )
+  const deleteCategoryLogo = useCallback(
+    (id) => deleteLogoMutation.mutateAsync(id),
+    [deleteLogoMutation],
+  )
 
   const saving =
     createCategoryMutation.isPending ||
@@ -108,7 +128,9 @@ export function useCategoriesViewModel(options = {}) {
     deleteCategoryMutation.isPending ||
     createSubcategoryMutation.isPending ||
     updateSubcategoryMutation.isPending ||
-    deleteSubcategoryMutation.isPending
+    deleteSubcategoryMutation.isPending ||
+    uploadLogoMutation.isPending ||
+    deleteLogoMutation.isPending
 
   return {
     categories,
@@ -126,5 +148,9 @@ export function useCategoriesViewModel(options = {}) {
     createSubcategory,
     updateSubcategory,
     deleteSubcategory,
+    uploadCategoryLogo,
+    deleteCategoryLogo,
+    updateCategoryMutation,
+    updateSubcategoryMutation,
   }
 }

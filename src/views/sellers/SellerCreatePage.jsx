@@ -1,8 +1,9 @@
 // Admin: POST /api/accounts/admin/users/seller — creates seller account (CreateSellerSchema).
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Alert } from 'antd'
-import { createSeller } from '../../services/adminService.js'
+import { useSellersViewModel } from '../../viewmodels/useSellersViewModel.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
@@ -16,8 +17,9 @@ const emptyForm = () => ({
 })
 
 export function SellerCreatePage() {
+  const { t } = useTranslation('pages')
+  const { createSeller, saving } = useSellersViewModel({ fetchOnMount: false })
   const [form, setForm] = useState(emptyForm)
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   /** @type {{ id: number } | null} */
   const [created, setCreated] = useState(null)
@@ -30,10 +32,13 @@ export function SellerCreatePage() {
   async function handleSubmit(ev) {
     ev.preventDefault()
     setError(null)
-    setSubmitting(true)
     setCreated(null)
+    const phoneTrim = form.phone.trim()
+    if (phoneTrim && phoneTrim.length !== 10) {
+      setError(t('sellers.create.phoneErr'))
+      return
+    }
     try {
-      const phoneTrim = form.phone.trim()
       const payload = {
         email: form.email.trim(),
         password: form.password,
@@ -42,17 +47,15 @@ export function SellerCreatePage() {
         phone: phoneTrim.length ? phoneTrim : null,
       }
       const data = await createSeller(payload)
-      setCreated(data)
+      setCreated({ id: data.id })
       setForm(emptyForm())
     } catch (err) {
-      setError(err?.message ?? 'Failed to create seller')
-    } finally {
-      setSubmitting(false)
+      setError(err?.message ?? t('sellers.create.failed'))
     }
   }
 
   const storeCreateLink =
-    created?.id != null ? `/admin/stores/create?seller_id=${encodeURIComponent(String(created.id))}` : ''
+    created?.id != null ? `/stores/create?seller_id=${encodeURIComponent(String(created.id))}` : ''
 
   return (
     <div className="space-y-6">
@@ -62,20 +65,17 @@ export function SellerCreatePage() {
         <Alert
           type="success"
           showIcon
-          title={`Seller created (ID: ${created.id}). You can create a store for this seller next.`}
+          title={t('sellers.create.successTitle', { id: created.id })}
           className="mb-2"
         />
       ) : null}
 
-      <Card title="New seller">
-        <p className="text-sm text-slate-600 mb-4">
-          Admin-only: creates a seller account. The seller can sign in with email and password. Create a store
-          for this seller from the Stores section (seller ID is required for admin store creation).
-        </p>
+      <Card title={t('sellers.create.title')}>
+        <p className="text-sm text-slate-600 mb-4">{t('sellers.create.hint')}</p>
 
         <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
           <Input
-            label="Email"
+            label={t('sellers.create.email')}
             name="email"
             type="email"
             autoComplete="email"
@@ -84,16 +84,16 @@ export function SellerCreatePage() {
             required
           />
           <Input
-            label="Phone"
+            label={t('sellers.create.phone')}
             name="phone"
             type="tel"
             autoComplete="tel"
             value={form.phone}
             onChange={handleChange}
-            description="Optional; 10 digits when provided"
+            description={t('sellers.create.phoneDesc')}
           />
           <Input
-            label="Password"
+            label={t('sellers.create.password')}
             name="password"
             type="password"
             autoComplete="new-password"
@@ -101,23 +101,33 @@ export function SellerCreatePage() {
             onChange={handleChange}
             required
             minLength={8}
-            description="Minimum 8 characters"
+            description={t('sellers.create.passwordDesc')}
             className="md:col-span-2"
           />
-          <Input label="First name" name="first_name" value={form.first_name} onChange={handleChange} />
-          <Input label="Last name" name="last_name" value={form.last_name} onChange={handleChange} />
+          <Input
+            label={t('sellers.create.firstName')}
+            name="first_name"
+            value={form.first_name}
+            onChange={handleChange}
+          />
+          <Input
+            label={t('sellers.create.lastName')}
+            name="last_name"
+            value={form.last_name}
+            onChange={handleChange}
+          />
 
           <div className="md:col-span-2 flex justify-end gap-3 pt-2 flex-wrap">
-            <Button as={Link} variant="ghost" to="/admin/sellers">
-              Cancel
+            <Button as={Link} variant="ghost" to="/sellers">
+              {t('sellers.create.cancel')}
             </Button>
             {storeCreateLink ? (
               <Button as={Link} to={storeCreateLink}>
-                Create store for this seller
+                {t('sellers.create.createStore')}
               </Button>
             ) : null}
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Creating…' : 'Create seller'}
+            <Button type="submit" disabled={saving}>
+              {saving ? t('sellers.create.submitting') : t('sellers.create.submit')}
             </Button>
           </div>
         </form>
