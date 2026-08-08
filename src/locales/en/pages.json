@@ -406,6 +406,7 @@
     "assignSuccess": "Driver assigned to the order.",
     "assignClearedLocal": "Assignment cleared on this device only.",
     "assignError": "Could not assign the order.",
+    "assignStatusChanged": "This order's status has changed to \"{{status}}\" since the list last loaded, so it can no longer be assigned. The row has been refreshed.",
     "assignDemoLocal": "Demo order: saved on this device only (not sent to the server).",
     "acceptOrder": "Accept order",
     "acceptSuccess": "Order accepted.",

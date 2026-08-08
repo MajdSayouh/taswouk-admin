@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useOrdersViewModel } from '../../viewmodels/useOrdersViewModel'
-import { assignDeliveryOrder, updateOrderStatus } from '../../services/orderService.js'
+import { assignDeliveryOrder, getOrderById, updateOrderStatus } from '../../services/orderService.js'
 import { queryClient } from '../../query/queryClient.js'
 import { queryKeys } from '../../query/queryKeys.js'
 import { DashboardTableToolbar } from '../../components/tables/DashboardTableToolbar.jsx'
@@ -316,6 +316,31 @@ export function OrdersListPage() {
 
       try {
         setAssigningOrderId(idKey)
+
+        // The row's status can be a couple of minutes stale (React Query cache) — another
+        // admin action or the driver app itself can move an order past "confirmed" in that
+        // window. Re-check the live status right before assigning instead of trusting the
+        // cached row, so we can show a clear message and refresh the row locally instead of
+        // firing a doomed request and surfacing a raw backend error.
+        let liveStatus = null
+        try {
+          const fresh = await getOrderById(orderNum, record.orderType)
+          liveStatus = String(fresh?.status ?? '').toLowerCase() || null
+        } catch {
+          // If the live check itself fails (network hiccup, etc.), fall through and let the
+          // assign call's own error handling report the failure.
+        }
+        if (liveStatus && !ASSIGN_DRIVER_STATUSES.has(liveStatus)) {
+          await queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
+          message.warning(t('orders.assignStatusChanged', { status: liveStatus }))
+          setPendingDriverEdits((p) => {
+            const n = { ...p }
+            delete n[idKey]
+            return n
+          })
+          return
+        }
+
         await assignDeliveryOrder(orderNum, driverNum)
         assign(record.id, String(driverNum))
         setPendingDriverEdits((p) => {
@@ -328,6 +353,9 @@ export function OrdersListPage() {
       } catch (err) {
         const detail = err && typeof err === 'object' && 'message' in err ? String(err.message) : ''
         message.error(detail ? `${t('orders.assignError')} ${detail}` : t('orders.assignError'))
+        // The failure may itself be a stale-status race (backend rejected for a reason not
+        // caught by the pre-check above) — refresh so the row reflects reality either way.
+        await queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
       } finally {
         setAssigningOrderId(null)
       }
