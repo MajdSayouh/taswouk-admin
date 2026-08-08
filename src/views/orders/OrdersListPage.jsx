@@ -341,7 +341,7 @@ export function OrdersListPage() {
           return
         }
 
-        await assignDeliveryOrder(orderNum, driverNum)
+        await assignDeliveryOrder(orderNum, driverNum, record.orderType)
         assign(record.id, String(driverNum))
         setPendingDriverEdits((p) => {
           const n = { ...p }

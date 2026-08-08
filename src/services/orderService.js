@@ -41,14 +41,23 @@ export async function getDeliveryAssignments() {
 /**
  * POST /api/delivery/assign — admin assigns a delivery user to an order.
  * @see https://test.taswouk.com/api/docs#/Delivery/delivery_api_assign_order
+ *
+ * Order ids collide across store and mall orders (see getOrderById/updateOrderStatus above),
+ * so `order_type` is included whenever known — without it the backend has no way to tell
+ * this order apart from an unrelated order sharing the same numeric id, which manifests as
+ * "cannot assign order with status: X" errors quoting a completely different order's status.
+ *
  * @param {number} orderId
  * @param {number} deliveryUserId
+ * @param {'store' | 'mall'} [orderType]
  * @returns {Promise<unknown>}
  */
-export async function assignDeliveryOrder(orderId, deliveryUserId) {
+export async function assignDeliveryOrder(orderId, deliveryUserId, orderType) {
+  const normalizedType = orderType === 'mall' ? 'mall' : orderType === 'store' ? 'store' : undefined
   const { data } = await apiClient.post('/api/delivery/assign', {
     order_id: orderId,
     delivery_user_id: deliveryUserId,
+    ...(normalizedType ? { order_type: normalizedType } : {}),
   })
   return data
 }
