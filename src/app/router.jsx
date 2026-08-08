@@ -129,8 +129,8 @@ const ExchangeRateSettingsPage = lazy(() =>
     default: m.ExchangeRateSettingsPage,
   })),
 )
-const AdminUsersPage = lazy(() =>
-  import('../views/users/AdminUsersPage.jsx').then((m) => ({ default: m.AdminUsersPage })),
+const UsersByRolePage = lazy(() =>
+  import('../views/users/UsersByRolePage.jsx').then((m) => ({ default: m.UsersByRolePage })),
 )
 const NotificationsIndexPage = lazy(() =>
   import('../views/notifications/NotificationsIndexPage.jsx').then((m) => ({
@@ -323,7 +323,7 @@ export function AppRouter() {
                 path="customers"
                 element={
                   <LazyPage>
-                    <AdminUsersPage role="CUSTOMER" />
+                    <UsersByRolePage role="CUSTOMER" />
                   </LazyPage>
                 }
               />
@@ -331,7 +331,7 @@ export function AppRouter() {
                 path="sellers"
                 element={
                   <LazyPage>
-                    <AdminUsersPage role="SELLER" />
+                    <UsersByRolePage role="SELLER" />
                   </LazyPage>
                 }
               />
@@ -339,7 +339,7 @@ export function AppRouter() {
                 path="delivery"
                 element={
                   <LazyPage>
-                    <AdminUsersPage role="DELIVERY" />
+                    <UsersByRolePage role="DELIVERY" />
                   </LazyPage>
                 }
               />
@@ -347,7 +347,7 @@ export function AppRouter() {
                 path="admins"
                 element={
                   <LazyPage>
-                    <AdminUsersPage role="ADMIN" />
+                    <UsersByRolePage role="ADMIN" />
                   </LazyPage>
                 }
               />

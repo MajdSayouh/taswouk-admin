@@ -84,8 +84,14 @@ export async function acquireAndRegisterFcmToken() {
   const vapidKey = getFirebaseVapidKey()
   if (!vapidKey) return null
 
-  const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-    scope: '/',
+  // Vite serves `public/` under the configured `base` (e.g. `/dashboard/` in
+  // this project), so the service worker file — and its scope — must be
+  // resolved relative to `import.meta.env.BASE_URL`, not hardcoded to `/`.
+  // A hardcoded root path 404s whenever the app isn't served from the domain
+  // root, which silently breaks getToken()/onMessage() and background push.
+  const swUrl = `${import.meta.env.BASE_URL}firebase-messaging-sw.js`
+  const registration = await navigator.serviceWorker.register(swUrl, {
+    scope: import.meta.env.BASE_URL,
   })
   await registration.update?.()
 

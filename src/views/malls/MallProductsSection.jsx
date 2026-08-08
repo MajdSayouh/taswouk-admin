@@ -1,7 +1,7 @@
 // Mall edit: assign catalog products with price / availability.
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Alert, InputNumber, Modal, Select, Spin, Switch, Table, message } from 'antd'
+import { Alert, Input, InputNumber, Modal, Select, Spin, Switch, Table, message } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import * as mallCatalogService from '../../services/mallCatalogService.js'
 import { mapMallCatalogProductFromApi } from '../../models/MallCatalogProduct.js'
@@ -10,6 +10,63 @@ import { useMallProductsViewModel } from '../../viewmodels/useMallProductsViewMo
 import { Card } from '../../components/ui/Card.jsx'
 import { Button } from '../../components/ui/Button.jsx'
 import { DASHBOARD_TABLE_PROPS } from '../../components/tables/tableDefaults.js'
+
+function AssignmentNameCell({ row, renameMutation, t }) {
+  const [name, setName] = useState(row.productName)
+  const [editing, setEditing] = useState(false)
+  const pending =
+    renameMutation.isPending &&
+    renameMutation.variables?.productId != null &&
+    String(renameMutation.variables.productId) === String(row.productId)
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="truncate">{row.productName}</span>
+        <Button type="button" variant="ghost" onClick={() => setEditing(true)}>
+          {t('shared.edit')}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        value={name}
+        disabled={pending}
+        onChange={(e) => setName(e.target.value)}
+        className="w-40"
+      />
+      <Button
+        type="button"
+        disabled={pending || !name.trim()}
+        onClick={async () => {
+          try {
+            await renameMutation.mutateAsync({ productId: row.productId, name: name.trim() })
+            message.success(t('malls.products.nameUpdated'))
+            setEditing(false)
+          } catch (e) {
+            message.error(e?.message ?? t('malls.products.updateErr'))
+          }
+        }}
+      >
+        {t('shared.save')}
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        disabled={pending}
+        onClick={() => {
+          setName(row.productName)
+          setEditing(false)
+        }}
+      >
+        {t('shared.cancel')}
+      </Button>
+    </div>
+  )
+}
 
 function AssignmentPriceCell({ row, updateMutation, t }) {
   const [price, setPrice] = useState(row.price)
@@ -91,8 +148,16 @@ function AssignmentAvailableSwitch({ row, updateMutation, t }) {
  */
 export function MallProductsSection({ mallId }) {
   const { t } = useTranslation('pages')
-  const { assignments, loading, error, refetch, assignMutation, updateMutation, removeMutation } =
-    useMallProductsViewModel(mallId)
+  const {
+    assignments,
+    loading,
+    error,
+    refetch,
+    assignMutation,
+    updateMutation,
+    removeMutation,
+    renameMutation,
+  } = useMallProductsViewModel(mallId)
 
   const catalogQuery = useQuery({
     queryKey: queryKeys.mallCatalog.all(),
@@ -139,7 +204,14 @@ export function MallProductsSection({ mallId }) {
   }
 
   const columns = [
-    { title: t('malls.products.colName'), dataIndex: 'productName', ellipsis: true },
+    {
+      title: t('malls.products.colName'),
+      key: 'name',
+      ellipsis: true,
+      render: (_, row) => (
+        <AssignmentNameCell row={row} renameMutation={renameMutation} t={t} />
+      ),
+    },
     { title: t('malls.products.colCategory'), dataIndex: 'productCategory', width: 140 },
     {
       title: t('malls.products.colPrice'),
@@ -193,6 +265,7 @@ export function MallProductsSection({ mallId }) {
         </Button>
       }
     >
+      <p className="text-xs text-slate-500 mb-3">{t('malls.products.nameEditNote')}</p>
       {error ? (
         <Alert
           type="error"

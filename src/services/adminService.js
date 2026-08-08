@@ -138,17 +138,26 @@ export async function updateExchangeRateSettings(payload) {
 }
 
 /** @typedef {{ count: number, users: unknown[] }} UserListWithCountSchema */
+/**
+ * Paginated shape the backend team agreed to return once pagination lands on the
+ * admin users endpoints: a bounded page of rows plus enough info to page through
+ * the rest (`total` record count, echoed `page`/`page_size`).
+ * @typedef {{ items: unknown[], total: number, page: number, page_size: number }} PaginatedUserListSchema
+ */
 
 /**
  * GET /api/accounts/admin/users
- * @param {{ signal?: AbortSignal, params?: Record<string, unknown> }} [options]
- * @returns {Promise<UserListWithCountSchema>}
+ * @param {{ signal?: AbortSignal, page?: number, page_size?: number, params?: Record<string, unknown> }} [options]
+ * @returns {Promise<UserListWithCountSchema | PaginatedUserListSchema>}
  */
 export async function listAdminUsers(options = {}) {
-  const { signal, params } = options
+  const { signal, page, page_size, params } = options
+  const merged = { ...params }
+  if (page != null) merged.page = page
+  if (page_size != null) merged.page_size = page_size
   const { data } = await apiClient.get('/api/accounts/admin/users', {
     signal,
-    params: params && Object.keys(params).length ? params : undefined,
+    params: Object.keys(merged).length ? merged : undefined,
   })
   return data
 }
@@ -157,17 +166,17 @@ export async function listAdminUsers(options = {}) {
  * GET /api/accounts/admin/users/role/{role}
  *
  * @param {'ADMIN' | 'CUSTOMER' | 'SELLER' | 'DELIVERY'} role
- * @param {{ signal?: AbortSignal, params?: Record<string, number> }} [options]
- *   `params` lets the caller try different pagination query-param conventions
- *   (e.g. `{ page, page_size }` vs `{ offset, limit }`) since the exact one
- *   this backend honors isn't confirmed.
- * @returns {Promise<UserListWithCountSchema>}
+ * @param {{ signal?: AbortSignal, page?: number, page_size?: number, params?: Record<string, unknown> }} [options]
+ * @returns {Promise<UserListWithCountSchema | PaginatedUserListSchema>}
  */
 export async function listAdminUsersByRole(role, options = {}) {
-  const { signal, params } = options
+  const { signal, page, page_size, params } = options
+  const merged = { ...params }
+  if (page != null) merged.page = page
+  if (page_size != null) merged.page_size = page_size
   const { data } = await apiClient.get(`/api/accounts/admin/users/role/${role}`, {
     signal,
-    params: params && Object.keys(params).length ? params : undefined,
+    params: Object.keys(merged).length ? merged : undefined,
   })
   return data
 }

@@ -130,13 +130,23 @@ export async function deleteMallLogo(mallId) {
  */
 export async function listMallProducts(mallId) {
   const { data } = await apiClient.get(`/api/malls/${mallId}/products`)
-  if (data && typeof data === 'object' && Array.isArray(data.products)) {
-    return { count: Number(data.count) || data.products.length, products: data.products }
+  const products = extractMallProductsList(data)
+  const count = Number(data?.count ?? data?.total) || products.length
+  return { count, products }
+}
+
+/**
+ * The exact wrapper key the backend uses for this list isn't confirmed (we've hit this same
+ * kind of mismatch on other admin list endpoints), so accept any of the common shapes rather
+ * than assuming `{ products: [...] }` and silently returning an empty list otherwise.
+ */
+function extractMallProductsList(data) {
+  if (Array.isArray(data)) return data
+  if (!data || typeof data !== 'object') return []
+  for (const key of ['products', 'items', 'results', 'assignments', 'moll_products', 'data']) {
+    if (Array.isArray(data[key])) return data[key]
   }
-  if (Array.isArray(data)) {
-    return { count: data.length, products: data }
-  }
-  return { count: 0, products: [] }
+  return []
 }
 
 /**

@@ -19,6 +19,15 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging()
 
+// Must match `base` in vite.config.js — the dashboard is not served from the
+// site root, so notification-click URLs need this prefix or they 404.
+const APP_BASE_PATH = '/dashboard'
+
+function withAppBase(path) {
+  const p = String(path || '/home')
+  return p.startsWith(APP_BASE_PATH) ? p : `${APP_BASE_PATH}${p.startsWith('/') ? '' : '/'}${p}`
+}
+
 function stringDataPayload(data) {
   if (!data || typeof data !== 'object') return {}
   /** @type {Record<string, string>} */
@@ -74,7 +83,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const d = event.notification.data || {}
   const path = typeof d.url === 'string' && d.url ? d.url : '/home'
-  const fullUrl = new URL(path, self.location.origin).href
+  const fullUrl = new URL(withAppBase(path), self.location.origin).href
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {

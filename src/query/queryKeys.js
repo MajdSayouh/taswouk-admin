@@ -48,7 +48,12 @@ export const queryKeys = {
   },
   adminUsers: {
     all: () => ['adminUsers'],
-    byRole: (role) => ['adminUsers', 'role', String(role)],
+    // `page`/`pageSize` are optional so existing callers that just want "all of this
+    // role" (dropdowns) keep their original cache key; paginated table views pass them.
+    byRole: (role, page, pageSize) =>
+      page == null
+        ? ['adminUsers', 'role', String(role)]
+        : ['adminUsers', 'role', String(role), 'page', page, pageSize],
   },
   drivers: {
     all: () => ['drivers'],

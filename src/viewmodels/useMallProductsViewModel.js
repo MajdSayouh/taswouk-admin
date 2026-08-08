@@ -3,6 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as mallService from '../services/mallService.js'
+import * as mallCatalogService from '../services/mallCatalogService.js'
 import { mapMallProductAssignmentFromApi } from '../models/MallProductAssignment.js'
 import { queryKeys } from '../query/queryKeys.js'
 
@@ -45,6 +46,18 @@ export function useMallProductsViewModel(mallId, options = {}) {
     },
   })
 
+  // Product name isn't part of the mall assignment (only price/availability are mall-scoped) —
+  // it lives on the shared catalog product, so renaming here updates it everywhere that product
+  // is assigned. Invalidate both this mall's list and the catalog so everything stays in sync.
+  const renameMutation = useMutation({
+    mutationFn: ({ productId, name }) =>
+      mallCatalogService.updateMallCatalogProduct(productId, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.malls.products(mallId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.mallCatalog.all() })
+    },
+  })
+
   return {
     assignments: listQuery.data ?? [],
     loading: enabled && listQuery.isFetching,
@@ -53,5 +66,6 @@ export function useMallProductsViewModel(mallId, options = {}) {
     assignMutation,
     updateMutation,
     removeMutation,
+    renameMutation,
   }
 }

@@ -966,6 +966,8 @@
       "assigned": "Product assigned",
       "assignErr": "Could not assign product",
       "priceUpdated": "Price updated",
+      "nameUpdated": "Product name updated",
+      "nameEditNote": "Price is specific to this mall. The product name is shared — renaming it here updates it everywhere this product is assigned.",
       "updateErr": "Could not update assignment",
       "removed": "Product removed from mall",
       "removeErr": "Could not remove product"
