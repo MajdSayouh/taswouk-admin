@@ -8,6 +8,7 @@ import { listAdminUsersByRole } from '../../services/adminService.js'
 import { queryKeys } from '../../query/queryKeys.js'
 import { useAuthStore, isAdminRole } from '../../store/authStore.js'
 import { normalizeOrderDetail, extractDriverLocation, coordsFromLatLng } from '../../utils/orderDetail.js'
+import { buildOrderItemProductUrl } from '../../utils/publicSiteLinks.js'
 import { ProductTableThumbnail } from '../products/ProductTableThumbnail.jsx'
 import { OrderTrackingMap } from '../maps/OrderTrackingMap.jsx'
 import { OrderFulfillmentStepper } from './OrderFulfillmentStepper.jsx'
@@ -173,10 +174,11 @@ export function OrderDetailModal({
         dataIndex: 'productName',
         key: 'productName',
         render: (value, row) => {
-          const productUrl =
-            row.productId != null
-              ? `https://web.taswouk.com/ar/products/${encodeURIComponent(String(row.productId))}`
-              : ''
+          const productUrl = buildOrderItemProductUrl({
+            orderType: detail?.orderType,
+            mallId: detail?.mallId,
+            productId: row.productId,
+          })
           const thumbnail = row.productImageUrl ? (
             <ProductTableThumbnail
               storagePath={row.productImageUrl}
@@ -234,7 +236,7 @@ export function OrderDetailModal({
         render: (v) => <span className="tabular-nums font-medium">{Number(v).toFixed(2)}</span>,
       },
     ],
-    [t, detail?.isExternal],
+    [t, detail?.isExternal, detail?.orderType, detail?.mallId],
   )
 
   const mapLegend = (

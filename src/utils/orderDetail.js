@@ -111,9 +111,12 @@ export function normalizeOrderDetail(raw) {
       })
       .filter(Boolean)
       .join(' · ')
+    // Mall/grocery order items don't currently echo product_id from the backend (only a name +
+    // price snapshot) — fall back to moll_product_id in case that ever becomes the field used.
+    const productId = row.product_id ?? row.moll_product_id ?? null
     return {
-      key: `${String(row.product_id ?? row.moll_product_id ?? row.variant_id ?? 'item')}:${idx}`,
-      productId: row.product_id ?? null,
+      key: `${String(productId ?? row.variant_id ?? 'item')}:${idx}`,
+      productId,
       variantId: row.variant_id ?? null,
       productName: String(row.product_name ?? row.name ?? nestedProduct?.name ?? '—'),
       productImageUrl: firstNonEmpty(
