@@ -53,24 +53,30 @@ const DRIVER_ASSIGNED_READONLY_STATUSES = new Set(['preparing', 'out_for_deliver
 const DEFAULT_PAGE_SIZE = 50
 
 /**
- * @param {{ name: string; active: boolean }} d
+ * @param {{ name: string; active: boolean; available?: boolean }} d
  * @param {import('i18next').TFunction} t
  */
 function driverOptionLabel(d, t) {
-  return d.active ? d.name : `${d.name} (${t('drivers.inactive')})`
+  if (!d.active) return `${d.name} (${t('drivers.inactive')})`
+  if (d.available === false) return `${d.name} (${t('orders.driverUnavailable')})`
+  return d.name
 }
 
 /**
  * API delivery rows first; if none, demo mock drivers. Always include any locally assigned id.
+ * Options for drivers the backend won't currently accept (inactive or unavailable) are marked
+ * `disabled` so admins can't pick one and hit the assign-time rejection — the backend's
+ * `is_available` toggle (busy/off-shift) is separate from `is_active` (account enabled), and
+ * only surfaced for real API drivers, not the demo mock list.
  *
- * @param {Array<{ id: string; name: string; active: boolean }>} apiDrivers
+ * @param {Array<{ id: string; name: string; active: boolean; available?: boolean }>} apiDrivers
  * @param {Record<string, string>} assignments
  */
 function buildDriverSelectOptions(apiDrivers, assignments, t) {
-  /** @type {{ id: string; name: string; active: boolean }[]} */
+  /** @type {{ id: string; name: string; active: boolean; available?: boolean }[]} */
   const primaryRows =
     apiDrivers.length > 0
-      ? apiDrivers.map((d) => ({ id: d.id, name: d.name, active: d.active }))
+      ? apiDrivers.map((d) => ({ id: d.id, name: d.name, active: d.active, available: d.available }))
       : MOCK_DRIVERS.map((d) => ({
           id: d.id,
           name: d.name,
@@ -80,6 +86,7 @@ function buildDriverSelectOptions(apiDrivers, assignments, t) {
   const options = primaryRows.map((d) => ({
     value: d.id,
     label: driverOptionLabel(d, t),
+    disabled: !d.active || d.available === false,
   }))
 
   const map = new Map(options.map((o) => [String(o.value), o]))
@@ -92,6 +99,8 @@ function buildDriverSelectOptions(apiDrivers, assignments, t) {
     if (api) label = driverOptionLabel(api, t)
     else if (mock) label = driverOptionLabel({ name: mock.name, active: mock.active }, t)
     else label = t('orders.driverOrphan', { id: aid })
+    // Already-assigned drivers stay selectable even if since gone unavailable, so the admin can
+    // still see/clear the existing assignment — only block *new* picks of an unavailable driver.
     map.set(aid, { value: aid, label })
   }
   return [...map.values()].sort((a, b) => a.label.localeCompare(b.label))

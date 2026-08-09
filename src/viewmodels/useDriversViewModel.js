@@ -26,6 +26,10 @@ export function mapDeliveryUserToDriverRow(u) {
     phone: typeof u.phone === 'string' && u.phone.trim() ? u.phone : '—',
     vehicle: u.vehicle_type != null && String(u.vehicle_type).trim() ? String(u.vehicle_type) : '—',
     active: Boolean(u.is_active),
+    // `is_active` (account enabled) and `is_available` (currently free to take a delivery) are
+    // distinct — POST /api/delivery/assign(-mall) rejects an inactive-but-available driver
+    // fine, but rejects an active-but-unavailable one with "عامل التوصيل غير متاح".
+    available: Boolean(u.is_available),
   }
 }
 

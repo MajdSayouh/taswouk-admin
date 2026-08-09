@@ -401,6 +401,7 @@
     "driver": "السائق",
     "assignDriver": "تعيين سائق",
     "driverOrphan": "سائق #{{id}} (غير موجود في القائمة الحالية)",
+    "driverUnavailable": "غير متاح",
     "unassigned": "غير معيّن",
     "assignedTo": "مُعيَّن إلى",
     "assignSuccess": "تم تعيين السائق للطلب.",
