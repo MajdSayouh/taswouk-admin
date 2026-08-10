@@ -71,6 +71,9 @@ export function mapMallCatalogProductFromApi(raw) {
 }
 
 /**
+ * `is_active` is sent explicitly (default `true`) — same silent-inactive-default bug found on
+ * Stores/Malls: without it, a newly created catalog product stayed inactive with no dedicated
+ * toggle endpoint to fix it afterward (only a full update PUT carrying is_active would do it).
  * @param {Record<string, unknown>} form
  */
 export function buildMallCatalogCreatePayload(form) {
@@ -80,6 +83,7 @@ export function buildMallCatalogCreatePayload(form) {
     description: String(form.description ?? '').trim() || '',
     category_id:
       categoryId != null && String(categoryId).trim() !== '' ? Number(categoryId) : null,
+    is_active: form.is_active != null ? Boolean(form.is_active) : true,
   }
 }
 

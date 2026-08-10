@@ -89,7 +89,7 @@ function findSubcategoryMatch(subcategories, categoryId, value) {
 }
 
 function variantUpdateFingerprint(row) {
-  return JSON.stringify(buildVariantUpdatePayload(row, row?.existingImagePaths ?? []))
+  return JSON.stringify(buildVariantUpdatePayload(row))
 }
 
 /** A standard variant has no customer-selectable options (including repaired legacy rows). */
@@ -310,6 +310,14 @@ export function ProductEditPage() {
       message.success(t('products.variants.deleted'))
     },
     [id, queryClient, t],
+  )
+
+  const handleRemoveVariantImage = useCallback(
+    async (row, image) => {
+      if (row.variantId == null || image?.id == null) return
+      await productService.deleteProductVariantImage(id, row.variantId, image.id)
+    },
+    [id],
   )
 
   const existingImages = useMemo(() => mapExistingImages(raw?.images), [raw?.images])
@@ -591,24 +599,33 @@ export function ProductEditPage() {
       const rowsToUpdateActive = rowsToUpdate.filter(isActiveVariantRow)
       const rowsToUpdateNonActive = rowsToUpdate.filter((row) => !isActiveVariantRow(row))
 
+      // Images never travel in the create/update JSON body (see buildVariantCreatePayload's
+      // note) — pending new files are uploaded through the dedicated per-variant endpoint right
+      // after the variant exists.
+      async function uploadPendingRowImages(variantId, row) {
+        const files = Array.isArray(row.imageFiles) ? row.imageFiles : []
+        if (files.length === 0 || variantId == null) return
+        try {
+          await productService.uploadProductVariantImages(id, variantId, files)
+        } catch (imgErr) {
+          message.warning(imgErr?.message ?? t('products.variants.imageUploadWarn'))
+        }
+      }
+
       for (let i = 0; i < rowsToCreate.length; i++) {
         const row = rowsToCreate[i]
-        const imagePaths = await productService.resolveVariantRowImagePaths(id, row)
-        await productService.createProductVariantWithInitialStatus(
+        const created = await productService.createProductVariantWithInitialStatus(
           id,
-          buildVariantCreatePayload(row, imagePaths),
+          buildVariantCreatePayload(row),
           row,
         )
+        await uploadPendingRowImages(created?.id ?? created?.variant_id, row)
       }
 
       for (let i = 0; i < rowsToUpdateActive.length; i++) {
         const row = rowsToUpdateActive[i]
-        const imagePaths = await productService.resolveVariantRowImagePaths(id, row)
-        await productService.updateProductVariant(
-          id,
-          row.variantId,
-          buildVariantUpdatePayload(row, imagePaths),
-        )
+        await productService.updateProductVariant(id, row.variantId, buildVariantUpdatePayload(row))
+        await uploadPendingRowImages(row.variantId, row)
       }
 
       for (let i = 0; i < idsAtLoad.length; i++) {
@@ -623,12 +640,8 @@ export function ProductEditPage() {
 
       for (let i = 0; i < rowsToUpdateNonActive.length; i++) {
         const row = rowsToUpdateNonActive[i]
-        const imagePaths = await productService.resolveVariantRowImagePaths(id, row)
-        await productService.updateProductVariant(
-          id,
-          row.variantId,
-          buildVariantUpdatePayload(row, imagePaths),
-        )
+        await productService.updateProductVariant(id, row.variantId, buildVariantUpdatePayload(row))
+        await uploadPendingRowImages(row.variantId, row)
       }
 
       // Mark all product caches stale without refetching the edit page immediately before it
@@ -723,10 +736,14 @@ export function ProductEditPage() {
                   productColors={Array.isArray(form.colors) ? form.colors : []}
                   productSizes={Array.isArray(form.sizes) ? form.sizes : []}
                   showStatusColumn
-                  lockExistingAttributes
+                  // Backend confirmed PATCH .../variants/{id} supports a full-replace of
+                  // `attributes` — color/size/custom options are editable on existing variants,
+                  // not just at creation. buildVariantUpdatePayload already sends the row's full
+                  // attribute set on every update, so no other change is needed here.
                   productId={id}
                   onPersistedVariantRemove={handlePersistedVariantRemove}
                   onCommitVariantStatus={commitVariantStatusToApi}
+                  onRemoveVariantImage={handleRemoveVariantImage}
                 />
               )
             }

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
-import { Alert, InputNumber, message } from 'antd'
+import { Alert, InputNumber, Switch, message } from 'antd'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
@@ -15,9 +15,12 @@ function emptyTier() {
 export function ProgressiveCouponCreatePage() {
   const { t } = useTranslation('pages')
   const navigate = useNavigate()
-  const { createMutation } = useProgressiveCouponsViewModel({ fetchOnMount: false })
+  const { createMutation, updateStatusMutation } = useProgressiveCouponsViewModel({
+    fetchOnMount: false,
+  })
   const [code, setCode] = useState('')
   const [tiers, setTiers] = useState([emptyTier()])
+  const [isActive, setIsActive] = useState(true)
   const [localError, setLocalError] = useState(/** @type {string | null} */ (null))
 
   function updateTier(key, patch) {
@@ -75,7 +78,24 @@ export function ProgressiveCouponCreatePage() {
       return
     }
     try {
-      await createMutation.mutateAsync(payload)
+      const created = await createMutation.mutateAsync(payload)
+      // CreateProgressiveCouponSchema only accepts {code, tiers} — is_active isn't part of it, so
+      // it can't be set in the create call itself (unlike Stores/Malls/Mall Catalog). Set it as a
+      // best-effort follow-up PATCH instead, same pattern already used for mall exchange
+      // rates/logos. Only bother if the admin turned it off — a freshly created coupon likely
+      // already defaults to active, and this call existing at all closes the same
+      // silent-inactive gap those other resources had, in case the default is actually off.
+      const createdId = created?.id ?? created?.coupon_id
+      if (!isActive && createdId != null) {
+        try {
+          await updateStatusMutation.mutateAsync({
+            couponId: createdId,
+            payload: { is_active: false },
+          })
+        } catch (statusErr) {
+          message.warning(statusErr?.message ?? t('progressiveCoupons.create.statusErr'))
+        }
+      }
       message.success(t('progressiveCoupons.create.success'))
       navigate('/progressive-coupons')
     } catch (e) {
@@ -178,6 +198,13 @@ export function ProgressiveCouponCreatePage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Switch checked={isActive} onChange={setIsActive} disabled={pending} />
+            <span className="text-sm font-medium text-slate-700">
+              {t('progressiveCoupons.editor.active')}
+            </span>
           </div>
 
           <div className="flex flex-wrap gap-2">

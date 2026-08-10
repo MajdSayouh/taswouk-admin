@@ -139,7 +139,7 @@ export async function migrateProductsWithoutVariants({ signal, onProgress } = {}
           await productService.updateProductVariant(
             productId,
             row.variantId,
-            buildVariantUpdatePayload(row, row.existingImagePaths),
+            buildVariantUpdatePayload(row),
           )
           progress.repairedVariants += 1
           report()

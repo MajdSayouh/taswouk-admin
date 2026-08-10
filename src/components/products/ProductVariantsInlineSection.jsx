@@ -20,10 +20,10 @@ import { VariantRowImagesField } from './VariantRowImagesField.jsx'
  *   productColors: string[]
  *   productSizes: string[]
  *   showStatusColumn?: boolean
- *   lockExistingAttributes?: boolean — when true, rows with variantId cannot change color/size (API)
  *   productId?: string | number | null — for authenticated image previews on edit
  *   onPersistedVariantRemove?: (row: ReturnType<typeof emptyVariantRow>) => Promise<void> — e.g. DELETE variant on edit page
  *   onCommitVariantStatus?: (variantId: string | number, status: string) => Promise<void> — PATCH status immediately (edit product only)
+ *   onRemoveVariantImage?: (row: ReturnType<typeof emptyVariantRow>, image: { id: string | number, path: string }) => Promise<void> — DELETE a persisted variant image immediately (edit product only)
  * }} props
  */
 export function ProductVariantsInlineSection({
@@ -32,10 +32,10 @@ export function ProductVariantsInlineSection({
   productColors,
   productSizes,
   showStatusColumn = false,
-  lockExistingAttributes = false,
   productId = null,
   onPersistedVariantRemove,
   onCommitVariantStatus,
+  onRemoveVariantImage,
 }) {
   const { t, i18n } = useTranslation('pages')
   const optionPresetOptions = CUSTOM_ATTRIBUTE_PRESETS.map((p) => ({
@@ -44,6 +44,7 @@ export function ProductVariantsInlineSection({
   }))
   const [removingRowKey, setRemovingRowKey] = useState(/** @type {string | null} */ (null))
   const [statusSavingKey, setStatusSavingKey] = useState(/** @type {string | null} */ (null))
+  const [removingImageId, setRemovingImageId] = useState(/** @type {string | null} */ (null))
 
   const colorAutocompleteOptions = (Array.isArray(productColors) ? productColors : []).map(
     (c) => ({
@@ -126,15 +127,33 @@ export function ProductVariantsInlineSection({
     )
   }
 
-  function removeExistingImage(rowKey, index) {
+  function removeImageFromRowState(rowKey, imageId) {
     setVariantRows((prev) =>
       prev.map((row) => {
         if (row.key !== rowKey) return row
-        const paths = [...(row.existingImagePaths || [])]
-        paths.splice(index, 1)
-        return { ...row, existingImagePaths: paths }
+        return {
+          ...row,
+          existingImages: (row.existingImages || []).filter((img) => img.id !== imageId),
+        }
       }),
     )
+  }
+
+  async function removeExistingImage(row, image) {
+    // A persisted variant image is deleted immediately via the dedicated endpoint (there's no
+    // JSON-body way to remove it later at save time — see buildVariantUpdatePayload's note).
+    if (row.variantId != null && image?.id != null && onRemoveVariantImage) {
+      setRemovingImageId(image.id)
+      try {
+        await onRemoveVariantImage(row, image)
+      } catch {
+        message.error(t('products.variants.imageRemoveErr'))
+        return
+      } finally {
+        setRemovingImageId(null)
+      }
+    }
+    removeImageFromRowState(row.key, image?.id)
   }
 
   function addImageFiles(rowKey, fileList) {
@@ -167,9 +186,6 @@ export function ProductVariantsInlineSection({
           {t('products.variants.inlineTitle')}
         </h3>
         <p className="text-xs text-slate-500 mt-1">{t('products.variants.inlineHint')}</p>
-        {lockExistingAttributes ? (
-          <p className="text-xs text-amber-800/90 mt-1">{t('products.variants.inlineLockAttrs')}</p>
-        ) : null}
       </div>
 
       {variantRows.length === 0 ? (
@@ -177,7 +193,6 @@ export function ProductVariantsInlineSection({
       ) : (
         <div className="space-y-3">
           {variantRows.map((row) => {
-            const attrsLocked = Boolean(lockExistingAttributes && row.variantId)
             return (
             <div
               key={row.key}
@@ -193,7 +208,6 @@ export function ProductVariantsInlineSection({
                     options={colorAutocompleteOptions}
                     placeholder={t('products.variants.inlineColorPh')}
                     allowClear
-                    disabled={attrsLocked}
                     value={row.color || undefined}
                     onChange={(v) => updateRow(row.key, { color: v != null ? String(v) : '' })}
                   />
@@ -214,7 +228,6 @@ export function ProductVariantsInlineSection({
                     placeholder={t('products.variants.sizePh')}
                     className="w-full"
                     size="middle"
-                    disabled={attrsLocked}
                     options={sizeOpts}
                     value={row.size || undefined}
                     onChange={(v) => updateRow(row.key, { size: v != null ? String(v) : '' })}
@@ -360,16 +373,14 @@ export function ProductVariantsInlineSection({
                   <label className="block text-xs font-medium text-slate-600">
                     {t('products.variants.optionsTitle')}
                   </label>
-                  {!attrsLocked ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="!px-2 !py-1 !text-xs"
-                      onClick={() => addCustomAttribute(row.key)}
-                    >
-                      {t('products.variants.addOption')}
-                    </Button>
-                  ) : null}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="!px-2 !py-1 !text-xs"
+                    onClick={() => addCustomAttribute(row.key)}
+                  >
+                    {t('products.variants.addOption')}
+                  </Button>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   {t('products.variants.optionsHint')}
@@ -389,7 +400,6 @@ export function ProductVariantsInlineSection({
                           <div className="min-w-[120px] flex-1 basis-[120px]">
                             <AutoComplete
                               className="w-full"
-                              disabled={attrsLocked}
                               options={optionPresetOptions}
                               filterOption={(input, option) =>
                                 (option?.label ?? '').toLowerCase().includes(input.toLowerCase()) ||
@@ -415,7 +425,6 @@ export function ProductVariantsInlineSection({
                           <div className="min-w-[120px] flex-1 basis-[120px]">
                             <input
                               type="text"
-                              disabled={attrsLocked}
                               placeholder={t('products.variants.optionValuePh')}
                               className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm"
                               value={attr.value}
@@ -424,16 +433,14 @@ export function ProductVariantsInlineSection({
                               }
                             />
                           </div>
-                          {!attrsLocked ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="!px-2 !py-1 !text-xs !text-rose-600 hover:!bg-rose-50"
-                              onClick={() => removeCustomAttribute(row.key, attr.key)}
-                            >
-                              {t('products.variants.removeOption')}
-                            </Button>
-                          ) : null}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="!px-2 !py-1 !text-xs !text-rose-600 hover:!bg-rose-50"
+                            onClick={() => removeCustomAttribute(row.key, attr.key)}
+                          >
+                            {t('products.variants.removeOption')}
+                          </Button>
                         </div>
                       )
                     })}
@@ -444,9 +451,10 @@ export function ProductVariantsInlineSection({
               <VariantRowImagesField
                 rowKey={row.key}
                 productId={productId}
-                existingImagePaths={row.existingImagePaths ?? []}
+                existingImages={row.existingImages ?? []}
                 imageFiles={row.imageFiles ?? []}
-                onRemoveExisting={(idx) => removeExistingImage(row.key, idx)}
+                removingImageId={removingImageId}
+                onRemoveExisting={(image) => removeExistingImage(row, image)}
                 onAddFiles={(list) => addImageFiles(row.key, list)}
                 onRemoveNewFile={(idx) => removeNewImageFile(row.key, idx)}
               />

@@ -9,11 +9,10 @@ import { useMallCategoriesViewModel } from '../../viewmodels/useMallCategoriesVi
  * @param {{
  *   form: Record<string, unknown>
  *   setForm: import('react').Dispatch<import('react').SetStateAction<Record<string, unknown>>>
- *   mode: 'create' | 'edit'
  *   disabled?: boolean
  * }} props
  */
-export function MallCatalogEditorForm({ form, setForm, mode, disabled = false }) {
+export function MallCatalogEditorForm({ form, setForm, disabled = false }) {
   const { t } = useTranslation('pages')
   const {
     categories,
@@ -97,16 +96,17 @@ export function MallCatalogEditorForm({ form, setForm, mode, disabled = false })
         />
         {categoriesError ? <p className="text-xs text-amber-600 mt-1">{categoriesError}</p> : null}
       </div>
-      {mode === 'edit' ? (
-        <div className="flex flex-col gap-2 md:col-span-2">
-          <span className="text-sm font-medium text-slate-700">{t('mallCatalog.editor.active')}</span>
-          <Switch
-            checked={Boolean(form.is_active)}
-            onChange={(checked) => setForm((prev) => ({ ...prev, is_active: checked }))}
-            disabled={disabled}
-          />
-        </div>
-      ) : null}
+      <div className="flex flex-col gap-2 md:col-span-2">
+        <span className="text-sm font-medium text-slate-700">{t('mallCatalog.editor.active')}</span>
+        <Switch
+          // POST /api/malls/products doesn't default this to true — leaving it off screen at
+          // create meant new catalog products stayed inactive with no dedicated toggle endpoint
+          // to fix afterward (only a full update PUT).
+          checked={form.is_active !== false}
+          onChange={(checked) => setForm((prev) => ({ ...prev, is_active: checked }))}
+          disabled={disabled}
+        />
+      </div>
       <Textarea
         label={t('mallCatalog.editor.description')}
         name="description"

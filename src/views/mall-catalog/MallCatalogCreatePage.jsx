@@ -10,7 +10,7 @@ import { Button } from '../../components/ui/Button.jsx'
 import { MallCatalogEditorForm } from './MallCatalogEditorForm.jsx'
 
 function emptyForm() {
-  return { name: '', description: '', category_id: null }
+  return { name: '', description: '', category_id: null, is_active: true }
 }
 
 export function MallCatalogCreatePage() {

@@ -28,6 +28,8 @@ function emptyForm() {
     minimum_order: 0,
     price_match: false,
     exchange_rate: '',
+    currency: 'syp',
+    is_active: true,
   }
 }
 
@@ -68,6 +70,16 @@ export function MallCreatePage() {
           await mallService.setMallExchangeRate(created.id, exchangeRate)
         } catch (rateErr) {
           message.warning(rateErr?.message ?? t('malls.create.exchangeRateErr'))
+        }
+      }
+      // Currency isn't part of MollCreateSchema (same as Stores) — set it with a follow-up PUT
+      // so picking USD at creation actually persists instead of silently reverting to whatever
+      // the backend defaults new malls to until someone visits Edit.
+      if (created.id && form.currency) {
+        try {
+          await mallService.updateMall(created.id, { currency: String(form.currency).toUpperCase() })
+        } catch (currencyErr) {
+          message.warning(currencyErr?.message ?? t('malls.create.currencyErr'))
         }
       }
       if (logoFile && created.id) {

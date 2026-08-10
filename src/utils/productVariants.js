@@ -35,6 +35,13 @@ function pathFromVariantImageItem(item) {
   return ''
 }
 
+/** The image's own id — needed to target DELETE .../variants/{id}/images/{image_id}; a bare
+ * string path (no id available) can't be deleted individually via the dedicated endpoint. */
+function idFromVariantImageItem(item) {
+  if (item == null || typeof item !== 'object') return null
+  return item.id ?? null
+}
+
 export function normalizeVariantList(data) {
   if (Array.isArray(data)) return data
   if (data && Array.isArray(data.items)) return data.items
@@ -233,9 +240,11 @@ export function emptyVariantRow() {
     stock_quantity: '',
     is_offer: false,
     status: 'active',
-    /** @type {string[]} paths already saved on the variant (API `images`) */
-    existingImagePaths: [],
-    /** @type {File[]} new files — uploaded at save via product images endpoint, paths attached to variant */
+    /** @type {{ id: number | string, path: string }[]} images already saved on the variant (API
+     * `images`) — `id` targets DELETE .../variants/{id}/images/{image_id} */
+    existingImages: [],
+    /** @type {File[]} new files — uploaded via the dedicated per-variant images endpoint once the
+     * variant exists (create: right after the variant is created; edit: right after update) */
     imageFiles: [],
   }
 }
@@ -250,7 +259,9 @@ export function mapApiVariantToRow(v, lang = 'ar') {
   const size = attrByKey(attrs, 'size')
   const st = String(v?.status ?? 'active')
   const imgs = Array.isArray(v?.images)
-    ? v.images.map(pathFromVariantImageItem).filter(Boolean)
+    ? v.images
+        .map((item) => ({ id: idFromVariantImageItem(item), path: pathFromVariantImageItem(item) }))
+        .filter((img) => img.path)
     : []
   const vid = parseVariantIdFromDto(v)
   const pid =
@@ -282,7 +293,7 @@ export function mapApiVariantToRow(v, lang = 'ar') {
             ),
         )
       : false,
-    existingImagePaths: imgs,
+    existingImages: imgs,
     imageFiles: [],
   }
 }
@@ -339,13 +350,16 @@ export function buildVariantAttributes(row) {
 }
 
 /**
+ * Images are never part of this JSON body — per the backend's variant-system doc, variant images
+ * are managed exclusively through the dedicated multipart endpoint
+ * (`POST/DELETE .../variants/{id}/images` and `.../images/{image_id}`, see productService.js). Sending an
+ * `images` array here was silently ignored by the backend (not part of its schema) and was the
+ * actual cause of newly attached variant images not persisting.
+ *
  * @param {typeof emptyVariantRow()} row
- * @param {string[]} [imagePaths] — storage paths for `VariantCreateSchema.images`
  */
-export function buildVariantCreatePayload(row, imagePaths = []) {
+export function buildVariantCreatePayload(row) {
   const price = Number(row.price)
-
-  const paths = Array.isArray(imagePaths) ? imagePaths.map(normalizeVariantImagePath).filter(Boolean) : []
 
   /** @type {Record<string, unknown>} */
   const payload = {
@@ -359,15 +373,14 @@ export function buildVariantCreatePayload(row, imagePaths = []) {
   // A blank stock must therefore never reach the create endpoint as 0/omitted: default to 1.
   const stockQuantity = variantStockQuantityForApi(row)
   payload.stock_quantity = stockQuantity != null ? stockQuantity : 1
-  if (paths.length > 0) payload.images = paths
   return payload
 }
 
 /**
+ * Images are never part of this JSON body — see buildVariantCreatePayload's note.
  * @param {typeof emptyVariantRow()} row
- * @param {string[] | null} [imagePaths] — full list for `VariantUpdateSchema.images`; omit to leave unchanged
  */
-export function buildVariantUpdatePayload(row, imagePaths = undefined) {
+export function buildVariantUpdatePayload(row) {
   const price = Number(row.price)
   const attributes = buildVariantAttributes(row)
   /** @type {Record<string, unknown>} */
@@ -384,10 +397,6 @@ export function buildVariantUpdatePayload(row, imagePaths = undefined) {
   if (attributes.length > 0) payload.attributes = attributes
   const stockQuantity = variantStockQuantityForApi(row)
   if (stockQuantity != null) payload.stock_quantity = stockQuantity
-  if (imagePaths != null) {
-    const raw = Array.isArray(imagePaths) ? imagePaths : []
-    payload.images = raw.map(normalizeVariantImagePath).filter(Boolean)
-  }
   return payload
 }
 

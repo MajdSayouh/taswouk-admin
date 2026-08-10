@@ -1,5 +1,5 @@
 // Admin: PUT /api/malls/{id} — edit mall, logo, product assignments.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, Link } from 'react-router-dom'
@@ -44,6 +44,7 @@ export function MallEditPage() {
     price_match: false,
     is_active: true,
     exchange_rate: '',
+    currency: 'syp',
   })
   const [logoFile, setLogoFile] = useState(/** @type {File | null} */ (null))
   const [existingLogo, setExistingLogo] = useState('')
@@ -54,8 +55,16 @@ export function MallEditPage() {
   const raw = detailQuery.data
   const row = raw ? mapMallFromApi(raw) : null
 
+  // Only hydrate the form from the server once per mall id. `row` is a new object reference on
+  // every render (mapMallFromApi builds a fresh literal), so depending the effect on `row` itself
+  // re-ran on every keystroke/select change — and would also re-run on any background refetch —
+  // silently wiping unsaved edits (the currency select and exchange rate field appearing "stuck"
+  // was this: the value reverted right after every change).
+  const hydratedMallIdRef = useRef(null)
   useEffect(() => {
     if (!row) return
+    if (hydratedMallIdRef.current === id) return
+    hydratedMallIdRef.current = id
     setForm({
       name: row.name ?? '',
       description: row.description ?? '',
@@ -68,9 +77,10 @@ export function MallEditPage() {
       price_match: row.priceMatch,
       is_active: row.isActive,
       exchange_rate: row.exchangeRate ?? '',
+      currency: String(row.currency ?? 'SYP').toLowerCase(),
     })
     setExistingLogo(row.logoUrl ? resolvePublicMediaUrl(row.logoUrl) : '')
-  }, [row])
+  }, [row, id])
 
   const newLogoPreview = useMemo(() => (logoFile ? URL.createObjectURL(logoFile) : ''), [logoFile])
   useEffect(() => {

@@ -382,14 +382,6 @@ export function extractPathsFromProductImageUploadResponse(data) {
 }
 
 /**
- * Upload new files for a variant row, then return full `images` path list for VariantCreate/Update.
- * Files are stored via the product images endpoint; paths are referenced on the variant per OpenAPI.
- *
- * @param {number | string} productId
- * @param {{ existingImagePaths?: string[], imageFiles?: File[] }} row
- * @returns {Promise<string[]>}
- */
-/**
  * Ordered image storage paths from GET product (`images[]` / ProductImageOutSchema),
  * same source ProductImagesField uses for previews.
  *
@@ -441,53 +433,70 @@ export function pickProductCoverImagePath(productDto) {
   return ''
 }
 
-async function getOrderedProductImagePaths(productId) {
-  const dto = await getProductById(productId)
-  return extractImagePathsFromProductDto(dto)
+/**
+ * POST /api/products/{product_id}/variants/{variant_id}/images — the dedicated per-variant image
+ * upload endpoint (multipart, field `images`, optional `featured_index` query param).
+ *
+ * Variant images are NOT part of the variant's JSON create/update body — sending an `images` array
+ * on POST/PATCH .../variants was silently ignored by the backend (not part of its schema), which
+ * was the actual cause of newly added variant images not persisting. This is the correct endpoint,
+ * confirmed against the backend's variant-system doc.
+ *
+ * @param {number | string} productId
+ * @param {number | string} variantId
+ * @param {File[]} files
+ * @param {{ featuredIndex?: number | null }} [options]
+ * @returns {Promise<unknown>} the array of uploaded images (response may be a bare array or `{ images: [...] }`)
+ */
+export async function uploadProductVariantImages(productId, variantId, files, options = {}) {
+  if (!files?.length) return []
+  const formData = new FormData()
+  for (let i = 0; i < files.length; i++) {
+    formData.append('images', files[i])
+  }
+  const params = {}
+  if (options.featuredIndex != null && Number.isFinite(Number(options.featuredIndex))) {
+    params.featured_index = Number(options.featuredIndex)
+  }
+  const { data } = await apiClient.post(
+    `/api/products/${productId}/variants/${variantId}/images`,
+    formData,
+    {
+      params: Object.keys(params).length ? params : undefined,
+      transformRequest: [
+        (payload, headers) => {
+          if (payload instanceof FormData) {
+            delete headers['Content-Type']
+          }
+          return payload
+        },
+      ],
+    },
+  )
+  return Array.isArray(data) ? data : Array.isArray(data?.images) ? data.images : []
 }
 
 /**
- * Same multipart upload as main product images (`POST .../images`), then discover **new**
- * paths by diffing GET product before vs after — reliable regardless of upload response shape.
- *
+ * PATCH /api/products/{product_id}/variants/{variant_id}/images/{image_id}/set-featured
  * @param {number | string} productId
- * @param {{ existingImagePaths?: string[], imageFiles?: File[] }} row
- * @returns {Promise<string[]>}
+ * @param {number | string} variantId
+ * @param {number | string} imageId
  */
-export async function resolveVariantRowImagePaths(productId, row) {
-  const existing = Array.isArray(row?.existingImagePaths)
-    ? row.existingImagePaths.map((s) => normalizeImageStoragePath(s)).filter(Boolean)
-    : []
-  const files = Array.isArray(row?.imageFiles)
-    ? row.imageFiles.filter((f) => f instanceof File)
-    : []
-  if (files.length === 0) return dedupePathsPreserveOrder(existing)
-
-  const beforeOrdered = await getOrderedProductImagePaths(productId)
-  const beforeSet = new Set(beforeOrdered)
-
-  await uploadProductImages(productId, files)
-
-  const afterOrdered = await getOrderedProductImagePaths(productId)
-  const newlyAdded = []
-  for (let i = 0; i < afterOrdered.length; i++) {
-    const p = afterOrdered[i]
-    if (!beforeSet.has(p)) newlyAdded.push(p)
-  }
-
-  return dedupePathsPreserveOrder([...existing, ...newlyAdded])
+export async function setFeaturedProductVariantImage(productId, variantId, imageId) {
+  const { data } = await apiClient.patch(
+    `/api/products/${productId}/variants/${variantId}/images/${imageId}/set-featured`,
+  )
+  return data
 }
 
-function dedupePathsPreserveOrder(paths) {
-  const seen = new Set()
-  const out = []
-  for (let i = 0; i < paths.length; i++) {
-    const p = paths[i]
-    if (!p || seen.has(p)) continue
-    seen.add(p)
-    out.push(p)
-  }
-  return out
+/**
+ * DELETE /api/products/{product_id}/variants/{variant_id}/images/{image_id}
+ * @param {number | string} productId
+ * @param {number | string} variantId
+ * @param {number | string} imageId
+ */
+export async function deleteProductVariantImage(productId, variantId, imageId) {
+  await apiClient.delete(`/api/products/${productId}/variants/${variantId}/images/${imageId}`)
 }
 
 /**

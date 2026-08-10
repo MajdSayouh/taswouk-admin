@@ -1,8 +1,13 @@
 // Shared mall fields for create/edit (MollCreateSchema / MollUpdateSchema).
 import { useTranslation } from 'react-i18next'
-import { Switch } from 'antd'
+import { Select, Switch } from 'antd'
 import { Input } from '../../components/ui/Input.jsx'
 import { Textarea } from '../../components/ui/Textarea.jsx'
+
+const MALL_CURRENCY_OPTIONS = [
+  { value: 'usd', i18nKey: 'stores.currency.usd' },
+  { value: 'syp', i18nKey: 'stores.currency.syp' },
+]
 
 /**
  * @param {{
@@ -110,6 +115,31 @@ export function MallEditorForm({ form, setForm, mode, disabled = false }) {
         onChange={handleChange}
         disabled={disabled}
       />
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          {t('malls.editor.currency')}
+        </label>
+        <Select
+          className="w-full"
+          size="large"
+          disabled={disabled}
+          value={String(form.currency ?? 'syp').toLowerCase()}
+          options={MALL_CURRENCY_OPTIONS.map((option) => ({
+            value: option.value,
+            label: t(option.i18nKey),
+          }))}
+          onChange={(nextCurrency) =>
+            setForm((prev) => ({
+              ...prev,
+              currency: nextCurrency,
+              // A SYP mall always prices 1:1 — only a USD (or other foreign-currency) mall needs
+              // a real exchange rate, matching how Stores handle this same choice.
+              exchange_rate: nextCurrency === 'syp' ? '1' : prev.exchange_rate === '1' ? '' : prev.exchange_rate,
+            }))
+          }
+        />
+        <p className="text-xs text-slate-500 mt-1">{t('malls.editor.currencyHint')}</p>
+      </div>
       <Input
         label={t('malls.editor.exchangeRate')}
         name="exchange_rate"
@@ -119,7 +149,8 @@ export function MallEditorForm({ form, setForm, mode, disabled = false }) {
         step="any"
         value={form.exchange_rate === '' || form.exchange_rate == null ? '' : String(form.exchange_rate)}
         onChange={handleChange}
-        disabled={disabled}
+        disabled={disabled || String(form.currency ?? 'syp').toLowerCase() === 'syp'}
+        required={String(form.currency ?? 'syp').toLowerCase() === 'usd'}
         description={t('malls.editor.exchangeRateHint')}
       />
       <div className="flex flex-col gap-2">
@@ -130,16 +161,17 @@ export function MallEditorForm({ form, setForm, mode, disabled = false }) {
           disabled={disabled}
         />
       </div>
-      {mode === 'edit' ? (
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-slate-700">{t('malls.editor.active')}</span>
-          <Switch
-            checked={Boolean(form.is_active)}
-            onChange={(checked) => setForm((prev) => ({ ...prev, is_active: checked }))}
-            disabled={disabled}
-          />
-        </div>
-      ) : null}
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-slate-700">{t('malls.editor.active')}</span>
+        <Switch
+          // POST /api/malls/ doesn't default this to true on its own — leaving it off screen at
+          // create meant new malls stayed invisible on the public side until someone remembered
+          // a separate "toggle active" step afterward.
+          checked={form.is_active !== false}
+          onChange={(checked) => setForm((prev) => ({ ...prev, is_active: checked }))}
+          disabled={disabled}
+        />
+      </div>
       <Textarea
         label={t('malls.editor.description')}
         name="description"

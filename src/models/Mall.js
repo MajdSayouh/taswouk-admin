@@ -82,6 +82,9 @@ export function mallExchangeRateForApi(value) {
 }
 
 /**
+ * `is_active` is sent explicitly (default `true`) — without it, a newly created mall stayed
+ * invisible on the public side until someone separately called toggleMallActive, the same
+ * silent-inactive-default bug found on Stores.
  * @param {Record<string, unknown>} form
  */
 export function buildMallCreatePayload(form) {
@@ -100,6 +103,7 @@ export function buildMallCreatePayload(form) {
     phone: String(form.phone ?? '').trim() || '',
     address: String(form.address ?? '').trim() || '',
     contact_email: String(form.contact_email ?? '').trim() || '',
+    is_active: form.is_active != null ? Boolean(form.is_active) : true,
   }
 }
 
@@ -125,6 +129,9 @@ export function buildMallUpdatePayload(form) {
     contact_email:
       form.contact_email != null ? String(form.contact_email).trim() || null : null,
     is_active: form.is_active != null ? Boolean(form.is_active) : null,
+    // Mirrors Stores: currency travels on the main update payload, exchange_rate goes through
+    // the dedicated PUT /api/malls/{id}/exchange-rate endpoint instead (see MallEditPage).
+    currency: form.currency != null && form.currency !== '' ? String(form.currency).toUpperCase() : null,
   }
   /** @type {Record<string, unknown>} */
   const out = {}

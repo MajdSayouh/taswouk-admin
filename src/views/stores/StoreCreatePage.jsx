@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Alert, Select, Spin } from 'antd'
+import { Alert, Select, Spin, Switch } from 'antd'
 import * as storeService from '../../services/storeService.js'
 import { queryKeys } from '../../query/queryKeys.js'
 import { useAuthStore, isAdminRole, isSellerRole } from '../../store/authStore.js'
@@ -41,6 +41,10 @@ function emptyForm() {
     exchangeRate: '1',
     latitude: '',
     longitude: '',
+    // Explicit — the admin/seller create endpoints don't set this on their own, and the store
+    // otherwise stays invisible on the public site/app until someone remembers a separate
+    // "toggle active" step after creation.
+    isActive: true,
   }
 }
 
@@ -180,6 +184,7 @@ export function StoreCreatePage() {
           longitude: lng != null && !Number.isNaN(lng) ? lng : null,
           exchange_rate: exchangeRate,
           logo: logoFile || undefined,
+          is_active: form.isActive,
         })
       } else {
         await storeService.sellerCreateStore({
@@ -191,6 +196,7 @@ export function StoreCreatePage() {
           longitude: lng != null && !Number.isNaN(lng) ? lng : null,
           exchange_rate: exchangeRate,
           logo: logoFile || undefined,
+          is_active: form.isActive,
         })
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.all() })
@@ -374,6 +380,15 @@ export function StoreCreatePage() {
               value={form.longitude}
               onChange={handleChange}
             />
+          </div>
+
+          <div className="md:col-span-2 flex items-center gap-2.5">
+            <Switch
+              checked={form.isActive}
+              onChange={(checked) => setForm((prev) => ({ ...prev, isActive: checked }))}
+            />
+            <span className="text-sm font-medium text-slate-800">{t('stores.create.active')}</span>
+            <span className="text-xs text-slate-500">{t('stores.create.activeDesc')}</span>
           </div>
 
           <div className="md:col-span-2">

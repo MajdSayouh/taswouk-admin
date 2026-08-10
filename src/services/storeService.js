@@ -72,7 +72,13 @@ export async function getStore(storeId) {
 
 /**
  * POST /api/stores/admin/create-with-logo — multipart/form-data (admin JWT).
- * Fields: seller_id, name, description?, phone?, address?, latitude?, longitude?, exchange_rate?, logo? (binary).
+ * Fields: seller_id, name, description?, phone?, address?, latitude?, longitude?, exchange_rate?, is_active?, logo? (binary).
+ *
+ * `is_active` is sent explicitly (default `true` from the create form) — without it, a store
+ * created here stayed invisible on GET /api/stores/public until someone separately called
+ * toggleStoreActive, which was easy to forget and the actual cause of "I created a store but it
+ * doesn't show on the site" reports.
+ *
  * @param {{
  *   seller_id: number
  *   name: string
@@ -82,6 +88,7 @@ export async function getStore(storeId) {
  *   latitude?: number | null
  *   longitude?: number | null
  *   exchange_rate?: number | null
+ *   is_active?: boolean
  *   logo?: File | Blob | null
  * }} payload
  */
@@ -95,6 +102,7 @@ export async function adminCreateStore(payload) {
     latitude: payload.latitude,
     longitude: payload.longitude,
     exchange_rate: payload.exchange_rate,
+    is_active: payload.is_active,
     logo: payload.logo,
   })
   const { data } = await apiClient.post('/api/stores/admin/create-with-logo', body, multipartConfig())
@@ -111,6 +119,7 @@ export async function adminCreateStore(payload) {
  *   latitude?: number | null
  *   longitude?: number | null
  *   exchange_rate?: number | null
+ *   is_active?: boolean
  *   logo?: File | Blob | null
  * }} payload
  */

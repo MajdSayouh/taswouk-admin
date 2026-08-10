@@ -163,12 +163,24 @@ export function ProductCreatePage() {
         try {
           for (let i = 0; i < validVariants.length; i++) {
             const row = validVariants[i]
-            const imagePaths = await productService.resolveVariantRowImagePaths(pid, row)
-            await productService.createProductVariantWithInitialStatus(
+            const created = await productService.createProductVariantWithInitialStatus(
               pid,
-              buildVariantCreatePayload(row, imagePaths),
+              buildVariantCreatePayload(row),
               row,
             )
+            // Variant images only attach through the dedicated per-variant endpoint, which needs
+            // the variant to already exist — upload right after create, using its returned id.
+            const files = Array.isArray(row.imageFiles) ? row.imageFiles : []
+            if (files.length > 0) {
+              const variantId = created?.id ?? created?.variant_id
+              if (variantId != null) {
+                try {
+                  await productService.uploadProductVariantImages(pid, variantId, files)
+                } catch (imgErr) {
+                  message.warning(imgErr?.message ?? t('products.variants.imageUploadWarn'))
+                }
+              }
+            }
           }
         } catch (err) {
           message.error(err?.message ?? t('products.variants.syncErr'))

@@ -338,7 +338,6 @@
       "offerPriceRequired": "Enter a valid offer price for every variant with “On offer” enabled.",
       "inlineTitle": "Variant pricing",
       "inlineHint": "Selected product colors and sizes generate every combination. A missing color or size is omitted so the mobile app only shows real choices.",
-      "inlineLockAttrs": "For rows already saved: color and size cannot be changed here—remove the row and add a new one with the correct options.",
       "inlineEmpty": "No custom rows. Products without colors or sizes remain without variants for mobile-app compatibility.",
       "inlineColorPh": "Pick or type (e.g. #FF0000)",
       "inlineAddColorsFirst": "Add colors above for quick picks, or type any value here.",
@@ -351,6 +350,8 @@
       "variantImagesHint": "Photos for this color/size. Files upload to the product library; this variant stores only the paths it should use.",
       "addVariantImages": "Add images",
       "removeVariantImageAria": "Remove image",
+      "imageUploadWarn": "Variant saved, but its image(s) could not be uploaded. Try adding them again.",
+      "imageRemoveErr": "Could not remove that image. Try again.",
       "optionsTitle": "Options",
       "optionsHint": "Extra attributes beyond color/size, e.g. weight: 1kg, material: cotton. Pick a common name from the list or type your own in Arabic or English — it must start with a letter (letters, numbers, and underscore only, no spaces).",
       "optionNamePh": "Name — pick from list or type (Arabic or English)",
@@ -691,6 +692,8 @@
       "lng": "Longitude",
       "pickMap": "Pick location on map",
       "hideMap": "Hide map",
+      "active": "Active",
+      "activeDesc": "Inactive stores don't show on the public site/app.",
       "cancel": "Cancel",
       "submit": "Create store",
       "submitting": "Creating…",
@@ -914,7 +917,8 @@
       "passwordRule": "Password must be at least 8 characters",
       "logo": "Logo",
       "logoUploadErr": "Mall was created, but the logo could not be uploaded",
-      "exchangeRateErr": "Mall was created, but its exchange rate could not be set"
+      "exchangeRateErr": "Mall was created, but its exchange rate could not be set",
+      "currencyErr": "Mall was created, but its currency could not be set"
     },
     "edit": {
       "title": "Edit mall #{{id}}",
@@ -946,6 +950,8 @@
       "contactEmail": "Contact email",
       "address": "Address",
       "minimumOrder": "Minimum order",
+      "currency": "Currency",
+      "currencyHint": "SYP prices 1:1 with no conversion. USD (or another foreign currency) needs an exchange rate below.",
       "exchangeRate": "Exchange rate",
       "exchangeRateHint": "Optional. Leave empty to use the system-wide exchange rate.",
       "exchangeRateError": "Enter an exchange rate greater than 0 and less than 10,000,000,000, or leave it empty.",
@@ -1270,10 +1276,12 @@
       "submit": "Create coupon",
       "cancel": "Cancel",
       "success": "Progressive coupon created",
-      "failed": "Could not create progressive coupon"
+      "failed": "Could not create progressive coupon",
+      "statusErr": "Coupon created, but couldn't set its active status — check it on the list page."
     },
     "editor": {
       "code": "Code",
+      "active": "Active",
       "tiers": "Tiers",
       "tiersHint": "Each tier applies once the order subtotal reaches its minimum amount. Tiers must have strictly increasing minimum amounts — tier 1 is checked first, then tier 2, and so on.",
       "addTier": "+ Add tier",
