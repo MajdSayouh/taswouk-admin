@@ -223,6 +223,7 @@
       "loadingCategories": "Loading categories…",
       "selectCategory": "Select category",
       "categoryRequired": "Category is required",
+      "nameRequired": "Product name is required",
       "subcategory": "Sub-category",
       "selectCategoryFirst": "Select category first",
       "selectSubcategory": "Select sub-category",

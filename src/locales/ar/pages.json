@@ -223,6 +223,7 @@
       "loadingCategories": "جاري تحميل التصنيفات…",
       "selectCategory": "اختر التصنيف",
       "categoryRequired": "التصنيف مطلوب",
+      "nameRequired": "اسم المنتج مطلوب",
       "subcategory": "التصنيف الفرعي",
       "selectCategoryFirst": "اختر التصنيف أولاً",
       "selectSubcategory": "اختر التصنيف الفرعي",

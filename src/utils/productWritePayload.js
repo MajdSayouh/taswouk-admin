@@ -226,32 +226,40 @@ export function logStrippedProductWriteFields(src) {
 }
 
 /**
+ * Only `name` is a hard requirement here — everything else (store, category, price, size,
+ * colors, description) is optional and simply omitted from the payload when not filled in, so a
+ * product can be created as a bare-bones stub and completed over one or more later edits. This
+ * assumes the backend's ProductCreateSchema actually allows those fields to be absent/null; if
+ * it doesn't, the create request will come back with a validation error naming the field that's
+ * still genuinely required server-side — that's expected until confirmed either way.
+ *
  * @param {Record<string, unknown>} form
  * @param {{ hasVariants?: boolean }} [options] — omit product-level pricing when variants will be created
  */
 export function buildProductCreatePayload(form, options = {}) {
   const size = sizesFromForm(form)
   const colors = colorsFromForm(form)
-  const priceNum = form.price === '' ? 0 : Number(form.price)
+  const storeIdNum = form.storeId != null && String(form.storeId).trim() !== '' ? Number(form.storeId) : NaN
+  const priceNum = form.price === '' || form.price == null ? NaN : Number(form.price)
   const newPrice =
     form.isOffer && form.newPrice !== '' && form.newPrice != null
       ? Number(form.newPrice)
       : null
 
   const raw = {
-    store_id: Number(form.storeId),
-    name: String(form.name).trim(),
+    store_id: Number.isFinite(storeIdNum) && storeIdNum > 0 ? storeIdNum : null,
+    name: String(form.name ?? '').trim(),
     category_id: categoryIdFromEditorForm(form),
     size,
     colors,
     description: descriptionForPayload(form.description),
-    price: Number.isFinite(priceNum) ? priceNum : 0,
+    price: Number.isFinite(priceNum) ? priceNum : null,
     is_offer: Boolean(form.isOffer),
     new_price: newPrice,
     is_active: form.isActive !== false,
   }
   logStrippedProductWriteFields(form)
-  let payload = sanitizeProductWritePayload(raw)
+  let payload = omitNullishProductWriteFields(sanitizeProductWritePayload(raw))
   if (options.hasVariants) {
     payload = omitProductPricingWhenVariantsExist(payload)
   }

@@ -99,9 +99,12 @@ export function ProductCreatePage() {
 
   async function handleSubmit(event) {
     event.preventDefault()
-    if (!form.storeId) return
-    if (!form.categoryId) {
-      message.error(t('products.editor.categoryRequired'))
+    // Only `name` is required to create a product — store, category, price, images, etc. can all
+    // be filled in later over one or more edits. If the backend still requires store_id/
+    // category_id at the schema level, the create call below will surface that as a clear
+    // validation error instead of silently blocking here.
+    if (!String(form.name ?? '').trim()) {
+      message.error(t('products.editor.nameRequired'))
       return
     }
 

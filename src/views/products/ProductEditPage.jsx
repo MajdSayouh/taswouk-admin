@@ -459,10 +459,8 @@ export function ProductEditPage() {
   async function handleSubmit(event) {
     event.preventDefault()
     if (submitInFlightRef.current) return
-    if (!form.categoryId) {
-      message.error(t('products.editor.categoryRequired'))
-      return
-    }
+    // Category (like store/price on create) is optional — omitted from the PUT payload when
+    // unset, so a product can stay category-less across edits until someone fills it in.
 
     const standardizedVariantRows = withStandardVariantAttributes(
       variantRows,

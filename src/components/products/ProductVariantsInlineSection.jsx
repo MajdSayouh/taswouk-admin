@@ -287,8 +287,15 @@ export function ProductVariantsInlineSection({
                           setStatusSavingKey(null)
                         }
                       }}
-                      options={VARIANT_STATUS_VALUES.map((s) => ({
+                      // out_of_stock is server-managed (set automatically when stock_quantity
+                      // hits 0) — admins only ever choose between active/inactive. It's still
+                      // included, disabled, when it's the row's current status so the Select can
+                      // display it without offering it as something to pick.
+                      options={VARIANT_STATUS_VALUES.filter(
+                        (s) => s !== 'out_of_stock' || row.status === 'out_of_stock',
+                      ).map((s) => ({
                         value: s,
+                        disabled: s === 'out_of_stock',
                         label:
                           s === 'active'
                             ? t('products.variants.statusActive')

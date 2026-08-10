@@ -340,7 +340,6 @@ export function ProductEditorForm({
         min="0"
         value={form.price}
         onChange={handlePriceChange}
-        required={!variantPricingManaged}
         description={
           variantPricingManaged ? t('products.editor.variantBulkPriceHint') : undefined
         }
