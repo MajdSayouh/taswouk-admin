@@ -125,36 +125,52 @@ export async function deleteMallLogo(mallId) {
 // ——— Mall product assignments (admin) ———
 
 /**
- * GET /api/malls/{moll_id}/products
+ * GET /api/malls/{moll_id}/products — PagedMollProductOutSchema ({ items, count }).
+ * Confirmed paginated: `page` (default 1) and `page_size`.
  * @param {number | string} mallId
- * @param {{ signal?: AbortSignal, params?: Record<string, number> }} [options]
- *   `params` is passed straight through as the query string — lets the caller try
- *   different pagination conventions (`page`/`page_size` vs `offset`/`limit`) since
- *   the exact one this endpoint honors isn't confirmed.
+ * @param {{ signal?: AbortSignal, page?: number, pageSize?: number }} [options]
  */
 export async function listMallProducts(mallId, options = {}) {
-  const { signal, params } = options
+  const { signal, page = 1, pageSize } = options
   const { data } = await apiClient.get(`/api/malls/${mallId}/products`, {
     signal,
-    params: params && Object.keys(params).length ? params : undefined,
+    params: { page, page_size: pageSize || undefined },
   })
   const products = extractMallProductsList(data)
-  const total = Number(data?.total ?? data?.count) || null
-  return { count: total ?? products.length, total, products }
+  const total = Number(data?.count ?? data?.total) || products.length
+  return { count: total, total, products }
 }
 
 /**
  * The exact wrapper key the backend uses for this list isn't confirmed (we've hit this same
  * kind of mismatch on other admin list endpoints), so accept any of the common shapes rather
- * than assuming `{ products: [...] }` and silently returning an empty list otherwise.
+ * than assuming `{ items: [...] }` and silently returning an empty list otherwise.
  */
 function extractMallProductsList(data) {
   if (Array.isArray(data)) return data
   if (!data || typeof data !== 'object') return []
-  for (const key of ['products', 'items', 'results', 'assignments', 'moll_products', 'data']) {
+  for (const key of ['items', 'products', 'results', 'assignments', 'moll_products', 'data']) {
     if (Array.isArray(data[key])) return data[key]
   }
   return []
+}
+
+/**
+ * GET /api/malls/public/search — scoped to one mall via `moll_id`, with real text search
+ * (`q`) and pagination (`page`/`limit`). Used to search a mall's assigned products without
+ * pulling every page down to filter client-side.
+ * @param {number | string} mallId
+ * @param {{ q?: string, page?: number, limit?: number, signal?: AbortSignal }} [options]
+ */
+export async function searchMallProducts(mallId, options = {}) {
+  const { q, page = 1, limit = 20, signal } = options
+  const { data } = await apiClient.get('/api/malls/public/search', {
+    signal,
+    params: { moll_id: mallId, q: q || undefined, page, limit },
+  })
+  const products = Array.isArray(data?.products) ? data.products : []
+  const total = Number(data?.total_products) || products.length
+  return { count: total, total, products }
 }
 
 /**

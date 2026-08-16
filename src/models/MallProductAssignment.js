@@ -48,7 +48,13 @@ export function mapMallProductAssignmentFromApi(raw) {
     productName: raw.product_name ?? nested?.name ?? '',
     productDescription: raw.product_description ?? nested?.description ?? '',
     productImageUrl: raw.product_image_url ?? nested?.image_url ?? null,
-    productCategory: raw.product_category ?? nested?.category_name ?? nested?.category ?? '',
+    productCategory:
+      (raw.product_category && typeof raw.product_category === 'object'
+        ? raw.product_category.name
+        : raw.product_category) ??
+      nested?.category_name ??
+      nested?.category ??
+      '',
     price: Number(raw.price) || 0,
     isAvailable: Boolean(raw.is_available ?? raw.available),
     createdAt: raw.created_at ?? '',

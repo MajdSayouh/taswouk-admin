@@ -39,6 +39,7 @@ export const queryKeys = {
   },
   banners: {
     all: () => ['banners'],
+    placements: () => ['banners', 'placements'],
   },
   pointsSettings: {
     all: () => ['pointsSettings'],
@@ -65,7 +66,7 @@ export const queryKeys = {
   malls: {
     all: () => ['malls'],
     detail: (id) => ['malls', 'detail', String(id)],
-    products: (mallId) => ['malls', 'products', String(mallId)],
+    products: (mallId, params) => ['malls', 'products', String(mallId), params ?? {}],
   },
   mallCatalog: {
     all: () => ['mallCatalog'],

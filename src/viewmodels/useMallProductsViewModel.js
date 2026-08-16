@@ -1,58 +1,54 @@
 /**
- * Mall product assignments — scoped by mall id.
+ * Mall product assignments — scoped by mall id, server-paginated + searched.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as mallService from '../services/mallService.js'
 import * as mallCatalogService from '../services/mallCatalogService.js'
 import { mapMallProductAssignmentFromApi } from '../models/MallProductAssignment.js'
 import { queryKeys } from '../query/queryKeys.js'
-import { fetchAllPages } from '../utils/fetchAllPages.js'
 
 /**
  * @param {number | string | undefined} mallId
- * @param {{ enabled?: boolean }} [options]
+ * @param {{ enabled?: boolean, page?: number, pageSize?: number, search?: string }} [options]
  */
 export function useMallProductsViewModel(mallId, options = {}) {
+  const { page = 1, pageSize = 10, search = '' } = options
   const enabled = options.enabled !== false && mallId != null && mallId !== ''
   const queryClient = useQueryClient()
+  const trimmedSearch = search.trim()
 
   const listQuery = useQuery({
-    queryKey: queryKeys.malls.products(mallId),
+    queryKey: queryKeys.malls.products(mallId, { page, pageSize, search: trimmedSearch }),
     queryFn: async ({ signal }) => {
-      // A single request caps at the backend's default page size, which was silently
-      // truncating malls with more assigned products than that — page through all of them.
-      const rows = await fetchAllPages(
-        async (params) => {
-          const { products, total } = await mallService.listMallProducts(mallId, { signal, params })
-          return { items: Array.isArray(products) ? products : [], total }
-        },
-        (row) => (row?.id != null ? String(row.id) : null),
-      )
-      return rows.map(mapMallProductAssignmentFromApi)
+      // A search term routes to the public search endpoint (real `q` + `moll_id` filtering
+      // server-side) instead of paging through every assignment to filter client-side.
+      const { products, total } = trimmedSearch
+        ? await mallService.searchMallProducts(mallId, { q: trimmedSearch, page, limit: pageSize, signal })
+        : await mallService.listMallProducts(mallId, { page, pageSize, signal })
+      return { rows: products.map(mapMallProductAssignmentFromApi), total }
     },
     enabled,
+    placeholderData: (prev) => prev,
   })
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.malls.products(mallId) })
+  }
 
   const assignMutation = useMutation({
     mutationFn: (payload) => mallService.assignProductToMall(mallId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.malls.products(mallId) })
-    },
+    onSuccess: invalidate,
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ productId, payload }) =>
       mallService.updateMallProduct(mallId, productId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.malls.products(mallId) })
-    },
+    onSuccess: invalidate,
   })
 
   const removeMutation = useMutation({
     mutationFn: (productId) => mallService.removeProductFromMall(mallId, productId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.malls.products(mallId) })
-    },
+    onSuccess: invalidate,
   })
 
   // Product name isn't part of the mall assignment (only price/availability are mall-scoped) —
@@ -62,13 +58,14 @@ export function useMallProductsViewModel(mallId, options = {}) {
     mutationFn: ({ productId, name }) =>
       mallCatalogService.updateMallCatalogProduct(productId, { name }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.malls.products(mallId) })
+      invalidate()
       queryClient.invalidateQueries({ queryKey: queryKeys.mallCatalog.all() })
     },
   })
 
   return {
-    assignments: listQuery.data ?? [],
+    assignments: listQuery.data?.rows ?? [],
+    total: listQuery.data?.total ?? 0,
     loading: enabled && listQuery.isFetching,
     error: listQuery.error?.message ?? null,
     refetch: listQuery.refetch,

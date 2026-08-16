@@ -1,7 +1,7 @@
 // View: banners — GET/POST/PATCH/DELETE /api/banners
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Alert, Form, Input, Modal, Space, Spin, Table, Tooltip, Upload, message } from 'antd'
+import { Alert, Form, Input, Modal, Select, Space, Spin, Table, Tag, Tooltip, Upload, message } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -36,16 +36,24 @@ export function BannersListPage() {
     loading,
     error,
     refetch,
+    placements,
+    placementsLoading,
     createMutation,
     deleteMutation,
     replaceImageMutation,
   } = useBannersViewModel()
+
+  const placementLabel = useCallback(
+    (value) => placements.find((p) => p.value === value)?.label ?? value,
+    [placements],
+  )
 
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [createFile, setCreateFile] = useState(/** @type {File | null} */ (null))
+  const [createPlacement, setCreatePlacement] = useState(/** @type {string | null} */ (null))
   const [form] = Form.useForm()
 
   const [deletingId, setDeletingId] = useState(/** @type {string | null} */ (null))
@@ -73,6 +81,7 @@ export function BannersListPage() {
 
   const openCreate = useCallback(() => {
     setCreateFile(null)
+    setCreatePlacement(null)
     form.resetFields()
     setCreateOpen(true)
   }, [form])
@@ -82,16 +91,21 @@ export function BannersListPage() {
       message.warning(t('banners.form.imageRequired'))
       return
     }
+    if (!createPlacement) {
+      message.warning(t('banners.form.placementRequired'))
+      return
+    }
     try {
-      await createMutation.mutateAsync({ image: createFile })
+      await createMutation.mutateAsync({ image: createFile, placement: createPlacement })
       message.success(t('banners.list.created'))
       setCreateOpen(false)
       setCreateFile(null)
+      setCreatePlacement(null)
       form.resetFields()
     } catch (e) {
       message.error(e?.message ?? t('banners.list.createFailed'))
     }
-  }, [createFile, createMutation, form, t])
+  }, [createFile, createPlacement, createMutation, form, t])
 
   const submitReplace = useCallback(async () => {
     if (replaceForId == null || !replaceFile) {
@@ -162,6 +176,15 @@ export function BannersListPage() {
         },
       },
       {
+        title: t('banners.list.colPlacement'),
+        key: 'placement',
+        width: 160,
+        render: (_, row) => {
+          const label = row?.placement_label || placementLabel(row?.placement)
+          return label ? <Tag>{label}</Tag> : <span className="text-slate-400">{t('shared.emDash')}</span>
+        },
+      },
+      {
         title: t('banners.list.colCreated'),
         key: 'created_at',
         width: 180,
@@ -210,7 +233,7 @@ export function BannersListPage() {
         ),
       },
     ],
-    [t, i18n.language, deletingId, handleDelete],
+    [t, i18n.language, deletingId, handleDelete, placementLabel],
   )
 
   return (
@@ -264,6 +287,7 @@ export function BannersListPage() {
         onCancel={() => {
           setCreateOpen(false)
           setCreateFile(null)
+          setCreatePlacement(null)
           form.resetFields()
         }}
         onOk={submitCreate}
@@ -292,6 +316,15 @@ export function BannersListPage() {
                 {t('banners.form.selectFile')}
               </Button>
             </Upload>
+          </Form.Item>
+          <Form.Item label={t('banners.form.placement')} required>
+            <Select
+              value={createPlacement}
+              onChange={setCreatePlacement}
+              loading={placementsLoading}
+              placeholder={t('banners.form.placementPlaceholder')}
+              options={placements.map((p) => ({ value: p.value, label: p.label }))}
+            />
           </Form.Item>
           <Form.Item label={t('banners.form.link')} extra={t('banners.form.comingSoon')}>
             <Input disabled placeholder={t('banners.form.linkPlaceholder')} />

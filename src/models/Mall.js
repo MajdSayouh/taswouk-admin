@@ -19,6 +19,8 @@
  * @property {boolean} isActive
  * @property {string} phone
  * @property {string} address
+ * @property {string} latitude
+ * @property {string} longitude
  * @property {string} contactEmail
  * @property {string} createdAt
  */
@@ -44,6 +46,8 @@ export function mapMallFromApi(raw) {
       isActive: false,
       phone: '',
       address: '',
+      latitude: '',
+      longitude: '',
       contactEmail: '',
       createdAt: '',
     }
@@ -65,6 +69,8 @@ export function mapMallFromApi(raw) {
     isActive: Boolean(raw.is_active),
     phone: raw.phone ?? '',
     address: raw.address ?? '',
+    latitude: raw.latitude ?? '',
+    longitude: raw.longitude ?? '',
     contactEmail: raw.contact_email ?? '',
     createdAt: raw.created_at ?? '',
   }
@@ -102,6 +108,8 @@ export function buildMallCreatePayload(form) {
         : Number(form.minimum_order),
     phone: String(form.phone ?? '').trim() || '',
     address: String(form.address ?? '').trim() || '',
+    latitude: String(form.latitude ?? '').trim(),
+    longitude: String(form.longitude ?? '').trim(),
     contact_email: String(form.contact_email ?? '').trim() || '',
     is_active: form.is_active != null ? Boolean(form.is_active) : true,
   }
@@ -126,6 +134,8 @@ export function buildMallUpdatePayload(form) {
         : Number(form.minimum_order),
     phone: form.phone != null ? String(form.phone).trim() || null : null,
     address: form.address != null ? String(form.address).trim() || null : null,
+    latitude: form.latitude != null ? String(form.latitude).trim() || null : null,
+    longitude: form.longitude != null ? String(form.longitude).trim() || null : null,
     contact_email:
       form.contact_email != null ? String(form.contact_email).trim() || null : null,
     is_active: form.is_active != null ? Boolean(form.is_active) : null,

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Select, Switch } from 'antd'
 import { Input } from '../../components/ui/Input.jsx'
 import { Textarea } from '../../components/ui/Textarea.jsx'
+import { Button } from '../../components/ui/Button.jsx'
+import { LocationPickerMap } from '../../components/maps/LocationPickerMap.jsx'
 
 const MALL_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
@@ -17,7 +19,7 @@ const MALL_CURRENCY_OPTIONS = [
  *   disabled?: boolean
  * }} props
  */
-export function MallEditorForm({ form, setForm, mode, disabled = false }) {
+export function MallEditorForm({ form, setForm, mode, disabled = false, mapOpen, setMapOpen }) {
   const { t } = useTranslation('pages')
 
   function handleChange(ev) {
@@ -27,6 +29,15 @@ export function MallEditorForm({ form, setForm, mode, disabled = false }) {
       [name]: type === 'checkbox' ? checked : value,
     }))
   }
+
+  function setCoords(lat, lng) {
+    setForm((prev) => ({ ...prev, latitude: String(lat), longitude: String(lng) }))
+  }
+
+  const latNum = form.latitude === '' || form.latitude == null ? null : Number(form.latitude)
+  const lngNum = form.longitude === '' || form.longitude == null ? null : Number(form.longitude)
+  const mapLat = latNum != null && !Number.isNaN(latNum) ? latNum : null
+  const mapLng = lngNum != null && !Number.isNaN(lngNum) ? lngNum : null
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -171,6 +182,34 @@ export function MallEditorForm({ form, setForm, mode, disabled = false }) {
           onChange={(checked) => setForm((prev) => ({ ...prev, is_active: checked }))}
           disabled={disabled}
         />
+      </div>
+      <Input
+        label={t('malls.editor.lat')}
+        name="latitude"
+        type="number"
+        step="any"
+        value={String(form.latitude ?? '')}
+        onChange={handleChange}
+        disabled={disabled}
+      />
+      <Input
+        label={t('malls.editor.lng')}
+        name="longitude"
+        type="number"
+        step="any"
+        value={String(form.longitude ?? '')}
+        onChange={handleChange}
+        disabled={disabled}
+      />
+      <div className="md:col-span-2">
+        <Button type="button" variant="secondary" disabled={disabled} onClick={() => setMapOpen((o) => !o)}>
+          {mapOpen ? t('malls.editor.hideMap') : t('malls.editor.pickMap')}
+        </Button>
+        {mapOpen ? (
+          <div className="mt-4">
+            <LocationPickerMap latitude={mapLat} longitude={mapLng} onChange={setCoords} height={360} />
+          </div>
+        ) : null}
       </div>
       <Textarea
         label={t('malls.editor.description')}

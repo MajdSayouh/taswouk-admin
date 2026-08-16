@@ -3,14 +3,18 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { Segmented } from 'antd'
+import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore, isAdminRole } from '../../store/authStore.js'
+import { useUiStore } from '../../store/uiStore.jsx'
 import { deactivateDashboardFirebaseDevice } from '../../firebase/dashboardMessaging.js'
 import { useAdminNotificationFeed } from '../../hooks/useAdminNotificationFeed.js'
 import { Button } from '../ui/Button'
 
 export function Topbar({ title }) {
   const { t, i18n: i18nInstance } = useTranslation()
+  const sidebarOpen = useUiStore((s) => s.sidebarOpen)
+  const setSidebarOpen = useUiStore((s) => s.setSidebarOpen)
   const token = useAuthStore((s) => s.token)
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
@@ -103,11 +107,24 @@ export function Topbar({ title }) {
 
   return (
     <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur flex items-center justify-between px-4 lg:px-8 gap-3">
-      <div className="min-w-0 flex-1">
-        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-slate-900 truncate">
-          {title}
-        </h1>
-        <p className="text-xs text-slate-500 hidden sm:block">{t('topbar.subtitle')}</p>
+      <div className="min-w-0 flex-1 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          title={sidebarOpen ? t('topbar.collapseSidebar') : t('topbar.expandSidebar')}
+          className="hidden md:inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:text-slate-900 hover:border-slate-300 transition-colors"
+        >
+          <span className="sr-only">
+            {sidebarOpen ? t('topbar.collapseSidebar') : t('topbar.expandSidebar')}
+          </span>
+          {sidebarOpen ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
+        </button>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-slate-900 truncate">
+            {title}
+          </h1>
+          <p className="text-xs text-slate-500 hidden sm:block">{t('topbar.subtitle')}</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
