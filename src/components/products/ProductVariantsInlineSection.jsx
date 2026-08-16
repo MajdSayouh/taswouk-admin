@@ -62,6 +62,10 @@ export function ProductVariantsInlineSection({
     }),
   )
 
+  // A free-text AutoComplete (not a closed Select) — the product's own declared sizes are offered
+  // as suggestions (including "ستاندر"/"Standard" when that's genuinely one of them — it's a
+  // valid, pickable, savable size, e.g. "one size fits all"; see buildVariantAttributes for why
+  // picking it no longer gets silently dropped), but any size can still be typed freely.
   const sizeOpts =
     Array.isArray(productSizes) && productSizes.length > 0
       ? productSizes.map((s) => ({ label: s, value: s }))
@@ -221,13 +225,13 @@ export function ProductVariantsInlineSection({
                   <label className="block text-xs font-medium text-slate-600 mb-1">
                     {t('products.variants.size')}
                   </label>
-                  <Select
+                  <AutoComplete
                     allowClear
-                    showSearch
-                    optionFilterProp="label"
+                    filterOption={(input, option) =>
+                      String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
                     placeholder={t('products.variants.sizePh')}
                     className="w-full"
-                    size="middle"
                     options={sizeOpts}
                     value={row.size || undefined}
                     onChange={(v) => updateRow(row.key, { size: v != null ? String(v) : '' })}

@@ -84,6 +84,44 @@ export function attrByKey(attrs, key) {
 const FIXED_ATTRIBUTE_KEYS = new Set(['color', 'size'])
 
 /**
+ * True when a variant row has NO real customer-facing identity at all — color and size are each
+ * either blank or the legacy "ستاندر"/"Standard" placeholder, and there's no custom option either.
+ * This is the shape of the single fake variant every product used to get before the real variant
+ * system existed (just to satisfy a backend constraint), and it's the ONLY case where the
+ * placeholder should be treated as "nothing". Once a row carries any other real identity — a
+ * genuine color, a genuine size, or a real custom option — an explicit "Standard" pick on
+ * whichever axis is left is a deliberate choice (e.g. "Yellow, one size") and must be kept, not
+ * silently dropped. (Row shape: `color`/`size` strings + `customAttributes: [{ name, value }]`.)
+ */
+function isBarePlaceholderVariantRow({ color, size, customAttributes }) {
+  const hasCustomContent = (Array.isArray(customAttributes) ? customAttributes : []).some(
+    (a) => String(a?.name ?? '').trim() && String(a?.value ?? '').trim(),
+  )
+  const c = String(color ?? '').trim()
+  const s = String(size ?? '').trim()
+  return !hasCustomContent && (c === '' || isStandardVariantValue(c)) && (s === '' || isStandardVariantValue(s))
+}
+
+/**
+ * Same check as `isBarePlaceholderVariantRow` but reading directly off an API variant's raw
+ * `attributes` array (shape: `[{ attribute_key | key, value_en | value | value_ar }]`), used when
+ * a variant is first loaded from the server.
+ */
+function isBarePlaceholderApiVariant(attrs) {
+  if (!Array.isArray(attrs)) return false
+  let sawAny = false
+  for (const attribute of attrs) {
+    const key = String(attribute?.attribute_key ?? attribute?.key ?? '').trim().toLowerCase()
+    const value = firstNonEmpty(attribute?.value_en, attribute?.value, attribute?.value_ar)
+    if (!value) continue
+    sawAny = true
+    if (!FIXED_ATTRIBUTE_KEYS.has(key)) return false // a real custom option = real identity
+    if (!isStandardVariantValue(value)) return false // a real color/size = real identity
+  }
+  return sawAny
+}
+
+/**
  * Backend `VariantAttribute.attribute_key` constraint: must start with a letter (any language —
  * the backend now accepts Arabic keys, not just ASCII), followed by letters, digits, or underscore.
  * No spaces/colons/commas — those are the delimiters in the `attr=key:value,key2:value2` query format.
@@ -282,17 +320,10 @@ export function mapApiVariantToRow(v, lang = 'ar') {
     stock_quantity: v?.stock_quantity != null ? String(v.stock_quantity) : '',
     is_offer: Boolean(v?.is_offer),
     status: VARIANT_STATUS_VALUES.includes(st) ? st : 'active',
-    hasLegacyStandardAttribute: Array.isArray(attrs)
-      ? attrs.some(
-          (attribute) =>
-            FIXED_ATTRIBUTE_KEYS.has(
-              String(attribute?.attribute_key ?? attribute?.key ?? '').trim().toLowerCase(),
-            ) &&
-            isStandardVariantValue(
-              firstNonEmpty(attribute?.value_en, attribute?.value, attribute?.value_ar),
-            ),
-        )
-      : false,
+    // Checked across the WHOLE attribute set, not attribute-by-attribute — a variant with a real
+    // color (`أصفر`) and `size: "ستاندر"` has genuine identity via its color and must not be
+    // flagged as a bare legacy placeholder just because one axis happens to equal that string.
+    hasLegacyStandardAttribute: isBarePlaceholderApiVariant(attrs),
     existingImages: imgs,
     imageFiles: [],
   }
@@ -328,11 +359,14 @@ export function variantIdentityKey(row) {
 export function buildVariantAttributes(row) {
   const color = String(row.color ?? '').trim()
   const size = String(row.size ?? '').trim()
+  // Only a row with NO other real identity omits the placeholder entirely (see
+  // isBarePlaceholderVariantRow) — e.g. a row with a real color and size "ستاندر" keeps both.
+  const bare = isBarePlaceholderVariantRow({ color, size, customAttributes: row.customAttributes })
   const attributes = []
-  if (color && !isStandardVariantValue(color)) {
+  if (color && !bare) {
     attributes.push({ key: 'color', value_en: color, sort_order: 0 })
   }
-  if (size && !isStandardVariantValue(size)) {
+  if (size && !bare) {
     attributes.push({ key: 'size', value_en: size, sort_order: attributes.length })
   }
 
@@ -425,26 +459,13 @@ export function withStandardVariantAttributes(rows, productColors = [], productS
     return row?.variantId != null || variantRowHasContent(row) || (Number.isFinite(price) && price > 0)
   })
 
-  function normalizeVariantOption(value) {
-    const option = String(value ?? '').trim()
-    return !option || isStandardVariantValue(option) ? '' : option
-  }
-
-  const standardized = source.map((row) => ({
-    ...row,
-    color: normalizeVariantOption(row?.color),
-    size: normalizeVariantOption(row?.size),
-    hasLegacyStandardAttribute:
-      Boolean(row?.hasLegacyStandardAttribute) ||
-      isStandardVariantValue(row?.color) ||
-      isStandardVariantValue(row?.size),
-  }))
-
+  // Declared colors/sizes are plain values here — including "ستاندر"/"Standard" when that's
+  // genuinely what the seller declared (e.g. one general size for the whole product).
   function uniqueOptions(values) {
     const seen = new Set()
     const out = []
     for (const value of Array.isArray(values) ? values : []) {
-      const option = normalizeVariantOption(value)
+      const option = String(value ?? '').trim()
       const key = option.toLowerCase()
       if (!option || seen.has(key)) continue
       seen.add(key)
@@ -455,6 +476,26 @@ export function withStandardVariantAttributes(rows, productColors = [], productS
 
   const colors = uniqueOptions(productColors)
   const sizes = uniqueOptions(productSizes)
+  // A single declared size applies to every real (non-bare) row automatically — a product with
+  // one general size ("ستاندر" or otherwise) shouldn't make the seller pick it manually per row.
+  const soleDeclaredSize = sizes.length === 1 ? sizes[0] : null
+
+  // Per-row: only a row with no other real identity gets its color/size cleared (see
+  // isBarePlaceholderVariantRow) — a row that already has a real color either keeps its explicit
+  // size exactly as picked, or — if left blank — inherits the product's single declared size.
+  const standardized = source.map((row) => {
+    const color = String(row?.color ?? '').trim()
+    const rawSize = String(row?.size ?? '').trim()
+    const bare = isBarePlaceholderVariantRow({ color, size: rawSize, customAttributes: row?.customAttributes })
+    const size = bare ? '' : rawSize || soleDeclaredSize || ''
+    return {
+      ...row,
+      color: bare ? '' : color,
+      size,
+      hasLegacyStandardAttribute: Boolean(row?.hasLegacyStandardAttribute) || bare,
+    }
+  })
+
   if (colors.length === 0 && sizes.length === 0) return standardized
 
   const colorAxis = colors.length > 0 ? colors : ['']
