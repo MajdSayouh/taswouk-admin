@@ -23,6 +23,58 @@ export const PRODUCT_SIZE_OPTIONS = [
 ]
 
 /**
+ * The variant API rejects a hex code as a `color` attribute value — it wants a customer-readable
+ * name (see `buildVariantAttributes` in productVariants.js). "Add Color" still works as a single
+ * swatch-pick-and-add action (no typing), by resolving the picked shade to its nearest name here.
+ */
+const COLOR_NAME_PALETTE = [
+  { hex: '#000000', ar: 'أسود', en: 'Black' },
+  { hex: '#FFFFFF', ar: 'أبيض', en: 'White' },
+  { hex: '#808080', ar: 'رمادي', en: 'Gray' },
+  { hex: '#C0C0C0', ar: 'فضي', en: 'Silver' },
+  { hex: '#FF0000', ar: 'أحمر', en: 'Red' },
+  { hex: '#800000', ar: 'عنابي', en: 'Maroon' },
+  { hex: '#FFA500', ar: 'برتقالي', en: 'Orange' },
+  { hex: '#FFFF00', ar: 'أصفر', en: 'Yellow' },
+  { hex: '#FFD700', ar: 'ذهبي', en: 'Gold' },
+  { hex: '#808000', ar: 'زيتي', en: 'Olive' },
+  { hex: '#00FF00', ar: 'أخضر', en: 'Green' },
+  { hex: '#008080', ar: 'تركواز', en: 'Teal' },
+  { hex: '#40E0D0', ar: 'فيروزي', en: 'Turquoise' },
+  { hex: '#00FFFF', ar: 'سماوي', en: 'Cyan' },
+  { hex: '#0000FF', ar: 'أزرق', en: 'Blue' },
+  { hex: '#000080', ar: 'كحلي', en: 'Navy' },
+  { hex: '#800080', ar: 'بنفسجي', en: 'Purple' },
+  { hex: '#FF00FF', ar: 'أرجواني', en: 'Magenta' },
+  { hex: '#FFC0CB', ar: 'وردي', en: 'Pink' },
+  { hex: '#A52A2A', ar: 'بني', en: 'Brown' },
+  { hex: '#F5F5DC', ar: 'بيج', en: 'Beige' },
+]
+
+function hexToRgb(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex ?? '').trim())
+  if (!m) return null
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) }
+}
+
+/** Nearest palette entry to `hex` by plain RGB distance — good enough for a picker shortcut. */
+function nearestColorName(hex, lang = 'ar') {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return null
+  let best = null
+  let bestDist = Infinity
+  for (const c of COLOR_NAME_PALETTE) {
+    const crgb = hexToRgb(c.hex)
+    const dist = (rgb.r - crgb.r) ** 2 + (rgb.g - crgb.g) ** 2 + (rgb.b - crgb.b) ** 2
+    if (dist < bestDist) {
+      bestDist = dist
+      best = c
+    }
+  }
+  return best ? (lang === 'en' ? best.en : best.ar) : null
+}
+
+/**
  * @typedef {Object} ProductEditorFormValues
  * @property {string} storeId
  * @property {string} name
@@ -95,9 +147,18 @@ export function ProductEditorForm({
   videoUploading = false,
   descriptionResetKey,
 }) {
-  const { t } = useTranslation('pages')
-  // Neutral swatch only for the picker UI — not a product color until the user adds it to the list.
-  const [colorDraft, setColorDraft] = useState('#000000')
+  const { t, i18n } = useTranslation('pages')
+  const colorLang = i18n.resolvedLanguage?.startsWith('en') ? 'en' : 'ar'
+  // Swatch picker — its picked shade is resolved to the nearest name in COLOR_NAME_PALETTE on Add,
+  // since the backend rejects a hex code as a `color` attribute value (it wants a customer-readable
+  // name, e.g. "أصفر"/"Yellow"). Single pick-and-add action, no typing required.
+  const [colorHexDraft, setColorHexDraft] = useState('#000000')
+  const colorNamePreview = nearestColorName(colorHexDraft, colorLang)
+  // Session-only: remembers the exact shade picked for each added name, purely so its tag renders
+  // with that color instead of the palette's canonical shade. The backend only stores the name
+  // (see e.g. `colors: ["اصفر","تركواز","زيتي"]` on real products) — this hint isn't persisted and
+  // isn't sent anywhere, so it resets on reload.
+  const [colorSwatchHints, setColorSwatchHints] = useState({})
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -137,18 +198,20 @@ export function ProductEditorForm({
   const imageFiles = Array.isArray(form.imageFiles) ? form.imageFiles : []
 
   function addColor() {
-    const hex = colorDraft.toUpperCase()
+    const name = nearestColorName(colorHexDraft, colorLang)
+    if (!name) return
     setForm((prev) => {
       const colors = Array.isArray(prev.colors) ? [...prev.colors] : []
-      if (colors.includes(hex)) return prev
-      return { ...prev, colors: [...colors, hex] }
+      if (colors.some((c) => String(c).trim().toLowerCase() === name.toLowerCase())) return prev
+      return { ...prev, colors: [...colors, name] }
     })
+    setColorSwatchHints((prev) => ({ ...prev, [name]: colorHexDraft }))
   }
 
-  function removeColor(hex) {
+  function removeColor(name) {
     setForm((prev) => ({
       ...prev,
-      colors: (Array.isArray(prev.colors) ? prev.colors : []).filter((c) => c !== hex),
+      colors: (Array.isArray(prev.colors) ? prev.colors : []).filter((c) => c !== name),
     }))
   }
 
@@ -278,28 +341,33 @@ export function ProductEditorForm({
           {colors.length === 0 ? (
             <span className="text-sm text-slate-400">{t('products.editor.noColors')}</span>
           ) : (
-            colors.map((hex) => (
-              <Tag
-                key={hex}
-                closable
-                onClose={() => removeColor(hex)}
-                className="!m-0 !flex !items-center gap-1.5 !rounded-md !border !border-slate-200 !px-2 !py-1 !text-xs"
-              >
-                <span
-                  className="inline-block h-4 w-4 shrink-0 rounded-sm border border-slate-300"
-                  style={{ backgroundColor: hex }}
-                  aria-hidden
-                />
-                {hex}
-              </Tag>
-            ))
+            colors.map((name) => {
+              // A picked swatch (this session only) or, for legacy hex-named entries, the name
+              // itself when it happens to already be a hex code — otherwise a neutral placeholder.
+              const swatch = colorSwatchHints[name] || (/^#/i.test(name) ? name : null)
+              return (
+                <Tag
+                  key={name}
+                  closable
+                  onClose={() => removeColor(name)}
+                  className="!m-0 !flex !items-center gap-1.5 !rounded-md !border !border-slate-200 !px-2 !py-1 !text-xs"
+                >
+                  <span
+                    className="inline-block h-4 w-4 shrink-0 rounded-sm border border-slate-300"
+                    style={{ backgroundColor: swatch || '#e2e8f0' }}
+                    aria-hidden
+                  />
+                  {name}
+                </Tag>
+              )
+            })
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="color"
-            value={colorDraft}
-            onChange={(e) => setColorDraft(e.target.value)}
+            value={colorHexDraft}
+            onChange={(e) => setColorHexDraft(e.target.value)}
             className="h-9 w-12 cursor-pointer overflow-hidden rounded-md border border-slate-200 bg-white p-0.5 shrink-0"
             title={t('products.editor.pickColor')}
             aria-label={t('products.editor.pickColor')}
@@ -311,6 +379,11 @@ export function ProductEditorForm({
           >
             {t('products.editor.addColor')}
           </button>
+          {colorNamePreview ? (
+            <span className="text-xs text-slate-500">
+              {t('products.editor.colorAutoName', { name: colorNamePreview })}
+            </span>
+          ) : null}
         </div>
       </div>
 
