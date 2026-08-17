@@ -23,6 +23,15 @@ export function useBannersViewModel(options = {}) {
     select: (data) => (Array.isArray(data) ? data : []),
   })
 
+  // Placements barely ever change — cache them for the session instead of refetching per mount.
+  const placementsQuery = useQuery({
+    queryKey: queryKeys.banners.placements(),
+    queryFn: ({ signal }) => bannerService.getBannerPlacements({ signal }),
+    enabled: fetchOnMount,
+    staleTime: 10 * 60_000,
+    select: (data) => (Array.isArray(data) ? data : []),
+  })
+
   const createMutation = useMutation({
     mutationFn: (payload) => bannerService.createBanner(payload),
     onSuccess: () => invalidateBanners(queryClient),
@@ -49,6 +58,8 @@ export function useBannersViewModel(options = {}) {
     error: listQuery.error?.message ?? null,
     refetch: listQuery.refetch,
     isFetched: listQuery.isFetched,
+    placements: placementsQuery.data ?? [],
+    placementsLoading: fetchOnMount && placementsQuery.isFetching,
     createMutation,
     updateMutation,
     deleteMutation,

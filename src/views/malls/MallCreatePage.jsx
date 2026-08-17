@@ -24,6 +24,8 @@ function emptyForm() {
     password: '',
     phone: '',
     address: '',
+    latitude: '',
+    longitude: '',
     contact_email: '',
     minimum_order: 0,
     price_match: false,
@@ -38,6 +40,7 @@ export function MallCreatePage() {
   const navigate = useNavigate()
   const { createMall, saving } = useMallsViewModel({ fetchOnMount: false })
   const [form, setForm] = useState(emptyForm)
+  const [mapOpen, setMapOpen] = useState(false)
   const [logoFile, setLogoFile] = useState(/** @type {File | null} */ (null))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(/** @type {string | null} */ (null))
@@ -109,7 +112,14 @@ export function MallCreatePage() {
       <Card title={t('malls.create.title')}>
         <p className="text-sm text-slate-600 mb-4">{t('malls.create.hint')}</p>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <MallEditorForm form={form} setForm={setForm} mode="create" disabled={pending} />
+          <MallEditorForm
+            form={form}
+            setForm={setForm}
+            mode="create"
+            disabled={pending}
+            mapOpen={mapOpen}
+            setMapOpen={setMapOpen}
+          />
 
           <div className="border-t border-slate-200 pt-4">
             <p className="text-sm font-medium text-slate-700 mb-2">{t('malls.create.logo')}</p>

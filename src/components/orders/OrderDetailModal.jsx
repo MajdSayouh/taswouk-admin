@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Modal, Descriptions, Table, Tag, Spin, Alert } from 'antd'
 import { getOrderById, getDeliveryAssignments } from '../../services/orderService.js'
 import { listAdminUsersByRole } from '../../services/adminService.js'
+import { deliveryUserDisplayName } from '../../viewmodels/useDriversViewModel.js'
 import { queryKeys } from '../../query/queryKeys.js'
 import { useAuthStore, isAdminRole } from '../../store/authStore.js'
 import { normalizeOrderDetail, extractDriverLocation, coordsFromLatLng } from '../../utils/orderDetail.js'
@@ -147,6 +148,31 @@ export function OrderDetailModal({
 
   const effectiveDriverId =
     detail?.deliveryUserId ?? deliveryUserId ?? (assignment?.delivery_user_id != null ? String(assignment.delivery_user_id) : null)
+
+  // Fall back to resolving the driver's name ourselves (instead of relying solely on the
+  // `driverName` prop, which the orders list only fills in when its own driver directory
+  // happens to already be loaded) so the detail view doesn't fall back to "Driver #{id}".
+  const driverDirectoryQuery = useQuery({
+    queryKey: queryKeys.adminUsers.byRole('DELIVERY'),
+    queryFn: ({ signal }) => listAdminUsersByRole('DELIVERY', { signal }),
+    enabled:
+      open &&
+      !isMockPreview &&
+      Boolean(user && isAdminRole(user.role)) &&
+      !driverName &&
+      effectiveDriverId != null,
+    staleTime: 5 * 60_000,
+    retry: false,
+  })
+
+  const resolvedDriverName = useMemo(() => {
+    if (driverName) return driverName
+    if (effectiveDriverId == null) return null
+    const driver = normalizeUserDirectory(driverDirectoryQuery.data).find(
+      (candidate) => String(candidate?.id ?? candidate?.user_id ?? candidate?.pk ?? '') === String(effectiveDriverId),
+    )
+    return driver ? deliveryUserDisplayName(driver) : null
+  }, [driverName, effectiveDriverId, driverDirectoryQuery.data])
 
   const driverLocation = useMemo(() => {
     if (detail?.driverLocation) return detail.driverLocation
@@ -358,9 +384,17 @@ export function OrderDetailModal({
               <span className="font-semibold text-slate-900">{detail.total.toFixed(2)} SYP</span>
             </Descriptions.Item>
             <Descriptions.Item label={t('orders.driver')} span={2}>
-              {effectiveDriverId
-                ? driverName || t('orders.driverOrphan', { id: effectiveDriverId })
-                : t('orders.unassigned')}
+              {effectiveDriverId ? (
+                resolvedDriverName ? (
+                  resolvedDriverName
+                ) : driverDirectoryQuery.isFetching ? (
+                  <Spin size="small" />
+                ) : (
+                  t('orders.driverOrphan', { id: effectiveDriverId })
+                )
+              ) : (
+                t('orders.unassigned')
+              )}
             </Descriptions.Item>
           </Descriptions>
 

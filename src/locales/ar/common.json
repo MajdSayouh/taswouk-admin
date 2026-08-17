@@ -84,7 +84,9 @@
     "notificationsEmpty": "لا توجد إشعارات بعد.",
     "profileLinkTitle": "عرض الملف الشخصي",
     "langArabic": "العربية",
-    "langEnglish": "English"
+    "langEnglish": "English",
+    "collapseSidebar": "طي القائمة الجانبية",
+    "expandSidebar": "فتح القائمة الجانبية"
   },
   "fcm": {
     "defaultTitle": "إشعار",

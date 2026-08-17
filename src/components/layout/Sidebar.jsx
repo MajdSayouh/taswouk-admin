@@ -4,6 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { DownOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../../store/authStore.js'
+import { useUiStore } from '../../store/uiStore.jsx'
 import { getDashboardNavItems, isNavActive } from '../../navigation/dashboardNav.js'
 
 const navLinkClass = (active) =>
@@ -27,6 +28,7 @@ export function Sidebar() {
   const user = useAuthStore((s) => s.user)
   const navItems = getDashboardNavItems(user)
   const { t } = useTranslation()
+  const sidebarOpen = useUiStore((s) => s.sidebarOpen)
   const [openKeys, setOpenKeys] = useState(() =>
     new Set(
       navItems
@@ -38,11 +40,24 @@ export function Sidebar() {
     ),
   )
 
+  // Collapsed: icon-only rail. Children of grouped items aren't reachable while collapsed
+  // (their icon link just jumps to the active/first child instead of expanding a sub-list).
+  const collapsed = !sidebarOpen
+
   return (
-    <aside className="hidden md:flex md:flex-col w-[17rem] shrink-0 bg-white border-e border-slate-200">
-      <div className="h-16 flex items-center px-5 border-b border-slate-200 bg-white">
-        <span className="text-lg font-semibold tracking-tight text-black">
-          Jomran<span className="text-[#FF7D29]">Admin</span>
+    <aside
+      className={[
+        'hidden md:flex md:flex-col shrink-0 bg-white border-e border-slate-200 transition-[width] duration-150',
+        collapsed ? 'w-[4.5rem]' : 'w-[17rem]',
+      ].join(' ')}
+    >
+      <div className="h-16 flex items-center px-5 border-b border-slate-200 bg-white overflow-hidden">
+        <span className="text-lg font-semibold tracking-tight text-black whitespace-nowrap">
+          {collapsed ? 'J' : (
+            <>
+              Jomran<span className="text-[#FF7D29]">Admin</span>
+            </>
+          )}
         </span>
       </div>
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-0.5">
@@ -53,15 +68,23 @@ export function Sidebar() {
           const childActive = item.children?.some((child) =>
             isNavActive(location.pathname, child.to, child.match),
           )
-          const isOpen = openKeys.has(item.key) || childActive
+          const isOpen = !collapsed && (openKeys.has(item.key) || childActive)
 
           if (!hasChildren) {
             return (
-              <NavLink key={item.key} to={item.to} end={item.match === 'exact'} className={navLinkClass(active)}>
+              <NavLink
+                key={item.key}
+                to={item.to}
+                end={item.match === 'exact'}
+                className={navLinkClass(active)}
+                title={collapsed ? t(item.labelKey) : undefined}
+              >
                 <span className={navIconWrapClass(active)} aria-hidden>
                   <Icon />
                 </span>
-                <span className="truncate leading-snug !text-black">{t(item.labelKey)}</span>
+                {collapsed ? null : (
+                  <span className="truncate leading-snug !text-black">{t(item.labelKey)}</span>
+                )}
               </NavLink>
             )
           }
@@ -70,30 +93,36 @@ export function Sidebar() {
             <div key={item.key}>
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  if (collapsed) return
                   setOpenKeys((prev) => {
                     const next = new Set(prev)
                     if (next.has(item.key)) next.delete(item.key)
                     else next.add(item.key)
                     return next
                   })
-                }
+                }}
                 aria-expanded={isOpen}
+                title={collapsed ? t(item.labelKey) : undefined}
                 className={[navLinkClass(childActive), 'w-full'].join(' ')}
               >
                 <span className={navIconWrapClass(childActive)} aria-hidden>
                   <Icon />
                 </span>
-                <span className="truncate leading-snug !text-black flex-1 text-start">
-                  {t(item.labelKey)}
-                </span>
-                <DownOutlined
-                  className={[
-                    'text-xs text-slate-500 transition-transform duration-150',
-                    isOpen ? 'rotate-180' : '',
-                  ].join(' ')}
-                  aria-hidden
-                />
+                {collapsed ? null : (
+                  <>
+                    <span className="truncate leading-snug !text-black flex-1 text-start">
+                      {t(item.labelKey)}
+                    </span>
+                    <DownOutlined
+                      className={[
+                        'text-xs text-slate-500 transition-transform duration-150',
+                        isOpen ? 'rotate-180' : '',
+                      ].join(' ')}
+                      aria-hidden
+                    />
+                  </>
+                )}
               </button>
               {isOpen ? (
                 <div className="mt-0.5 ms-6 space-y-0.5 border-s border-slate-200 ps-3">

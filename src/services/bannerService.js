@@ -49,8 +49,25 @@ export async function listBanners(options = {}) {
 }
 
 /**
+ * GET /api/banners/placements — valid `placement` values for the create/edit form, each
+ * `{ value, label }` (label is localized server-side, e.g. "الشريط العلوي في الرئيسية").
+ * @returns {Promise<{ value: string, label: string }[]>}
+ */
+export async function getBannerPlacements(options = {}) {
+  const { data } = await apiClient.get('/api/banners/placements', { signal: options.signal })
+  return data
+}
+
+/**
  * POST /api/banners/ — multipart; `image` required.
- * @param {{ image: File | Blob, link?: string | null, description?: string | null }} payload
+ * @param {{
+ *   image: File | Blob,
+ *   link?: string | null,
+ *   description?: string | null,
+ *   placement?: string | null,
+ *   sort_order?: number | null,
+ *   is_active?: boolean | null,
+ * }} payload
  */
 export async function createBanner(payload) {
   const body = toMultipart(payload)
@@ -61,7 +78,13 @@ export async function createBanner(payload) {
 /**
  * PATCH /api/banners/{banner_id}
  * @param {number | string} bannerId
- * @param {{ link?: string | null, description?: string | null }} payload
+ * @param {{
+ *   link?: string | null,
+ *   description?: string | null,
+ *   placement?: string | null,
+ *   sort_order?: number | null,
+ *   is_active?: boolean | null,
+ * }} payload
  */
 export async function updateBanner(bannerId, payload) {
   const { data } = await apiClient.patch(`/api/banners/${bannerId}`, payload)

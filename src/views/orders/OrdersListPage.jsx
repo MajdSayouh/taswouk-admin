@@ -233,6 +233,10 @@ export function OrdersListPage() {
       } catch (err) {
         const detail = err && typeof err === 'object' && 'message' in err ? String(err.message) : ''
         message.error(detail ? `${t('orders.acceptError')} ${detail}` : t('orders.acceptError'))
+        // The rejection almost always means our cached row is stale (someone/something already
+        // moved the order past "pending" on the backend) — refetch so the Accept button
+        // disappears instead of staying there and failing the same way on every retry.
+        await queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
       } finally {
         setAcceptingOrderId(null)
       }
@@ -254,6 +258,9 @@ export function OrdersListPage() {
       } catch (err) {
         const detail = err && typeof err === 'object' && 'message' in err ? String(err.message) : ''
         message.error(detail ? `${t('orders.cancelError')} ${detail}` : t('orders.cancelError'))
+        // Same rationale as handleAcceptOrder: refetch so a stale row's Cancel button stops
+        // retrying a transition the backend has already moved past.
+        await queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
         throw err
       } finally {
         setCancellingOrderId(null)
@@ -507,16 +514,6 @@ export function OrdersListPage() {
             </span>
           )
         },
-      },
-      {
-        title: t('orders.colProduct'),
-        dataIndex: 'primaryProductName',
-        key: 'primaryProductName',
-        align: 'left',
-        ellipsis: true,
-        render: (value, record) => (
-          <ExternalOrderProductCell name={value} isExternal={record.isExternal} />
-        ),
       },
       {
         title: t('orders.colImage'),
@@ -923,6 +920,10 @@ export function OrdersListPage() {
               columns={columns}
               dataSource={displayData}
               scroll={DASHBOARD_TABLE_PROPS.scroll}
+              sticky={{
+                offsetHeader: 0,
+                getContainer: () => document.getElementById('dashboard-scroll-container') ?? window,
+              }}
               onRow={(record) => ({
                 onClick: (e) => {
                   const el = /** @type {HTMLElement} */ (e.target)
@@ -1003,7 +1004,10 @@ export function OrdersListPage() {
                         <div className="min-w-0 space-y-1">
                           {renderOrderColumn('number', record)}
                           <div className="truncate text-sm text-slate-600">
-                            {renderOrderColumn('primaryProductName', record)}
+                            <ExternalOrderProductCell
+                              name={record.primaryProductName}
+                              isExternal={record.isExternal}
+                            />
                           </div>
                         </div>
                       </div>

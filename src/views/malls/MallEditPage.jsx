@@ -39,6 +39,8 @@ export function MallEditPage() {
     end_working_at: '',
     phone: '',
     address: '',
+    latitude: '',
+    longitude: '',
     contact_email: '',
     minimum_order: 0,
     price_match: false,
@@ -46,6 +48,7 @@ export function MallEditPage() {
     exchange_rate: '',
     currency: 'syp',
   })
+  const [mapOpen, setMapOpen] = useState(false)
   const [logoFile, setLogoFile] = useState(/** @type {File | null} */ (null))
   const [existingLogo, setExistingLogo] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -72,6 +75,8 @@ export function MallEditPage() {
       end_working_at: row.endWorkingAt ?? '',
       phone: row.phone ?? '',
       address: row.address ?? '',
+      latitude: row.latitude ?? '',
+      longitude: row.longitude ?? '',
       contact_email: row.contactEmail ?? '',
       minimum_order: row.minimumOrder ?? 0,
       price_match: row.priceMatch,
@@ -173,7 +178,14 @@ export function MallEditPage() {
 
       <Card title={t('malls.edit.title', { id })}>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <MallEditorForm form={form} setForm={setForm} mode="edit" disabled={pending} />
+          <MallEditorForm
+            form={form}
+            setForm={setForm}
+            mode="edit"
+            disabled={pending}
+            mapOpen={mapOpen}
+            setMapOpen={setMapOpen}
+          />
 
           <div className="border-t border-slate-200 pt-4">
             <p className="text-sm font-medium text-slate-700 mb-2">{t('malls.edit.logo')}</p>

@@ -84,7 +84,9 @@
     "notificationsEmpty": "No notifications yet.",
     "profileLinkTitle": "View profile",
     "langArabic": "Arabic",
-    "langEnglish": "English"
+    "langEnglish": "English",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
   },
   "fcm": {
     "defaultTitle": "Notification",

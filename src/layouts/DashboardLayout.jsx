@@ -73,8 +73,11 @@ export function DashboardLayout() {
         <div className="relative z-[100] shrink-0">
           <Topbar title={currentTitle} />
         </div>
-        <main className="relative z-0 flex-1 p-6 lg:p-8 bg-slate-50 overflow-y-auto min-h-0">
-          <div className="max-w-7xl mx-auto">
+        <main
+          id="dashboard-scroll-container"
+          className="relative z-0 flex-1 p-6 lg:p-8 bg-slate-50 overflow-y-auto min-h-0"
+        >
+          <div className="max-w-[110rem] mx-auto">
             <Outlet />
           </div>
         </main>

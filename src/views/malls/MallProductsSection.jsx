@@ -1,5 +1,5 @@
 // Mall edit: assign catalog products with price / availability.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Alert, Input, InputNumber, Modal, Select, Spin, Switch, Table, message } from 'antd'
 import { useQuery } from '@tanstack/react-query'
@@ -9,7 +9,11 @@ import { queryKeys } from '../../query/queryKeys.js'
 import { useMallProductsViewModel } from '../../viewmodels/useMallProductsViewModel.js'
 import { Card } from '../../components/ui/Card.jsx'
 import { Button } from '../../components/ui/Button.jsx'
-import { DASHBOARD_TABLE_PROPS } from '../../components/tables/tableDefaults.js'
+import {
+  DASHBOARD_TABLE_PROPS,
+  DEFAULT_PAGE_SIZE,
+  buildDashboardPagination,
+} from '../../components/tables/tableDefaults.js'
 
 function AssignmentNameCell({ row, renameMutation, t }) {
   const [name, setName] = useState(row.productName)
@@ -148,8 +152,26 @@ function AssignmentAvailableSwitch({ row, updateMutation, t }) {
  */
 export function MallProductsSection({ mallId }) {
   const { t } = useTranslation('pages')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [search, setSearch] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Debounce so every keystroke doesn't fire a new request.
+  useEffect(() => {
+    const id = setTimeout(() => setSearchQuery(search.trim()), 300)
+    return () => clearTimeout(id)
+  }, [search])
+
+  // A new search term (or mall) always restarts from page 1 — otherwise a filtered result set
+  // smaller than the current page would render empty even though matches exist.
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery, mallId])
+
   const {
     assignments,
+    total,
     loading,
     error,
     refetch,
@@ -157,7 +179,7 @@ export function MallProductsSection({ mallId }) {
     updateMutation,
     removeMutation,
     renameMutation,
-  } = useMallProductsViewModel(mallId)
+  } = useMallProductsViewModel(mallId, { page, pageSize, search: searchQuery })
 
   const catalogQuery = useQuery({
     queryKey: queryKeys.mallCatalog.all(),
@@ -266,6 +288,13 @@ export function MallProductsSection({ mallId }) {
       }
     >
       <p className="text-xs text-slate-500 mb-3">{t('malls.products.nameEditNote')}</p>
+      <Input.Search
+        allowClear
+        placeholder={t('malls.products.searchPlaceholder')}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="mb-4 max-w-sm"
+      />
       {error ? (
         <Alert
           type="error"
@@ -285,7 +314,16 @@ export function MallProductsSection({ mallId }) {
           rowKey="id"
           dataSource={assignments}
           columns={columns}
-          pagination={false}
+          pagination={buildDashboardPagination({
+            page,
+            pageSize,
+            total,
+            showTotal: (count) => t('malls.products.totalCount', { count }),
+            onChange: (nextPage, nextPageSize) => {
+              setPage(nextPage)
+              setPageSize(nextPageSize)
+            },
+          })}
           locale={{ emptyText: t('malls.products.empty') }}
         />
       </Spin>
