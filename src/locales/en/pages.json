@@ -233,6 +233,7 @@
       "colors": "Colors",
       "noColors": "No colors added yet.",
       "pickColor": "Pick a color",
+      "colorAutoName": "Will be added as: {{name}}",
       "addColor": "Add color",
       "description": "Description",
       "price": "Price (SYP)",

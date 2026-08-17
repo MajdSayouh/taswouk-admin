@@ -233,6 +233,7 @@
       "colors": "الألوان",
       "noColors": "لم تُضف ألوان بعد.",
       "pickColor": "اختر لوناً",
+      "colorAutoName": "سيُضاف باسم: {{name}}",
       "addColor": "إضافة لون",
       "description": "الوصف",
       "price": "السعر (ل.س)",
