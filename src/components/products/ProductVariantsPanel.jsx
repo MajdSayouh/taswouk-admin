@@ -132,6 +132,9 @@ export function ProductVariantsPanel({ productId, product = null, readOnly = fal
   }, [product])
 
   const sizeSelectOptions = useMemo(() => {
+    // "ستاندر"/"Standard" is kept as a normal, pickable, savable size here — see
+    // buildVariantAttributes/isBarePlaceholderVariantRow in productVariants.js for why picking it
+    // no longer gets silently dropped on save.
     const allowed = normalizeSizeList(product?.size ?? product?.sizes)
     if (allowed.length > 0) return allowed.map((s) => ({ label: s, value: s }))
     return PRODUCT_SIZE_OPTIONS
@@ -515,10 +518,11 @@ export function ProductVariantsPanel({ productId, product = null, readOnly = fal
             />
           </Form.Item>
           <Form.Item name="size" label={t('products.variants.size')}>
-            <Select
+            <AutoComplete
               allowClear
-              showSearch
-              optionFilterProp="label"
+              filterOption={(input, option) =>
+                String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+              }
               placeholder={t('products.variants.sizePh')}
               options={sizeSelectOptions}
             />
