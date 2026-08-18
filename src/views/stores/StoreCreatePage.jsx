@@ -19,6 +19,8 @@ const STORE_CURRENCY_OPTIONS = [
   { value: 'syp', i18nKey: 'stores.currency.syp' },
 ]
 
+const STORE_TYPE_OPTIONS = ['global', 'syrian', 'grocery', 'restaurant']
+
 /**
  * @param {{ firstName?: string; lastName?: string; email?: string; id: string }} s
  */
@@ -30,7 +32,7 @@ function formatSellerLabel(s) {
   return `#${s.id}`
 }
 
-function emptyForm() {
+function emptyForm(restaurantMode = false) {
   return {
     sellerId: '',
     name: '',
@@ -41,6 +43,10 @@ function emptyForm() {
     exchangeRate: '1',
     latitude: '',
     longitude: '',
+    storeType: restaurantMode ? 'restaurant' : 'global',
+    startWorkingAt: '',
+    endWorkingAt: '',
+    preparationTime: '',
     // Explicit — the admin/seller create endpoints don't set this on their own, and the store
     // otherwise stays invisible on the public site/app until someone remembers a separate
     // "toggle active" step after creation.
@@ -56,13 +62,18 @@ function parseExchangeRateInput(value) {
   return rate
 }
 
-export function StoreCreatePage() {
+function normalizeTime(value) {
+  const trimmed = String(value ?? '').trim()
+  return trimmed && trimmed.length === 5 ? `${trimmed}:00` : trimmed || null
+}
+
+export function StoreCreatePage({ restaurantMode = false }) {
   const { t } = useTranslation('pages')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState(() => emptyForm(restaurantMode))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [mapOpen, setMapOpen] = useState(false)
@@ -171,6 +182,30 @@ export function StoreCreatePage() {
       return
     }
 
+
+    const hasStart = Boolean(form.startWorkingAt)
+    const hasEnd = Boolean(form.endWorkingAt)
+    if (hasStart !== hasEnd) {
+      setError(t('stores.validation.workingHoursPair'))
+      return
+    }
+    const preparationTime = form.preparationTime === '' ? null : Number(form.preparationTime)
+    if (
+      preparationTime != null &&
+      (!Number.isInteger(preparationTime) || preparationTime < 0 || preparationTime > 1440)
+    ) {
+      setError(t('stores.validation.preparationTime'))
+      return
+    }
+
+    const restaurantFields = {
+      store_type: restaurantMode ? 'restaurant' : form.storeType,
+      start_working_at: normalizeTime(form.startWorkingAt),
+      end_working_at: normalizeTime(form.endWorkingAt),
+      preparation_time: preparationTime,
+      currency: form.currency.toUpperCase(),
+    }
+
     setSubmitting(true)
     try {
       if (isAdmin) {
@@ -183,6 +218,7 @@ export function StoreCreatePage() {
           latitude: lat != null && !Number.isNaN(lat) ? lat : null,
           longitude: lng != null && !Number.isNaN(lng) ? lng : null,
           exchange_rate: exchangeRate,
+          ...restaurantFields,
           logo: logoFile || undefined,
           is_active: form.isActive,
         })
@@ -195,12 +231,13 @@ export function StoreCreatePage() {
           latitude: lat != null && !Number.isNaN(lat) ? lat : null,
           longitude: lng != null && !Number.isNaN(lng) ? lng : null,
           exchange_rate: exchangeRate,
+          ...restaurantFields,
           logo: logoFile || undefined,
           is_active: form.isActive,
         })
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.all() })
-      navigate('/stores')
+      navigate(restaurantMode ? '/restaurants' : '/stores')
     } catch (err) {
       setError(err?.message ?? t('stores.create.createFailed'))
     } finally {
@@ -236,9 +273,13 @@ export function StoreCreatePage() {
     <div className="space-y-6">
       {error ? <Alert type="error" title={error} showIcon /> : null}
 
-      <Card title={t('stores.create.title')}>
+      <Card title={t(restaurantMode ? 'restaurants.create.title' : 'stores.create.title')}>
         <p className="text-sm text-slate-600 mb-4">
-          {isAdmin ? t('stores.create.adminHint') : t('stores.create.sellerHint')}
+          {restaurantMode
+            ? t('restaurants.create.hint')
+            : isAdmin
+              ? t('stores.create.adminHint')
+              : t('stores.create.sellerHint')}
         </p>
 
         <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
@@ -306,6 +347,22 @@ export function StoreCreatePage() {
             onChange={handleChange}
             description={t('stores.create.addressDesc')}
           />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              {t('stores.fields.storeType')}
+            </label>
+            <Select
+              className="w-full"
+              size="large"
+              value={restaurantMode ? 'restaurant' : form.storeType}
+              disabled={restaurantMode}
+              options={STORE_TYPE_OPTIONS.map((value) => ({
+                value,
+                label: t(`stores.types.${value}`),
+              }))}
+              onChange={(storeType) => setForm((prev) => ({ ...prev, storeType }))}
+            />
+          </div>
           {isAdmin ? (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -340,6 +397,40 @@ export function StoreCreatePage() {
             disabled={form.currency === 'syp'}
             required={form.currency === 'usd'}
           />
+
+          <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+            <h3 className="text-sm font-semibold text-slate-900">
+              {t('stores.fields.scheduleTitle')}
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">{t('stores.fields.scheduleHint')}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <Input
+                label={t('stores.fields.startWorkingAt')}
+                name="startWorkingAt"
+                type="time"
+                value={form.startWorkingAt}
+                onChange={handleChange}
+              />
+              <Input
+                label={t('stores.fields.endWorkingAt')}
+                name="endWorkingAt"
+                type="time"
+                value={form.endWorkingAt}
+                onChange={handleChange}
+              />
+              <Input
+                label={t('stores.fields.preparationTime')}
+                name="preparationTime"
+                type="number"
+                min="0"
+                max="1440"
+                step="1"
+                value={form.preparationTime}
+                onChange={handleChange}
+                description={t('stores.fields.minutes')}
+              />
+            </div>
+          </div>
           <label className="md:col-span-2 flex flex-col gap-1 text-sm text-slate-900">
             <span className="font-medium">{t('stores.create.logo')}</span>
             <input
@@ -403,11 +494,13 @@ export function StoreCreatePage() {
           </div>
 
           <div className="md:col-span-2 flex justify-end gap-3 pt-2 flex-wrap">
-            <Button as={Link} variant="ghost" to="/stores">
+            <Button as={Link} variant="ghost" to={restaurantMode ? '/restaurants' : '/stores'}>
               {t('stores.create.cancel')}
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? t('stores.create.submitting') : t('stores.create.submit')}
+              {submitting
+                ? t('stores.create.submitting')
+                : t(restaurantMode ? 'restaurants.create.submit' : 'stores.create.submit')}
             </Button>
           </div>
         </form>

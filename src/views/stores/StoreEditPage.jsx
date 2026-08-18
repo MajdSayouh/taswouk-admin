@@ -13,11 +13,23 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Textarea } from '../../components/ui/Textarea.jsx'
 import { LocationPickerMap } from '../../components/maps/LocationPickerMap.jsx'
+import { isAdminRole, useAuthStore } from '../../store/authStore.js'
 
 const STORE_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
   { value: 'syp', i18nKey: 'stores.currency.syp' },
 ]
+
+const STORE_TYPE_OPTIONS = ['global', 'syrian', 'grocery', 'restaurant']
+
+function toTimeInput(value) {
+  return value ? String(value).slice(0, 5) : ''
+}
+
+function normalizeTime(value) {
+  const trimmed = String(value ?? '').trim()
+  return trimmed && trimmed.length === 5 ? `${trimmed}:00` : trimmed || null
+}
 
 function parseExchangeRateInput(value) {
   const trimmed = String(value ?? '').trim()
@@ -27,11 +39,13 @@ function parseExchangeRateInput(value) {
   return rate
 }
 
-export function StoreEditPage() {
+export function StoreEditPage({ restaurantMode = false }) {
   const { t } = useTranslation('pages')
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const user = useAuthStore((s) => s.user)
+  const isAdmin = Boolean(user && isAdminRole(user.role))
   const [mapOpen, setMapOpen] = useState(false)
   const { setStoreActiveMutation, setStoreBrandMutation } = useStoresViewModel({ fetchOnMount: false })
   const [isActive, setIsActive] = useState(false)
@@ -52,6 +66,10 @@ export function StoreEditPage() {
     exchangeRate: '1',
     latitude: '',
     longitude: '',
+    storeType: 'global',
+    startWorkingAt: '',
+    endWorkingAt: '',
+    preparationTime: '',
   })
   const [logoFile, setLogoFile] = useState(/** @type {File | null} */ (null))
   const [existingLogo, setExistingLogo] = useState('')
@@ -80,6 +98,11 @@ export function StoreEditPage() {
       exchangeRate: nextRate,
       latitude: raw?.latitude != null ? String(raw.latitude) : '',
       longitude: raw?.longitude != null ? String(raw.longitude) : '',
+      storeType: raw?.store_type ?? 'global',
+      startWorkingAt: toTimeInput(raw?.start_working_at),
+      endWorkingAt: toTimeInput(raw?.end_working_at),
+      preparationTime:
+        raw?.preparation_time == null ? '' : String(raw.preparation_time),
     })
     if (nextRate) setLastUsdExchangeRate(nextRate)
     setUseSystemExchangeRate(nextCurrency === 'usd' && raw?.exchange_rate == null)
@@ -96,9 +119,12 @@ export function StoreEditPage() {
   }, [newLogoPreview])
 
   const updateMutation = useMutation({
-    mutationFn: async ({ fields, exchangeRate, logo }) => {
+    mutationFn: async ({ fields, exchangeRate, logo, storeType }) => {
       await storeService.updateStore(id, fields)
       await storeService.updateStoreExchangeRate(id, exchangeRate)
+      if (isAdmin && storeType !== (raw?.store_type ?? 'global')) {
+        await storeService.setStoreType(id, storeType)
+      }
       if (logo) {
         await storeService.patchStoreLogo(id, logo)
       }
@@ -106,7 +132,7 @@ export function StoreEditPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.all() })
       if (id != null) queryClient.invalidateQueries({ queryKey: queryKeys.stores.detail(id) })
-      navigate('/stores')
+      navigate(restaurantMode ? '/restaurants' : '/stores')
     },
   })
 
@@ -148,6 +174,20 @@ export function StoreEditPage() {
       setSubmitError(t('stores.edit.exchangeRateErr'))
       return
     }
+    const hasStart = Boolean(form.startWorkingAt)
+    const hasEnd = Boolean(form.endWorkingAt)
+    if (hasStart !== hasEnd) {
+      setSubmitError(t('stores.validation.workingHoursPair'))
+      return
+    }
+    const preparationTime = form.preparationTime === '' ? null : Number(form.preparationTime)
+    if (
+      preparationTime != null &&
+      (!Number.isInteger(preparationTime) || preparationTime < 0 || preparationTime > 1440)
+    ) {
+      setSubmitError(t('stores.validation.preparationTime'))
+      return
+    }
     const latNum = form.latitude === '' ? null : Number(form.latitude)
     const lngNum = form.longitude === '' ? null : Number(form.longitude)
     updateMutation.mutate({
@@ -159,9 +199,13 @@ export function StoreEditPage() {
         currency: form.currency.toUpperCase(),
         latitude: latNum != null && !Number.isNaN(latNum) ? latNum : null,
         longitude: lngNum != null && !Number.isNaN(lngNum) ? lngNum : null,
+        start_working_at: normalizeTime(form.startWorkingAt),
+        end_working_at: normalizeTime(form.endWorkingAt),
+        preparation_time: preparationTime,
       },
       exchangeRate,
       logo: logoFile,
+      storeType: form.storeType,
     })
   }
 
@@ -183,8 +227,8 @@ export function StoreEditPage() {
     return (
       <div className="space-y-4">
         <Alert type="error" title={loadError || t('stores.edit.loadErr')} showIcon />
-        <Button as={Link} variant="ghost" to="/stores">
-          {t('stores.edit.backStores')}
+        <Button as={Link} variant="ghost" to={restaurantMode ? '/restaurants' : '/stores'}>
+          {t(restaurantMode ? 'restaurants.edit.back' : 'stores.edit.backStores')}
         </Button>
       </div>
     )
@@ -206,7 +250,7 @@ export function StoreEditPage() {
     <div className="space-y-6">
       {error ? <Alert type="error" title={error} showIcon /> : null}
 
-      <Card title={t('stores.edit.title', { id })}>
+      <Card title={t(restaurantMode ? 'restaurants.edit.title' : 'stores.edit.title', { id })}>
         <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2 flex flex-wrap gap-6 rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
             <label className="inline-flex items-center gap-3 cursor-pointer select-none">
@@ -260,6 +304,24 @@ export function StoreEditPage() {
             value={form.address}
             onChange={handleChange}
           />
+          {isAdmin ? (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                {t('stores.fields.storeType')}
+              </label>
+              <Select
+                className="w-full"
+                size="large"
+                value={form.storeType}
+                options={STORE_TYPE_OPTIONS.map((value) => ({
+                  value,
+                  label: t(`stores.types.${value}`),
+                }))}
+                onChange={(storeType) => setForm((prev) => ({ ...prev, storeType }))}
+              />
+              <p className="mt-1 text-xs text-slate-500">{t('stores.fields.storeTypeAdminHint')}</p>
+            </div>
+          ) : null}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               {t('stores.edit.currency')}
@@ -306,6 +368,54 @@ export function StoreEditPage() {
               </span>
             </label>
           ) : null}
+          <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  {t('stores.fields.scheduleTitle')}
+                </h3>
+                <p className="mt-1 text-xs text-slate-500">{t('stores.fields.scheduleHint')}</p>
+              </div>
+              {raw?.is_open_now != null ? (
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    raw.is_open_now
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-rose-100 text-rose-700'
+                  }`}
+                >
+                  {t(raw.is_open_now ? 'restaurants.list.open' : 'restaurants.list.closed')}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <Input
+                label={t('stores.fields.startWorkingAt')}
+                name="startWorkingAt"
+                type="time"
+                value={form.startWorkingAt}
+                onChange={handleChange}
+              />
+              <Input
+                label={t('stores.fields.endWorkingAt')}
+                name="endWorkingAt"
+                type="time"
+                value={form.endWorkingAt}
+                onChange={handleChange}
+              />
+              <Input
+                label={t('stores.fields.preparationTime')}
+                name="preparationTime"
+                type="number"
+                min="0"
+                max="1440"
+                step="1"
+                value={form.preparationTime}
+                onChange={handleChange}
+                description={t('stores.fields.minutes')}
+              />
+            </div>
+          </div>
           <Textarea
             label={t('stores.edit.description')}
             name="description"
@@ -372,7 +482,7 @@ export function StoreEditPage() {
           </div>
 
           <div className="md:col-span-2 flex justify-end gap-3 pt-2">
-            <Button as={Link} variant="ghost" to="/stores">
+            <Button as={Link} variant="ghost" to={restaurantMode ? '/restaurants' : '/stores'}>
               {t('stores.edit.cancel')}
             </Button>
             <Button type="submit" disabled={submitting}>

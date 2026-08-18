@@ -5,6 +5,7 @@ import {
   DashboardOutlined,
   FolderOutlined,
   CarOutlined,
+  CoffeeOutlined,
   GlobalOutlined,
   GiftOutlined,
   IdcardOutlined,
@@ -82,6 +83,13 @@ const MAIN_NAV = /** @type {NavItemDef[]} */ ([
 ])
 
 const ADMIN_ONLY_NAV = /** @type {NavItemDef[]} */ ([
+  {
+    key: 'restaurants',
+    to: '/restaurants',
+    match: 'prefix',
+    labelKey: 'nav.restaurants',
+    Icon: CoffeeOutlined,
+  },
   {
     key: 'progressiveCoupons',
     to: '/progressive-coupons',

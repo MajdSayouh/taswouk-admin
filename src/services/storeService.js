@@ -88,6 +88,11 @@ export async function getStore(storeId) {
  *   latitude?: number | null
  *   longitude?: number | null
  *   exchange_rate?: number | null
+ *   currency?: 'USD' | 'SYP' | null
+ *   store_type?: 'syrian' | 'grocery' | 'global' | 'restaurant' | null
+ *   start_working_at?: string | null
+ *   end_working_at?: string | null
+ *   preparation_time?: number | null
  *   is_active?: boolean
  *   logo?: File | Blob | null
  * }} payload
@@ -101,7 +106,12 @@ export async function adminCreateStore(payload) {
     address: payload.address,
     latitude: payload.latitude,
     longitude: payload.longitude,
+    currency: payload.currency,
     exchange_rate: payload.exchange_rate,
+    store_type: payload.store_type,
+    start_working_at: payload.start_working_at,
+    end_working_at: payload.end_working_at,
+    preparation_time: payload.preparation_time,
     is_active: payload.is_active,
     logo: payload.logo,
   })
@@ -141,6 +151,9 @@ export async function sellerCreateStore(payload) {
  *   latitude?: number | null
  *   longitude?: number | null
  *   currency?: 'USD' | 'SYP' | null
+ *   start_working_at?: string | null
+ *   end_working_at?: string | null
+ *   preparation_time?: number | null
  * }} payload
  */
 export async function updateStore(storeId, payload) {
@@ -218,6 +231,18 @@ export async function setStoreBrand(storeId, isBrand) {
  */
 export async function toggleStoreBrand(storeId) {
   const { data } = await apiClient.patch(`/api/stores/${storeId}/toggle-brand`)
+  return data
+}
+
+/**
+ * PATCH /api/stores/{store_id}/set-type — admin only.
+ * @param {number | string} storeId
+ * @param {'syrian' | 'grocery' | 'global' | 'restaurant'} storeType
+ */
+export async function setStoreType(storeId, storeType) {
+  const { data } = await apiClient.patch(`/api/stores/${storeId}/set-type`, {
+    store_type: storeType,
+  })
   return data
 }
 

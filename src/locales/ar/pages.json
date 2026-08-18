@@ -233,7 +233,9 @@
       "colors": "الألوان",
       "noColors": "لم تُضف ألوان بعد.",
       "pickColor": "اختر لوناً",
-      "colorAutoName": "سيُضاف باسم: {{name}}",
+      "colorValue": "قيمة اللون",
+      "colorValuePlaceholder": "#4E2A50 أو اسم اللون",
+      "colorValueHint": "تُحفظ قيم HEX كما أُدخلت تماماً ولا تتحول إلى أسماء.",
       "addColor": "إضافة لون",
       "description": "الوصف",
       "price": "السعر (ل.س)",
@@ -642,6 +644,7 @@
       "brandNo": "علامة: لا",
       "colStore": "المتجر",
       "colSellerId": "معرف البائع",
+      "colType": "النوع",
       "colSellerEmail": "بريد البائع",
       "colPhone": "الهاتف",
       "colAddress": "العنوان",
@@ -733,6 +736,55 @@
       "exchangeRateErr": "أدخل سعر صرف صالحاً أكبر من صفر.",
       "loadErr": "فشل تحميل المتجر",
       "backStores": "العودة للمتاجر"
+    },
+    "types": {
+      "global": "متجر عالمي",
+      "syrian": "متجر سوري",
+      "grocery": "بقالية",
+      "restaurant": "مطعم"
+    },
+    "fields": {
+      "storeType": "نوع المتجر",
+      "storeTypeAdminHint": "يمكن للمسؤول فقط تغيير النوع بعد الإنشاء.",
+      "scheduleTitle": "الدوام ومدة التحضير",
+      "scheduleHint": "اترك وقتي البداية والنهاية فارغين ليبقى مفتوحاً طوال اليوم. الدوام العابر لمنتصف الليل مثل 22:00–02:00 مدعوم.",
+      "startWorkingAt": "يفتح الساعة",
+      "endWorkingAt": "يغلق الساعة",
+      "preparationTime": "مدة التحضير",
+      "minutes": "بالدقائق (0–1440)"
+    },
+    "validation": {
+      "workingHoursPair": "عيّن وقتي بداية الدوام ونهايته معاً، أو اتركهما فارغين معاً.",
+      "preparationTime": "مدة التحضير يجب أن تكون عدداً صحيحاً بين 0 و1440 دقيقة."
+    }
+  },
+  "restaurants": {
+    "list": {
+      "loadError": "تعذر تحميل المطاعم",
+      "title": "المطاعم ({{suffix}})",
+      "newRestaurant": "+ مطعم جديد",
+      "searchPlaceholder": "بحث بالمطعم أو البائع أو الهاتف أو العنوان أو الدوام…",
+      "pagination": "{{count}} مطعم",
+      "colHours": "ساعات الدوام",
+      "colPreparation": "التحضير",
+      "colOpenNow": "الآن",
+      "alwaysOpen": "مفتوح طوال اليوم",
+      "minutes": "{{count}} دقيقة",
+      "open": "مفتوح",
+      "closed": "مغلق",
+      "deleteTitle": "حذف هذا المطعم؟",
+      "deleteDesc": "المطعم سجل متجر، ولا يمكن التراجع عن حذفه.",
+      "deleted": "تم حذف المطعم",
+      "deleteErr": "تعذر حذف المطعم"
+    },
+    "create": {
+      "title": "مطعم جديد",
+      "hint": "أنشئ مطعماً لبائع موجود واضبط ساعات تقديم الطلبات ومدة التحضير.",
+      "submit": "إنشاء المطعم"
+    },
+    "edit": {
+      "title": "تعديل المطعم #{{id}}",
+      "back": "العودة للمطاعم"
     }
   },
   "coupons": {

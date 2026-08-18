@@ -233,7 +233,9 @@
       "colors": "Colors",
       "noColors": "No colors added yet.",
       "pickColor": "Pick a color",
-      "colorAutoName": "Will be added as: {{name}}",
+      "colorValue": "Color value",
+      "colorValuePlaceholder": "#4E2A50 or color name",
+      "colorValueHint": "HEX values are saved exactly as entered and are not converted to names.",
       "addColor": "Add color",
       "description": "Description",
       "price": "Price (SYP)",
@@ -647,6 +649,7 @@
       "brandNo": "Brand: no",
       "colStore": "Store",
       "colSellerId": "Seller ID",
+      "colType": "Type",
       "colSellerEmail": "Seller email",
       "colPhone": "Phone",
       "colAddress": "Address",
@@ -738,6 +741,55 @@
       "exchangeRateErr": "Enter a valid exchange rate greater than 0.",
       "loadErr": "Failed to load store",
       "backStores": "Back to stores"
+    },
+    "types": {
+      "global": "Global store",
+      "syrian": "Syrian store",
+      "grocery": "Grocery",
+      "restaurant": "Restaurant"
+    },
+    "fields": {
+      "storeType": "Store type",
+      "storeTypeAdminHint": "Only administrators can change the type after creation.",
+      "scheduleTitle": "Working hours and preparation",
+      "scheduleHint": "Leave both times empty to stay open all day. Overnight schedules such as 22:00–02:00 are supported.",
+      "startWorkingAt": "Opens at",
+      "endWorkingAt": "Closes at",
+      "preparationTime": "Preparation time",
+      "minutes": "Minutes (0–1440)"
+    },
+    "validation": {
+      "workingHoursPair": "Set both opening and closing times, or leave both empty.",
+      "preparationTime": "Preparation time must be a whole number between 0 and 1440 minutes."
+    }
+  },
+  "restaurants": {
+    "list": {
+      "loadError": "Could not load restaurants",
+      "title": "Restaurants ({{suffix}})",
+      "newRestaurant": "+ New restaurant",
+      "searchPlaceholder": "Search restaurant, seller, phone, address, or hours…",
+      "pagination": "{{count}} restaurants",
+      "colHours": "Working hours",
+      "colPreparation": "Preparation",
+      "colOpenNow": "Now",
+      "alwaysOpen": "Open all day",
+      "minutes": "{{count}} min",
+      "open": "Open",
+      "closed": "Closed",
+      "deleteTitle": "Delete this restaurant?",
+      "deleteDesc": "The restaurant is a store record. Deleting it cannot be undone.",
+      "deleted": "Restaurant deleted",
+      "deleteErr": "Could not delete restaurant"
+    },
+    "create": {
+      "title": "New restaurant",
+      "hint": "Create a restaurant for an existing seller and configure its service hours and preparation time.",
+      "submit": "Create restaurant"
+    },
+    "edit": {
+      "title": "Edit restaurant #{{id}}",
+      "back": "Back to restaurants"
     }
   },
   "coupons": {

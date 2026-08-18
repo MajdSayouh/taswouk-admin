@@ -119,7 +119,7 @@ function StoreBrandSwitch({ row, mutation }) {
   )
 }
 
-export function StoresListPage() {
+export function StoresListPage({ restaurantMode = false }) {
   const { t } = useTranslation('pages')
   const {
     stores,
@@ -148,8 +148,13 @@ export function StoresListPage() {
   /** @type {string[] | null} */
   const [colBrand, setColBrand] = useState(null)
 
+  const scopedStores = useMemo(
+    () => (restaurantMode ? stores.filter((row) => row.storeType === 'restaurant') : stores),
+    [stores, restaurantMode],
+  )
+
   const displayData = useMemo(() => {
-    return stores.filter((row) => {
+    return scopedStores.filter((row) => {
       if (!matchesYesNoTriState(activeFilter, row.isActive)) return false
       if (!matchesYesNoTriState(brandFilter, row.isBrand)) return false
       if (
@@ -162,6 +167,9 @@ export function StoresListPage() {
           row.phone,
           row.address,
           row.description,
+          row.startWorkingAt,
+          row.endWorkingAt,
+          row.preparationTime,
         )
       ) {
         return false
@@ -202,7 +210,7 @@ export function StoresListPage() {
       return true
     })
   }, [
-    stores,
+    scopedStores,
     search,
     activeFilter,
     brandFilter,
@@ -240,8 +248,8 @@ export function StoresListPage() {
   }, [displayTotal, pageSize, page])
 
   const titleSuffix =
-    displayTotal !== stores.length
-      ? t('shared.shownOfTotal', { shown: displayTotal, total: stores.length })
+    displayTotal !== scopedStores.length
+      ? t('shared.shownOfTotal', { shown: displayTotal, total: scopedStores.length })
       : t('shared.count', { count: displayTotal })
 
   const columns = [
@@ -286,6 +294,22 @@ export function StoresListPage() {
         <span className="tabular-nums text-slate-700">{v || t('shared.emDash')}</span>
       ),
     },
+    ...(!restaurantMode
+      ? [
+          {
+            title: t('stores.list.colType'),
+            dataIndex: 'storeType',
+            key: 'storeType',
+            align: 'left',
+            width: 120,
+            render: (value) => (
+              <Tag color={value === 'restaurant' ? 'orange' : undefined} style={{ marginInlineEnd: 0 }}>
+                {t(`stores.types.${value || 'global'}`)}
+              </Tag>
+            ),
+          },
+        ]
+      : []),
     {
       title: t('stores.list.colSellerEmail'),
       dataIndex: 'ownerEmail',
@@ -358,6 +382,44 @@ export function StoresListPage() {
         <TruncatedTextCell text={v} emptyLabel={t('shared.emDash')} />
       ),
     },
+    ...(restaurantMode
+      ? [
+          {
+            title: t('restaurants.list.colHours'),
+            key: 'hours',
+            align: 'left',
+            width: 150,
+            render: (_, row) => (
+              <span className="whitespace-nowrap text-sm text-slate-700">
+                {row.startWorkingAt && row.endWorkingAt
+                  ? `${String(row.startWorkingAt).slice(0, 5)} – ${String(row.endWorkingAt).slice(0, 5)}`
+                  : t('restaurants.list.alwaysOpen')}
+              </span>
+            ),
+          },
+          {
+            title: t('restaurants.list.colPreparation'),
+            dataIndex: 'preparationTime',
+            key: 'preparationTime',
+            align: 'left',
+            width: 120,
+            render: (value) =>
+              value == null ? t('shared.emDash') : t('restaurants.list.minutes', { count: value }),
+          },
+          {
+            title: t('restaurants.list.colOpenNow'),
+            dataIndex: 'isOpenNow',
+            key: 'isOpenNow',
+            align: 'left',
+            width: 100,
+            render: (value) => (
+              <Tag color={value ? 'green' : 'red'} style={{ marginInlineEnd: 0 }}>
+                {t(value ? 'restaurants.list.open' : 'restaurants.list.closed')}
+              </Tag>
+            ),
+          },
+        ]
+      : []),
     {
       title: t('stores.list.colActive'),
       dataIndex: 'isActive',
@@ -406,22 +468,29 @@ export function StoresListPage() {
       fixed: 'right',
       render: (_, row) => (
         <TableRowActions
-          editTo={`/stores/${row.id}/edit`}
+          editTo={`/${restaurantMode ? 'restaurants' : 'stores'}/${row.id}/edit`}
           showDelete
           deleteLoading={String(deletingId) === String(row.id)}
           onDelete={async () => {
             setDeletingId(row.id)
             try {
               await deleteStore(row.id)
-              message.success(t('stores.list.deleted'))
+              message.success(t(restaurantMode ? 'restaurants.list.deleted' : 'stores.list.deleted'))
             } catch (err) {
-              message.error(err?.message ?? t('stores.list.deleteErr'))
+              message.error(
+                err?.message ??
+                  t(restaurantMode ? 'restaurants.list.deleteErr' : 'stores.list.deleteErr'),
+              )
             } finally {
               setDeletingId(null)
             }
           }}
-          deleteTitle={t('stores.list.deleteTitle')}
-          deleteDescription={t('stores.list.deleteDesc')}
+          deleteTitle={t(
+            restaurantMode ? 'restaurants.list.deleteTitle' : 'stores.list.deleteTitle',
+          )}
+          deleteDescription={t(
+            restaurantMode ? 'restaurants.list.deleteDesc' : 'stores.list.deleteDesc',
+          )}
         />
       ),
     },
@@ -432,7 +501,7 @@ export function StoresListPage() {
       {error ? (
         <Alert
           type="error"
-          title={t('stores.list.loadError')}
+          title={t(restaurantMode ? 'restaurants.list.loadError' : 'stores.list.loadError')}
           description={error}
           showIcon
           action={
@@ -444,14 +513,20 @@ export function StoresListPage() {
       ) : null}
 
       <Card
-        title={t('stores.list.title', { suffix: titleSuffix })}
+        title={t(restaurantMode ? 'restaurants.list.title' : 'stores.list.title', {
+          suffix: titleSuffix,
+        })}
         actions={
-          <DashboardAddLinkButton to="/stores/create">{t('stores.list.newStore')}</DashboardAddLinkButton>
+          <DashboardAddLinkButton to={restaurantMode ? '/restaurants/create' : '/stores/create'}>
+            {t(restaurantMode ? 'restaurants.list.newRestaurant' : 'stores.list.newStore')}
+          </DashboardAddLinkButton>
         }
       >
         <Spin spinning={loading}>
           <DashboardTableToolbar
-            searchPlaceholder={t('stores.list.searchPlaceholder')}
+            searchPlaceholder={t(
+              restaurantMode ? 'restaurants.list.searchPlaceholder' : 'stores.list.searchPlaceholder',
+            )}
             searchValue={search}
             onSearchChange={setSearch}
             filterSlot={
@@ -487,7 +562,10 @@ export function StoresListPage() {
               page,
               pageSize,
               total: displayTotal,
-              showTotal: (total) => t('stores.list.pagination', { count: total }),
+              showTotal: (total) =>
+                t(restaurantMode ? 'restaurants.list.pagination' : 'stores.list.pagination', {
+                  count: total,
+                }),
               onChange: (p, ps) => {
                 setPage(p)
                 setPageSize(ps)

@@ -277,6 +277,32 @@ export function AppRouter() {
             }
           />
           <Route element={<RequireAdmin />}>
+            <Route path="restaurants" element={<Outlet />}>
+              <Route
+                index
+                element={
+                  <LazyPage>
+                    <StoresListPage restaurantMode />
+                  </LazyPage>
+                }
+              />
+              <Route
+                path="create"
+                element={
+                  <LazyPage>
+                    <StoreCreatePage restaurantMode />
+                  </LazyPage>
+                }
+              />
+              <Route
+                path=":id/edit"
+                element={
+                  <LazyPage>
+                    <StoreEditPage restaurantMode />
+                  </LazyPage>
+                }
+              />
+            </Route>
             <Route
               path="progressive-coupons"
               element={

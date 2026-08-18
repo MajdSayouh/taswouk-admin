@@ -10,6 +10,12 @@
  * @property {number | null} exchangeRate
  * @property {boolean} isActive
  * @property {boolean} isBrand
+ * @property {string} storeType
+ * @property {string} currency
+ * @property {string | null} startWorkingAt
+ * @property {string | null} endWorkingAt
+ * @property {number | null} preparationTime
+ * @property {boolean} isOpenNow
  * @property {string} [createdAt]
  */
 
@@ -32,6 +38,12 @@ export function mapStoreFromApi(raw) {
       exchangeRate: null,
       isActive: false,
       isBrand: false,
+      storeType: 'global',
+      currency: 'SYP',
+      startWorkingAt: null,
+      endWorkingAt: null,
+      preparationTime: null,
+      isOpenNow: true,
       createdAt: '',
     }
   }
@@ -48,6 +60,15 @@ export function mapStoreFromApi(raw) {
     exchangeRate: parseExchangeRate(raw.exchange_rate ?? raw.exchangeRate),
     isActive: Boolean(raw.is_active),
     isBrand: Boolean(raw.is_brand),
+    storeType: raw.store_type ?? 'global',
+    currency: String(raw.currency ?? 'SYP').toUpperCase(),
+    startWorkingAt: raw.start_working_at ?? null,
+    endWorkingAt: raw.end_working_at ?? null,
+    preparationTime:
+      raw.preparation_time == null || raw.preparation_time === ''
+        ? null
+        : Number(raw.preparation_time),
+    isOpenNow: raw.is_open_now !== false,
     createdAt: raw.created_at ?? '',
   }
 }
