@@ -16,7 +16,8 @@ export function SellerEditPage() {
   const { t } = useTranslation('pages')
   const { id } = useParams()
   const navigate = useNavigate()
-  const { updateSeller, deleteSeller } = useSellersViewModel({ fetchOnMount: false })
+  const { updateSeller, deleteSeller, setSellerPassword, settingPassword } =
+    useSellersViewModel({ fetchOnMount: false })
   const [form, setForm] = useState({
     email: '',
     phone: '',
@@ -28,6 +29,8 @@ export function SellerEditPage() {
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState(null)
+  const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' })
+  const [passwordError, setPasswordError] = useState(null)
 
   const detailQuery = useQuery({
     queryKey: queryKeys.sellers.detail(id),
@@ -95,6 +98,27 @@ export function SellerEditPage() {
       message.error(err?.message ?? t('sellers.edit.deleteErr'))
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function handleSetPassword() {
+    setPasswordError(null)
+
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordError(t('sellers.edit.passwordMinLength'))
+      return
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError(t('sellers.edit.passwordMismatch'))
+      return
+    }
+
+    try {
+      await setSellerPassword(id, passwordForm.newPassword)
+      setPasswordForm({ newPassword: '', confirmPassword: '' })
+      message.success(t('sellers.edit.passwordChanged'))
+    } catch (err) {
+      setPasswordError(err?.message ?? t('sellers.edit.passwordChangeErr'))
     }
   }
 
@@ -205,6 +229,70 @@ export function SellerEditPage() {
             </button>
           </Popconfirm>
         </div>
+      </Card>
+
+      <Card title={t('sellers.edit.passwordTitle')}>
+        <Alert
+          type="warning"
+          title={t('sellers.edit.passwordWarningTitle')}
+          description={t('sellers.edit.passwordWarningDesc')}
+          showIcon
+          className="mb-4"
+        />
+        {passwordError ? (
+          <Alert type="error" title={passwordError} showIcon className="mb-4" />
+        ) : null}
+        <form onSubmit={(ev) => ev.preventDefault()} className="grid gap-4 md:grid-cols-2">
+          <Input
+            label={t('sellers.edit.newPassword')}
+            name="newPassword"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            value={passwordForm.newPassword}
+            onChange={(ev) =>
+              setPasswordForm((prev) => ({ ...prev, newPassword: ev.target.value }))
+            }
+            description={t('sellers.edit.passwordDesc')}
+            required
+          />
+          <Input
+            label={t('sellers.edit.confirmPassword')}
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            value={passwordForm.confirmPassword}
+            onChange={(ev) =>
+              setPasswordForm((prev) => ({ ...prev, confirmPassword: ev.target.value }))
+            }
+            required
+          />
+          <div className="md:col-span-2 flex justify-end">
+            <Popconfirm
+              title={t('sellers.edit.passwordConfirmTitle')}
+              description={t('sellers.edit.passwordConfirmDesc')}
+              okText={t('sellers.edit.passwordConfirmAction')}
+              cancelText={t('shared.cancel')}
+              okButtonProps={{ danger: true, loading: settingPassword }}
+              onConfirm={handleSetPassword}
+              disabled={settingPassword}
+            >
+              <Button
+                type="button"
+                disabled={
+                  settingPassword ||
+                  passwordForm.newPassword.length < 8 ||
+                  passwordForm.confirmPassword.length < 8
+                }
+              >
+                {settingPassword
+                  ? t('sellers.edit.passwordChanging')
+                  : t('sellers.edit.passwordSubmit')}
+              </Button>
+            </Popconfirm>
+          </div>
+        </form>
       </Card>
     </div>
   )

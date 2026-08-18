@@ -94,6 +94,21 @@ export async function updateSeller(sellerId, payload) {
 }
 
 /**
+ * POST /api/accounts/admin/users/seller/{seller_id}/set-password
+ * Sets a seller's password and revokes all of their existing sessions.
+ *
+ * @param {number | string} sellerId
+ * @param {string} newPassword
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export async function setSellerPassword(sellerId, newPassword) {
+  const { data } = await apiClient.post(`${resolveSellerByIdPath(sellerId)}/set-password`, {
+    new_password: newPassword,
+  })
+  return data
+}
+
+/**
  * DELETE /api/accounts/admin/users/seller/{seller_id}
  * @param {number | string} sellerId
  */

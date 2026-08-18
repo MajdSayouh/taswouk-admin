@@ -44,6 +44,11 @@ export function useSellersViewModel(options = {}) {
     onSuccess: (_, sellerId) => invalidateSellerQueries(queryClient, sellerId),
   })
 
+  const setPasswordMutation = useMutation({
+    mutationFn: ({ sellerId, newPassword }) =>
+      adminService.setSellerPassword(sellerId, newPassword),
+  })
+
   const createSeller = useCallback(
     async (payload) => {
       const data = await createMutation.mutateAsync(payload)
@@ -67,6 +72,11 @@ export function useSellersViewModel(options = {}) {
     [deleteMutation],
   )
 
+  const setSellerPassword = useCallback(
+    (sellerId, newPassword) => setPasswordMutation.mutateAsync({ sellerId, newPassword }),
+    [setPasswordMutation],
+  )
+
   const saving = createMutation.isPending || updateMutation.isPending
   const error =
     listQuery.error?.message ??
@@ -84,6 +94,8 @@ export function useSellersViewModel(options = {}) {
     createSeller,
     updateSeller,
     deleteSeller,
+    setSellerPassword,
+    settingPassword: setPasswordMutation.isPending,
     saving,
   }
 }

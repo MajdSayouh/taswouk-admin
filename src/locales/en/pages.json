@@ -860,7 +860,7 @@
     },
     "edit": {
       "title": "Edit seller #{{id}}",
-      "hint": "Update profile fields. Password cannot be changed here (use account flows if supported). Phone must be empty or exactly 10 characters.",
+      "hint": "Update the seller profile fields. Phone must be empty or exactly 10 characters.",
       "email": "Email",
       "phone": "Phone",
       "phoneDesc": "Optional; exactly 10 digits when set",
@@ -881,7 +881,22 @@
       "updated": "Seller updated",
       "updateErr": "Failed to update seller",
       "deleted": "Seller deleted",
-      "deleteErr": "Could not delete seller"
+      "deleteErr": "Could not delete seller",
+      "passwordTitle": "Set seller password",
+      "passwordWarningTitle": "Use this only for account recovery",
+      "passwordWarningDesc": "The seller will be signed out on every device. Share the new password through a secure channel and ask the seller to change it after signing in.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "passwordDesc": "At least 8 characters; additional password-strength rules may apply.",
+      "passwordMinLength": "Password must be at least 8 characters.",
+      "passwordMismatch": "The passwords do not match.",
+      "passwordConfirmTitle": "Set this seller's new password?",
+      "passwordConfirmDesc": "This will immediately sign the seller out on every device.",
+      "passwordConfirmAction": "Set password",
+      "passwordSubmit": "Set new password",
+      "passwordChanging": "Setting password…",
+      "passwordChanged": "Password changed. The seller was signed out on every device.",
+      "passwordChangeErr": "Could not change the seller password"
     }
   },
   "malls": {
