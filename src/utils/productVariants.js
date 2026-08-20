@@ -269,6 +269,11 @@ export function emptyVariantRow() {
     /** From GET variant `product_id` — used to validate DELETE targets the right product */
     productId: null,
     color: '',
+    /** Original color value returned by the API. The editor may show the product's canonical HEX
+     * instead, but ordinary edits must keep this backend-compatible value in variant payloads. */
+    storedColor: '',
+    /** Canonical product color currently shown in the editor when it differs from storedColor. */
+    canonicalColor: '',
     size: '',
     /** @type {{ key: string, name: string, value: string }[]} arbitrary options beyond color/size, e.g. weight, material */
     customAttributes: [],
@@ -312,6 +317,8 @@ export function mapApiVariantToRow(v, lang = 'ar') {
     variantId: vid,
     productId: Number.isFinite(pid) && pid > 0 ? pid : null,
     color,
+    storedColor: color,
+    canonicalColor: color,
     size,
     customAttributes: customAttributesFromApi(attrs, lang),
     price: v?.price != null ? String(v.price) : '',
@@ -327,6 +334,82 @@ export function mapApiVariantToRow(v, lang = 'ar') {
     existingImages: imgs,
     imageFiles: [],
   }
+}
+
+const HEX_COLOR_VALUE_PATTERN = /^#[0-9a-f]{6}$/i
+
+/**
+ * The product owns the canonical selectable color list. Older/imported variants may still return
+ * generated names (for example `Charcoal`) while the product now declares the corresponding HEX
+ * values (for example `#4E2A50`). In that state the editor used to treat the names and HEX values
+ * as different combinations and create a second, image-less set of variants.
+ *
+ * When every declared product color is HEX and the number of distinct variant colors matches,
+ * reconcile the variant color groups by their stable API order. Existing exact HEX matches are
+ * paired first; the remaining groups are paired in order. Variant ids, images, prices, and all
+ * other fields remain untouched.
+ *
+ * @param {ReturnType<typeof mapApiVariantToRow>[]} rows
+ * @param {unknown[]} productColors
+ */
+export function reconcileVariantColorsWithProductOptions(rows, productColors = []) {
+  const declared = []
+  const declaredKeys = new Set()
+  for (const raw of Array.isArray(productColors) ? productColors : []) {
+    const value = String(raw ?? '').trim()
+    const key = value.toLowerCase()
+    if (!value || declaredKeys.has(key)) continue
+    declaredKeys.add(key)
+    declared.push(value)
+  }
+  if (declared.length === 0 || !declared.every((value) => HEX_COLOR_VALUE_PATTERN.test(value))) {
+    return rows
+  }
+
+  const variantColors = []
+  const variantKeys = new Set()
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const value = String(row?.color ?? '').trim()
+    const key = value.toLowerCase()
+    if (!value || variantKeys.has(key)) continue
+    variantKeys.add(key)
+    variantColors.push(value)
+  }
+  if (variantColors.length !== declared.length) return rows
+
+  const mapping = new Map()
+  const usedDeclared = new Set()
+  for (const variantColor of variantColors) {
+    const key = variantColor.toLowerCase()
+    const exact = declared.find((value) => value.toLowerCase() === key)
+    if (!exact) continue
+    mapping.set(key, exact)
+    usedDeclared.add(exact.toLowerCase())
+  }
+
+  const remainingVariantColors = variantColors.filter(
+    (value) => !mapping.has(value.toLowerCase()),
+  )
+  const remainingDeclared = declared.filter(
+    (value) => !usedDeclared.has(value.toLowerCase()),
+  )
+  if (remainingVariantColors.length !== remainingDeclared.length) return rows
+  remainingVariantColors.forEach((value, index) => {
+    mapping.set(value.toLowerCase(), remainingDeclared[index])
+  })
+
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    const current = String(row?.color ?? '').trim()
+    const canonical = mapping.get(current.toLowerCase())
+    return canonical && canonical !== current
+      ? {
+          ...row,
+          color: canonical,
+          storedColor: String(row?.storedColor ?? '').trim() || current,
+          canonicalColor: canonical,
+        }
+      : row
+  })
 }
 
 export function variantComboKey(color, size) {
@@ -357,7 +440,19 @@ export function variantIdentityKey(row) {
  * @param {typeof emptyVariantRow()} row
  */
 export function buildVariantAttributes(row) {
-  const color = String(row.color ?? '').trim()
+  const displayedColor = String(row.color ?? '').trim()
+  const storedColor = String(row.storedColor ?? '').trim()
+  const canonicalColor = String(row.canonicalColor ?? '').trim()
+  // The backend currently requires human-readable color names in variant attributes even though
+  // the product's `colors` array is HEX. When reconciliation only changed how an existing color is
+  // displayed, retain its original API value so price/stock/image edits are not rejected. If the
+  // user actually changes the color, use the newly selected value.
+  const color =
+    storedColor &&
+    canonicalColor &&
+    displayedColor.toLowerCase() === canonicalColor.toLowerCase()
+      ? storedColor
+      : displayedColor
   const size = String(row.size ?? '').trim()
   // Only a row with NO other real identity omits the placeholder entirely (see
   // isBarePlaceholderVariantRow) — e.g. a row with a real color and size "ستاندر" keeps both.

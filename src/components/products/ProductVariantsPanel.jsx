@@ -37,6 +37,8 @@ import {
   validateCustomAttributes,
   OPTION_ERROR_MESSAGE_KEYS,
   CUSTOM_ATTRIBUTE_PRESETS,
+  mapApiVariantToRow,
+  reconcileVariantColorsWithProductOptions,
 } from '../../utils/productVariants.js'
 
 function commaSplit(s) {
@@ -199,7 +201,23 @@ export function ProductVariantsPanel({ productId, product = null, readOnly = fal
     onSettled: () => setDeletingId(null),
   })
 
-  const rows = variantsQuery.data ?? []
+  const rows = useMemo(() => variantsQuery.data ?? [], [variantsQuery.data])
+  const displayColorsByVariantId = useMemo(() => {
+    const mappedRows = rows.map((variant) => mapApiVariantToRow(variant, 'en'))
+    const displayRows = reconcileVariantColorsWithProductOptions(
+      mappedRows,
+      normalizeColorList(product?.colors),
+    )
+    return new Map(
+      displayRows
+        .filter((row) => row.variantId != null)
+        .map((row) => [String(row.variantId), row.color]),
+    )
+  }, [rows, product])
+
+  function displayColorForVariant(row) {
+    return displayColorsByVariantId.get(String(row?.id)) || attrByKey(row?.attributes, 'color')
+  }
 
   function openAdd() {
     addForm.setFieldsValue({
@@ -329,7 +347,7 @@ export function ProductVariantsPanel({ productId, product = null, readOnly = fal
       key: 'color',
       width: 140,
       render: (_, row) => {
-        const color = attrByKey(row.attributes, 'color')
+        const color = displayColorForVariant(row)
         if (!color) return '—'
         return (
           <span className="inline-flex items-center gap-2 text-slate-800">

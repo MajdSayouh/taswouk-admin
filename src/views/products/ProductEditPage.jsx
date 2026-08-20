@@ -16,6 +16,7 @@ import { ProductVariantsInlineSection } from '../../components/products/ProductV
 import {
   normalizeVariantList,
   mapApiVariantToRow,
+  reconcileVariantColorsWithProductOptions,
   parseVariantIdFromDto,
   getValidVariantRowsForSave,
   getIncompleteVariantRows,
@@ -227,7 +228,11 @@ export function ProductEditPage() {
       ? []
       : normalizeVariantList(variantsQuery.data ?? [])
     const lang = String(i18n.resolvedLanguage || i18n.language || 'ar').split('-')[0]
-    const rows = list.map((v) => mapApiVariantToRow(v, lang))
+    const apiRows = list.map((v) => mapApiVariantToRow(v, lang))
+    const rows = reconcileVariantColorsWithProductOptions(
+      apiRows,
+      normalizeColorsFromApi(raw?.colors),
+    )
     setVariantRows(rows)
     const standardPriceRow = rows.find(isStandardPriceVariantRow)
     if (standardPriceRow?.price != null && String(standardPriceRow.price).trim() !== '') {
