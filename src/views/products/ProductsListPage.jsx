@@ -714,6 +714,9 @@ export function ProductsListPage() {
                 {t('products.list.migrateMissingVariants')}
               </Button>
             ) : null}
+            {/* "Fix standard variants" (variant-audit) and "Duplicate variants" report buttons
+                were hidden from this toolbar per request — both pages are still reachable
+                directly at /products/variant-audit and /products/duplicate-variants. */}
             <DashboardAddLinkButton to="/products/create">
               {t('products.list.newProduct')}
             </DashboardAddLinkButton>

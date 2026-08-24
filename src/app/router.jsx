@@ -23,6 +23,16 @@ const ProductEditPage = lazy(() =>
 const ProductDetailPage = lazy(() =>
   import('../views/products/ProductDetailPage.jsx').then((m) => ({ default: m.ProductDetailPage })),
 )
+const ProductVariantAuditPage = lazy(() =>
+  import('../views/products/ProductVariantAuditPage.jsx').then((m) => ({
+    default: m.ProductVariantAuditPage,
+  })),
+)
+const ProductDuplicateVariantsPage = lazy(() =>
+  import('../views/products/ProductDuplicateVariantsPage.jsx').then((m) => ({
+    default: m.ProductDuplicateVariantsPage,
+  })),
+)
 const OrdersListPage = lazy(() =>
   import('../views/orders/OrdersListPage.jsx').then((m) => ({ default: m.OrdersListPage })),
 )
@@ -277,6 +287,22 @@ export function AppRouter() {
             }
           />
           <Route element={<RequireAdmin />}>
+            <Route
+              path="products/variant-audit"
+              element={
+                <LazyPage>
+                  <ProductVariantAuditPage />
+                </LazyPage>
+              }
+            />
+            <Route
+              path="products/duplicate-variants"
+              element={
+                <LazyPage>
+                  <ProductDuplicateVariantsPage />
+                </LazyPage>
+              }
+            />
             <Route path="restaurants" element={<Outlet />}>
               <Route
                 index

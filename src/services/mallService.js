@@ -101,6 +101,55 @@ export async function toggleMallActive(mallId) {
 }
 
 /**
+ * GET /api/malls/{moll_id}/prices/export — Excel file of this mall's assigned product prices.
+ * @param {number | string} mallId
+ * @param {{ signal?: AbortSignal }} [options]
+ * @returns {Promise<Blob>}
+ */
+export async function exportMallPrices(mallId, options = {}) {
+  const { data, headers } = await apiClient.get(`/api/malls/${mallId}/prices/export`, {
+    responseType: 'blob',
+    skipGlobalErrorMessage: true,
+    signal: options.signal,
+  })
+  if (!(data instanceof Blob)) throw new Error('Invalid export response')
+  const type = data.type || ''
+  // Errors can come back as a JSON/HTML body mislabeled by responseType: 'blob'.
+  if (type.includes('application/json') || type.includes('text/html') || type.includes('text/plain')) {
+    const text = await data.text()
+    let msg = text.slice(0, 200)
+    try {
+      const j = JSON.parse(text)
+      if (typeof j.detail === 'string') msg = j.detail
+      else if (typeof j.message === 'string') msg = j.message
+    } catch {
+      /* keep truncated body */
+    }
+    throw new Error(msg || 'Could not export mall prices')
+  }
+  if (data.size === 0) throw new Error('Empty export response')
+  const disposition = String(headers?.['content-disposition'] ?? '')
+  const filenameMatch = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i)
+  const filename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : null
+  return { blob: data, filename }
+}
+
+/**
+ * POST /api/malls/{moll_id}/prices/import — multipart `file` (Excel) to bulk-update this mall's
+ * assigned product prices. Response schema isn't documented on the API — callers should just show
+ * a generic success/failure and refetch the mall's product list afterward.
+ * @param {number | string} mallId
+ * @param {File | Blob} file
+ */
+export async function importMallPrices(mallId, file) {
+  if (!isFileLike(file)) throw new Error('File must be a file')
+  const fd = new FormData()
+  fd.append('file', file)
+  const { data } = await apiClient.post(`/api/malls/${mallId}/prices/import`, fd, multipartConfig())
+  return data
+}
+
+/**
  * POST /api/malls/{moll_id}/logo — multipart `file`
  * @param {number | string} mallId
  * @param {File | Blob} file

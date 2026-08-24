@@ -13,6 +13,7 @@ import { Input } from '../../components/ui/Input'
 import { Textarea } from '../../components/ui/Textarea.jsx'
 import { LocationPickerMap } from '../../components/maps/LocationPickerMap.jsx'
 import { useSellersViewModel } from '../../viewmodels/useSellersViewModel.js'
+import { SYRIAN_GOVERNORATE_OPTIONS } from '../../constants/syrianGovernorates.js'
 
 const STORE_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
@@ -340,13 +341,22 @@ export function StoreCreatePage({ restaurantMode = false }) {
             value={form.phone}
             onChange={handleChange}
           />
-          <Input
-            label={t('stores.create.address')}
-            name="address"
-            value={form.address}
-            onChange={handleChange}
-            description={t('stores.create.addressDesc')}
-          />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              {t('stores.create.address')}
+            </label>
+            <Select
+              className="w-full"
+              size="large"
+              allowClear
+              showSearch
+              value={form.address || undefined}
+              placeholder={t('stores.create.addressPlaceholder')}
+              options={SYRIAN_GOVERNORATE_OPTIONS}
+              onChange={(value) => setForm((prev) => ({ ...prev, address: value ?? '' }))}
+            />
+            <p className="mt-1 text-xs text-slate-500">{t('stores.create.addressDesc')}</p>
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               {t('stores.fields.storeType')}

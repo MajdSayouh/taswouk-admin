@@ -14,6 +14,7 @@ import { Input } from '../../components/ui/Input'
 import { Textarea } from '../../components/ui/Textarea.jsx'
 import { LocationPickerMap } from '../../components/maps/LocationPickerMap.jsx'
 import { isAdminRole, useAuthStore } from '../../store/authStore.js'
+import { SYRIAN_GOVERNORATE_OPTIONS } from '../../constants/syrianGovernorates.js'
 
 const STORE_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
@@ -298,12 +299,21 @@ export function StoreEditPage({ restaurantMode = false }) {
             className="md:col-span-2"
           />
           <Input label={t('stores.edit.phone')} name="phone" value={form.phone} onChange={handleChange} />
-          <Input
-            label={t('stores.edit.addressGov')}
-            name="address"
-            value={form.address}
-            onChange={handleChange}
-          />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              {t('stores.edit.addressGov')}
+            </label>
+            <Select
+              className="w-full"
+              size="large"
+              allowClear
+              showSearch
+              value={form.address || undefined}
+              placeholder={t('stores.edit.addressPlaceholder')}
+              options={SYRIAN_GOVERNORATE_OPTIONS}
+              onChange={(value) => setForm((prev) => ({ ...prev, address: value ?? '' }))}
+            />
+          </div>
           {isAdmin ? (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">

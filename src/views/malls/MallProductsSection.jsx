@@ -1,9 +1,10 @@
 // Mall edit: assign catalog products with price / availability.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Alert, Input, InputNumber, Modal, Select, Spin, Switch, Table, message } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import * as mallCatalogService from '../../services/mallCatalogService.js'
+import * as mallService from '../../services/mallService.js'
 import { mapMallCatalogProductFromApi } from '../../models/MallCatalogProduct.js'
 import { queryKeys } from '../../query/queryKeys.js'
 import { useMallProductsViewModel } from '../../viewmodels/useMallProductsViewModel.js'
@@ -193,6 +194,44 @@ export function MallProductsSection({ mallId }) {
   const [selectedProductId, setSelectedProductId] = useState(/** @type {string | null} */ (null))
   const [assignPrice, setAssignPrice] = useState(/** @type {number | null} */ (null))
   const [removingId, setRemovingId] = useState(/** @type {string | null} */ (null))
+  const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const importInputRef = useRef(/** @type {HTMLInputElement | null} */ (null))
+
+  async function handleExportPrices() {
+    setExporting(true)
+    try {
+      const { blob, filename } = await mallService.exportMallPrices(mallId)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename || `mall-${mallId}-prices.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      message.error(e?.message ?? t('malls.products.exportErr'))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function handleImportFileChosen(e) {
+    const file = e.target.files?.[0] ?? null
+    e.target.value = '' // allow re-selecting the same file name next time
+    if (!file) return
+    setImporting(true)
+    try {
+      await mallService.importMallPrices(mallId, file)
+      message.success(t('malls.products.importSuccess'))
+      refetch()
+    } catch (err) {
+      message.error(err?.message ?? t('malls.products.importErr'))
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const assignedIds = useMemo(
     () => new Set(assignments.map((a) => String(a.productId))),
@@ -282,12 +321,38 @@ export function MallProductsSection({ mallId }) {
     <Card
       title={t('malls.products.title')}
       actions={
-        <Button type="button" onClick={() => setModalOpen(true)}>
-          {t('malls.products.add')}
-        </Button>
+        <>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+            className="hidden"
+            onChange={handleImportFileChosen}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            loading={exporting}
+            onClick={handleExportPrices}
+          >
+            {t('malls.products.exportPrices')}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            loading={importing}
+            onClick={() => importInputRef.current?.click()}
+          >
+            {t('malls.products.importPrices')}
+          </Button>
+          <Button type="button" onClick={() => setModalOpen(true)}>
+            {t('malls.products.add')}
+          </Button>
+        </>
       }
     >
-      <p className="text-xs text-slate-500 mb-3">{t('malls.products.nameEditNote')}</p>
+      <p className="text-xs text-slate-500 mb-1">{t('malls.products.nameEditNote')}</p>
+      <p className="text-xs text-slate-500 mb-3">{t('malls.products.importPricesHint')}</p>
       <Input.Search
         allowClear
         placeholder={t('malls.products.searchPlaceholder')}
