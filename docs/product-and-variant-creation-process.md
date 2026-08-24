@@ -124,14 +124,26 @@ Each variant row, sent as `VariantCreateSchema` (POST) or `VariantUpdateSchema` 
 
 | Field | Type | Notes |
 |---|---|---|
-| `price` | number | required per row, min `0.01` |
+| `price` | number | required per row, min `0.01` — the amount actually charged (the discounted price while on offer) |
 | `sku` | string | optional |
-| `compare_price` | number | only sent/relevant when `is_offer` is true |
+| `compare_price` | number | only sent when `is_offer` is true — the regular, higher reference price shown struck through. Backend requires `compare_price > price`. |
 | `is_offer` | boolean | optional |
 | `stock_quantity` | number | optional, min `0` |
 | `status` | `active` \| `inactive` \| `out_of_stock` | |
 | `attributes` | array of `{ key, key_ar?, value_en, value_ar?, sort_order? }` | see below |
 | `images` | string[] (storage paths) | see §6 — no dedicated variant-image upload endpoint exists |
+
+> **`price` vs `compare_price` direction (fixed 2026-08-24):** the dashboard's variant form has a
+> "Price" field (the regular price) and an "Offer price" field (the discounted one, shown only
+> while the offer switch is on) — the natural, human way to think about a sale. But the API's
+> `price` is what the customer is actually charged and `compare_price` is the higher "was" price,
+> which is the *opposite* pairing. Sending the form's fields straight through (`price` ← regular,
+> `compare_price` ← offer) used to trip the backend's `compare_price > price` validation whenever
+> the offer price was — correctly — lower than the regular price. The two values are now swapped
+> right before the request (`resolveVariantApiPrice` / `resolveVariantApiComparePrice` in
+> `src/utils/productVariants.js`), and swapped back on load (`mapApiVariantToRow`) so editing an
+> existing offer variant still shows "Price" = regular and "Offer price" = discounted. No UI label
+> changed — only the two write payloads and the read mapping.
 
 **`attributes[]` composition:**
 - `color` and `size` (if the row has them) become two attribute entries.

@@ -229,7 +229,11 @@ export function parseVariantIdFromDto(v) {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
-/** API `compare_price` — promotional “new” price when `is_offer` is true (same idea as product offer price). */
+/**
+ * The row's own "Offer price" field, exactly as the seller typed it — NOT what gets sent to the
+ * API's `compare_price`. Only used to check whether the offer price was filled in at all; for what
+ * actually goes in each API field, see `resolveVariantApiPrice` / `resolveVariantApiComparePrice`.
+ */
 export function variantComparePriceForApi(row) {
   if (!row?.is_offer) return null
   const v = Number(row?.compare_price)
@@ -241,6 +245,28 @@ export function variantComparePriceForApi(row) {
 export function isVariantOfferPriceMissing(row) {
   if (!row?.is_offer) return false
   return variantComparePriceForApi(row) == null
+}
+
+/**
+ * API `price` is what the customer is actually charged. The UI's "Price" field is the regular
+ * price and "Offer price" is the discounted one, so on offer these must SWAP when sent to the
+ * API: the offer (lower) number becomes `price`, and the regular (higher) number becomes
+ * `compare_price` — the backend requires `compare_price > price` (it's a "was X, now Y" reference
+ * price, not a second promotional price). Falls back to the regular price when the offer price is
+ * missing/invalid so an in-progress row still has *some* price rather than `NaN`.
+ */
+export function resolveVariantApiPrice(row) {
+  const offerPrice = variantComparePriceForApi(row)
+  if (offerPrice != null) return offerPrice
+  return Number(row?.price)
+}
+
+/** Counterpart to `resolveVariantApiPrice` — the regular (higher) price, sent as `compare_price`
+ * only while on offer with a valid offer price entered. See `resolveVariantApiPrice` for why. */
+export function resolveVariantApiComparePrice(row) {
+  if (variantComparePriceForApi(row) == null) return null
+  const regularPrice = Number(row?.price)
+  return Number.isFinite(regularPrice) && regularPrice > 0 ? regularPrice : null
 }
 
 /** Normalized `status` for PATCH (`active` | `inactive` | `out_of_stock`). */
@@ -312,6 +338,13 @@ export function mapApiVariantToRow(v, lang = 'ar') {
       ? Number(v.product_id)
       : null
 
+  // Inverse of resolveVariantApiPrice/resolveVariantApiComparePrice: while on offer, the API's
+  // `price` is the discounted charge and `compare_price` is the regular reference price — the
+  // opposite of the UI's "Price" (regular) / "Offer price" (discounted) fields, so swap back.
+  const isOffer = Boolean(v?.is_offer)
+  const regularPrice = isOffer && v?.compare_price != null ? v.compare_price : v?.price
+  const offerPrice = isOffer && v?.compare_price != null ? v?.price : null
+
   return {
     key: makeVariantRowKey(),
     variantId: vid,
@@ -321,8 +354,8 @@ export function mapApiVariantToRow(v, lang = 'ar') {
     canonicalColor: color,
     size,
     customAttributes: customAttributesFromApi(attrs, lang),
-    price: v?.price != null ? String(v.price) : '',
-    compare_price: v?.compare_price != null ? String(v.compare_price) : '',
+    price: regularPrice != null ? String(regularPrice) : '',
+    compare_price: offerPrice != null ? String(offerPrice) : '',
     sku: v?.sku != null ? String(v.sku) : '',
     stock_quantity: v?.stock_quantity != null ? String(v.stock_quantity) : '',
     is_offer: Boolean(v?.is_offer),
@@ -488,12 +521,10 @@ export function buildVariantAttributes(row) {
  * @param {typeof emptyVariantRow()} row
  */
 export function buildVariantCreatePayload(row) {
-  const price = Number(row.price)
-
   /** @type {Record<string, unknown>} */
   const payload = {
-    price,
-    compare_price: variantComparePriceForApi(row),
+    price: resolveVariantApiPrice(row),
+    compare_price: resolveVariantApiComparePrice(row),
     sku: String(row.sku ?? '').trim() || null,
     is_offer: Boolean(row.is_offer),
     attributes: buildVariantAttributes(row),
@@ -510,12 +541,11 @@ export function buildVariantCreatePayload(row) {
  * @param {typeof emptyVariantRow()} row
  */
 export function buildVariantUpdatePayload(row) {
-  const price = Number(row.price)
   const attributes = buildVariantAttributes(row)
   /** @type {Record<string, unknown>} */
   const payload = {
-    price,
-    compare_price: variantComparePriceForApi(row),
+    price: resolveVariantApiPrice(row),
+    compare_price: resolveVariantApiComparePrice(row),
     sku: String(row.sku ?? '').trim() || null,
     is_offer: Boolean(row.is_offer),
     status: variantStatusForApiRow(row),

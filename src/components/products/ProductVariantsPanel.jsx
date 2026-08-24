@@ -28,6 +28,8 @@ import { PRODUCT_SIZE_OPTIONS } from '../../views/products/ProductEditorForm.jsx
 import {
   normalizeVariantList,
   variantComparePriceForApi,
+  resolveVariantApiPrice,
+  resolveVariantApiComparePrice,
   variantStockQuantityForApi,
   attrByKey,
   firstNonEmpty,
@@ -248,12 +250,15 @@ export function ProductVariantsPanel({ productId, product = null, readOnly = fal
 
   function openEdit(row) {
     setEditing(row)
+    // Inverse of resolveVariantApiPrice/resolveVariantApiComparePrice: on offer, the API's `price`
+    // is the discounted charge and `compare_price` is the regular reference price — opposite of
+    // this form's "Price" (regular) / "Offer price" (discounted) fields, so swap back for display.
+    const isOffer = Boolean(row.is_offer)
+    const regularPrice = isOffer && row.compare_price != null ? row.compare_price : row.price
+    const offerPrice = isOffer && row.compare_price != null ? row.price : null
     editForm.setFieldsValue({
-      price: row.price != null ? Number(row.price) : undefined,
-      compare_price:
-        row.compare_price != null && row.compare_price !== ''
-          ? Number(row.compare_price)
-          : undefined,
+      price: regularPrice != null ? Number(regularPrice) : undefined,
+      compare_price: offerPrice != null ? Number(offerPrice) : undefined,
       sku: row.sku ?? '',
       stock_quantity: row.stock_quantity != null ? Number(row.stock_quantity) : undefined,
       is_offer: Boolean(row.is_offer),
@@ -274,20 +279,21 @@ export function ProductVariantsPanel({ productId, product = null, readOnly = fal
       }
       const attributes = buildVariantAttributes({ color, size, customAttributes: addCustomAttrs })
 
-      const price = Number(v.price)
-      if (!Number.isFinite(price) || price <= 0) {
+      const enteredPrice = Number(v.price)
+      if (!Number.isFinite(enteredPrice) || enteredPrice <= 0) {
         message.error(t('products.variants.priceInvalid'))
         return
       }
 
-      const compare_price = variantComparePriceForApi({
-        is_offer: v.is_offer,
-        compare_price: v.compare_price,
-      })
-      if (Boolean(v.is_offer) && compare_price == null) {
+      const offerPriceRow = { is_offer: v.is_offer, compare_price: v.compare_price }
+      if (Boolean(v.is_offer) && variantComparePriceForApi(offerPriceRow) == null) {
         message.error(t('products.variants.offerPriceRequired'))
         return
       }
+      // See resolveVariantApiPrice's doc: on offer, price/compare_price swap for the API.
+      const pricingRow = { is_offer: v.is_offer, price: v.price, compare_price: v.compare_price }
+      const price = resolveVariantApiPrice(pricingRow)
+      const compare_price = resolveVariantApiComparePrice(pricingRow)
 
       const stockQuantity = variantStockQuantityForApi({ stock_quantity: v.stock_quantity })
 
@@ -309,20 +315,21 @@ export function ProductVariantsPanel({ productId, product = null, readOnly = fal
   function handleEditSubmit() {
     editForm.validateFields().then((v) => {
       if (!editing?.id) return
-      const price = Number(v.price)
-      if (!Number.isFinite(price) || price <= 0) {
+      const enteredPrice = Number(v.price)
+      if (!Number.isFinite(enteredPrice) || enteredPrice <= 0) {
         message.error(t('products.variants.priceInvalid'))
         return
       }
 
-      const compare_price = variantComparePriceForApi({
-        is_offer: v.is_offer,
-        compare_price: v.compare_price,
-      })
-      if (Boolean(v.is_offer) && compare_price == null) {
+      const offerPriceRow = { is_offer: v.is_offer, compare_price: v.compare_price }
+      if (Boolean(v.is_offer) && variantComparePriceForApi(offerPriceRow) == null) {
         message.error(t('products.variants.offerPriceRequired'))
         return
       }
+      // See resolveVariantApiPrice's doc: on offer, price/compare_price swap for the API.
+      const pricingRow = { is_offer: v.is_offer, price: v.price, compare_price: v.compare_price }
+      const price = resolveVariantApiPrice(pricingRow)
+      const compare_price = resolveVariantApiComparePrice(pricingRow)
 
       const stockQuantity = variantStockQuantityForApi({ stock_quantity: v.stock_quantity })
 
