@@ -133,6 +133,10 @@ export function normalizeOrderDetail(raw) {
       productPrice: Number(row.product_price ?? row.price ?? 0),
       quantity: Number(row.quantity ?? 0),
       lineTotal: Number(row.line_total ?? row.lineTotal ?? 0),
+      // External-store items (product_source: 'store') have no product_id — the backend gives a
+      // direct link to the item on the external site (e.g. AliExpress) instead.
+      productSource: firstNonEmpty(row.product_source, row.productSource) || null,
+      productExternalUrl: firstNonEmpty(row.product_external_url, row.productExternalUrl) || null,
     }
   })
 
