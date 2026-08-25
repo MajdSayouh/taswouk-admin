@@ -90,6 +90,16 @@ const MallCreatePage = lazy(() =>
 const MallEditPage = lazy(() =>
   import('../views/malls/MallEditPage.jsx').then((m) => ({ default: m.MallEditPage })),
 )
+const ModerationQueuePage = lazy(() =>
+  import('../views/moderation/ModerationQueuePage.jsx').then((m) => ({
+    default: m.ModerationQueuePage,
+  })),
+)
+const ModerationReviewPage = lazy(() =>
+  import('../views/moderation/ModerationReviewPage.jsx').then((m) => ({
+    default: m.ModerationReviewPage,
+  })),
+)
 const ExternalShopsListPage = lazy(() =>
   import('../views/external-shops/ExternalShopsListPage.jsx').then((m) => ({
     default: m.ExternalShopsListPage,
@@ -538,6 +548,24 @@ export function AppRouter() {
                 element={
                   <LazyPage>
                     <ExternalShopEditPage />
+                  </LazyPage>
+                }
+              />
+            </Route>
+            <Route path="moderation" element={<Outlet />}>
+              <Route
+                index
+                element={
+                  <LazyPage>
+                    <ModerationQueuePage />
+                  </LazyPage>
+                }
+              />
+              <Route
+                path=":id"
+                element={
+                  <LazyPage>
+                    <ModerationReviewPage />
                   </LazyPage>
                 }
               />

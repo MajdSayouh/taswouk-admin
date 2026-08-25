@@ -14,6 +14,12 @@ export const queryKeys = {
     detail: (id) => ['products', 'detail', String(id)],
     variants: (productId) => ['products', 'variants', String(productId)],
   },
+  moderationQueue: {
+    root: ['moderationQueue'],
+    queue: (params) => ['moderationQueue', 'queue', params ?? {}],
+    detail: (id) => ['moderationQueue', 'detail', String(id)],
+    pendingCount: () => ['moderationQueue', 'pendingCount'],
+  },
   orders: {
     all: () => ['orders'],
     detail: (id, orderType) => ['orders', 'detail', String(id ?? ''), String(orderType ?? '')],

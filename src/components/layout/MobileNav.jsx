@@ -6,6 +6,7 @@ import { MenuOutlined, DownOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore.js'
 import { getDashboardNavItems, isNavActive } from '../../navigation/dashboardNav.js'
+import { ModerationNavBadge } from './ModerationNavBadge.jsx'
 
 export function MobileNav() {
   const [open, setOpen] = useState(false)
@@ -96,7 +97,10 @@ export function MobileNav() {
                   >
                     <Icon />
                   </span>
-                  <span className="truncate leading-snug !text-black">{t(item.labelKey)}</span>
+                  <span className="truncate leading-snug !text-black flex items-center gap-1.5">
+                    {t(item.labelKey)}
+                    {item.key === 'moderation' ? <ModerationNavBadge /> : null}
+                  </span>
                 </NavLink>
               )
             }
