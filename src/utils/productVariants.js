@@ -639,47 +639,52 @@ function variantRowHasContent(row) {
   return customAttrs.some((a) => String(a?.name ?? '').trim() && String(a?.value ?? '').trim())
 }
 
+// Declared colors/sizes are plain values here — including "ستاندر"/"Standard" when that's
+// genuinely what the seller declared (e.g. one general size for the whole product).
+function uniqueOptions(values) {
+  const seen = new Set()
+  const out = []
+  for (const value of Array.isArray(values) ? values : []) {
+    const option = String(value ?? '').trim()
+    const key = option.toLowerCase()
+    if (!option || seen.has(key)) continue
+    seen.add(key)
+    out.push(option)
+  }
+  return out
+}
+
 /**
- * Generate every real color/size combination selected on the product form. A missing axis is
- * omitted from the variant attributes because the mobile app renders every received attribute as
- * a required selector. Legacy `standard` / `ستاندر` placeholders are removed and, where possible,
- * their existing rows are reused for the real product combinations.
+ * Per-row cleanup only — does NOT add new rows for color/size combinations the admin hasn't
+ * added. Clears a row's color/size when it has no other real identity (see
+ * isBarePlaceholderVariantRow), and lets a product's single declared size apply automatically to
+ * a row that has a color but no size picked. This is what `ProductCreatePage`/`ProductEditPage`
+ * call on every save — they must NOT auto-generate the full color × size grid: past behavior did
+ * that unconditionally on every save, which kept re-creating a blank variant for any combination
+ * the admin had deliberately deleted (that combo has no row → looked "missing" → got recreated),
+ * and force-created every combination even when only some were wanted (3 sizes × 2 colors doesn't
+ * mean all 6 combos are meant to exist). See DASHBOARD_DATA_INTEGRITY_REPORT.md-adjacent
+ * discussion — this was the dominant source of unwanted/"duplicate" variants, separate from the
+ * variants-fetch-failure bug fixed earlier.
  *
  * @param {ReturnType<typeof emptyVariantRow>[]} rows
- * @param {unknown[]} [productColors]
  * @param {unknown[]} [productSizes]
  */
-export function withStandardVariantAttributes(rows, productColors = [], productSizes = []) {
+export function normalizeVariantRowAttributes(rows, productSizes = []) {
   const source = (Array.isArray(rows) ? rows : []).filter((row) => {
     const price = Number(row?.price)
     return row?.variantId != null || variantRowHasContent(row) || (Number.isFinite(price) && price > 0)
   })
 
-  // Declared colors/sizes are plain values here — including "ستاندر"/"Standard" when that's
-  // genuinely what the seller declared (e.g. one general size for the whole product).
-  function uniqueOptions(values) {
-    const seen = new Set()
-    const out = []
-    for (const value of Array.isArray(values) ? values : []) {
-      const option = String(value ?? '').trim()
-      const key = option.toLowerCase()
-      if (!option || seen.has(key)) continue
-      seen.add(key)
-      out.push(option)
-    }
-    return out
-  }
-
-  const colors = uniqueOptions(productColors)
   const sizes = uniqueOptions(productSizes)
   // A single declared size applies to every real (non-bare) row automatically — a product with
   // one general size ("ستاندر" or otherwise) shouldn't make the seller pick it manually per row.
   const soleDeclaredSize = sizes.length === 1 ? sizes[0] : null
 
-  // Per-row: only a row with no other real identity gets its color/size cleared (see
+  // Only a row with no other real identity gets its color/size cleared (see
   // isBarePlaceholderVariantRow) — a row that already has a real color either keeps its explicit
   // size exactly as picked, or — if left blank — inherits the product's single declared size.
-  const standardized = source.map((row) => {
+  return source.map((row) => {
     const color = String(row?.color ?? '').trim()
     const rawSize = String(row?.size ?? '').trim()
     const bare = isBarePlaceholderVariantRow({ color, size: rawSize, customAttributes: row?.customAttributes })
@@ -691,6 +696,27 @@ export function withStandardVariantAttributes(rows, productColors = [], productS
       hasLegacyStandardAttribute: Boolean(row?.hasLegacyStandardAttribute) || bare,
     }
   })
+}
+
+/**
+ * Generate every real color/size combination selected on the product form — the FULL cartesian
+ * product of declared colors × sizes, filling in any combo without a row. A missing axis is
+ * omitted from the variant attributes because the mobile app renders every received attribute as
+ * a required selector. Legacy `standard` / `ستاندر` placeholders are removed and, where possible,
+ * their existing rows are reused for the real product combinations.
+ *
+ * Only for the one-time legacy-variant migration tool, which genuinely wants to expand a
+ * variant-less product into its full declared grid. `ProductCreatePage`/`ProductEditPage` must
+ * NOT call this on every save — see `normalizeVariantRowAttributes`'s doc for why.
+ *
+ * @param {ReturnType<typeof emptyVariantRow>[]} rows
+ * @param {unknown[]} [productColors]
+ * @param {unknown[]} [productSizes]
+ */
+export function withStandardVariantAttributes(rows, productColors = [], productSizes = []) {
+  const standardized = normalizeVariantRowAttributes(rows, productSizes)
+  const colors = uniqueOptions(productColors)
+  const sizes = uniqueOptions(productSizes)
 
   if (colors.length === 0 && sizes.length === 0) return standardized
 
