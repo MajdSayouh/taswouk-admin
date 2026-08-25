@@ -27,6 +27,7 @@ import { DASHBOARD_TABLE_PROPS } from '../tables/tableDefaults.js'
 import { PRODUCT_SIZE_OPTIONS } from '../../views/products/ProductEditorForm.jsx'
 import {
   normalizeVariantList,
+  dedupeVariantListById,
   variantComparePriceForApi,
   resolveVariantApiPrice,
   resolveVariantApiComparePrice,
@@ -148,7 +149,7 @@ export function ProductVariantsPanel({ productId, product = null, readOnly = fal
     queryKey: queryKeys.products.variants(productId),
     queryFn: async () => {
       const data = await productService.listProductVariants(productId)
-      return normalizeVariantList(data)
+      return dedupeVariantListById(normalizeVariantList(data))
     },
     enabled: productId != null && productId !== '',
   })

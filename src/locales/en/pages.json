@@ -237,11 +237,15 @@
       "colorValuePlaceholder": "#4E2A50 or color name",
       "colorValueHint": "HEX values are saved exactly as entered and are not converted to names.",
       "addColor": "Add color",
+      "customColorValue": "Customized",
+      "addCustomColor": "+ Customized",
+      "addCustomColorHint": "Adds a \"Customized\" color option — for variants that don't really have a color (e.g. only a custom option/size).",
       "description": "Description",
       "price": "Price (SYP)",
       "variantPricingHint": "Pricing is managed in the variant rows below.",
       "variantBulkPriceHint": "For a standard variant, changing this price updates that variant automatically. Products with selectable options keep their individual prices below.",
       "onOffer": "On offer",
+      "variantOfferHint": "This product's pricing is managed per variant, so a new offer can't be started here. You can still turn an existing offer off.",
       "active": "Active",
       "offerPrice": "Offer price (SYP)",
       "videoFile": "Product video",
@@ -300,6 +304,8 @@
     "variants": {
       "cardTitle": "Variants & pricing",
       "loadError": "Could not load variants",
+      "loadFailedHint": "Saving is disabled until this loads — saving now would recreate every variant instead of updating the existing ones. Retry, or reload the page.",
+      "loadFailedCannotSave": "Can't save yet: existing variants failed to load. Retry loading them first.",
       "empty": "No variants yet. Add one with a price, and optionally a color, size, and/or custom options.",
       "add": "Add variant",
       "attrs": "Options",
@@ -428,6 +434,11 @@
       "tagDeleteFailed": "Delete failed"
     },
     "duplicateVariants": {
+      "singleCheckTitle": "Check one product",
+      "singleCheckDescription": "Fetches this product's variants directly from the server right now — bypassing any cached data — and reports duplicate color/size combinations. Use this to confirm whether a product still has duplicates after cleaning it up.",
+      "singleCheckPlaceholder": "Product id, e.g. 22700",
+      "singleCheckAction": "Check",
+      "singleCheckClean": "No duplicate variants found for this product.",
       "title": "Duplicate variants",
       "description": "A read-only scan for products that have two or more variants sharing the exact same color, size, and custom options — duplicates that usually differ only in stock quantity. Nothing is changed here.",
       "scopeNote": "Scoped to these stores only: {{stores}}",
@@ -457,8 +468,14 @@
       "colDuplicateCount": "Duplicate count",
       "colVariantId": "Variant ID",
       "colStock": "Stock",
+      "colImages": "Images",
       "colPrice": "Price",
-      "colVariantStatus": "Variant status"
+      "colVariantStatus": "Variant status",
+      "colAction": "Action",
+      "deleteAction": "Delete",
+      "deleteConfirm": "Delete this variant? This cannot be undone.",
+      "deleteSuccess": "Variant deleted.",
+      "deleteError": "Could not delete this variant."
     }
   },
   "orders": {

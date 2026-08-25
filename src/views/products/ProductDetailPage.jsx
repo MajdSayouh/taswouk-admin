@@ -12,6 +12,7 @@ import { HtmlContent } from '../../components/ui/HtmlContent.jsx'
 import { Button } from '../../components/ui/Button'
 import { ProductVariantsPanel } from '../../components/products/ProductVariantsPanel.jsx'
 import { ProductPriceDisplay } from '../../components/products/ProductPriceDisplay.jsx'
+import { ProductOfferDisplay } from '../../components/products/ProductOfferDisplay.jsx'
 
 export function ProductDetailPage() {
   const { t } = useTranslation('pages')
@@ -99,14 +100,13 @@ export function ProductDetailPage() {
               <ProductPriceDisplay productId={product.id} price={product.price} />
             </dd>
           </div>
-          {product.is_offer ? (
-            <div className="flex justify-between gap-4 sm:justify-start sm:gap-2">
-              <dt className="text-slate-500">{t('products.detail.offerPrice')}</dt>
-              <dd className="font-medium text-slate-900 tabular-nums">
-                {product.new_price != null ? Number(product.new_price).toFixed(2) : em}
-              </dd>
-            </div>
-          ) : null}
+          <ProductOfferDisplay
+            productId={product.id}
+            isOffer={product.is_offer}
+            newPrice={product.new_price}
+            label={t('products.detail.offerPrice')}
+            emptyPlaceholder={em}
+          />
           <div className="flex justify-between gap-4 sm:justify-start sm:gap-2">
             <dt className="text-slate-500">{t('products.detail.status')}</dt>
             <dd>

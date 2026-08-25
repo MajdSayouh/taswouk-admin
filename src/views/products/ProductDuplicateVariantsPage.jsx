@@ -4,11 +4,13 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Table, Progress, Alert, Tag } from 'antd'
+import { Table, Progress, Alert, Tag, Input, Popconfirm, message } from 'antd'
 import {
   emptyDuplicateVariantAuditProgress,
   scanDuplicateVariants,
+  scanSingleProductForDuplicates,
 } from '../../services/productDuplicateVariantAuditService.js'
+import * as productService from '../../services/productService.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 
@@ -16,12 +18,68 @@ import { Button } from '../../components/ui/Button'
 // the live store list, so partial names ("azzam") still resolve to the right store.
 const TARGET_STORE_QUERIES = ['azzam', 'جنيد للمعاطف']
 
+/** Drops the deleted variant from its duplicate group; the group itself is dropped once it's
+ * down to a single variant, since that's no longer a duplicate. */
+function removeVariantFromMatches(matches, productId, variantId) {
+  return matches
+    .map((group) =>
+      String(group.productId) === String(productId)
+        ? { ...group, variants: group.variants.filter((v) => String(v.variantId) !== String(variantId)) }
+        : group,
+    )
+    .filter((group) => group.variants.length >= 2)
+}
+
 export function ProductDuplicateVariantsPage() {
   const { t } = useTranslation('pages')
   const [status, setStatus] = useState('idle') // idle | running | completed | stopped | failed
   const [progress, setProgress] = useState(emptyDuplicateVariantAuditProgress)
   const [fatalError, setFatalError] = useState(null)
   const abortRef = useRef(/** @type {AbortController | null} */ (null))
+
+  const [singleProductId, setSingleProductId] = useState('')
+  const [singleStatus, setSingleStatus] = useState('idle') // idle | running | done | failed
+  const [singleMatches, setSingleMatches] = useState([])
+  const [singleError, setSingleError] = useState(null)
+
+  const [deletingVariantId, setDeletingVariantId] = useState(null)
+
+  async function handleDeleteVariant(productId, variantId) {
+    setDeletingVariantId(variantId)
+    try {
+      await productService.deleteProductVariant(productId, variantId)
+      setSingleMatches((prev) => removeVariantFromMatches(prev, productId, variantId))
+      setProgress((prev) => ({
+        ...prev,
+        duplicateMatches: removeVariantFromMatches(prev.duplicateMatches, productId, variantId),
+      }))
+      message.success(t('products.duplicateVariants.deleteSuccess'))
+    } catch (err) {
+      const detail = String(err?.message ?? '')
+      message.error(
+        detail.includes('Cannot delete the last active variant of a product')
+          ? t('products.variants.lastActiveRequired')
+          : detail || t('products.duplicateVariants.deleteError'),
+      )
+    } finally {
+      setDeletingVariantId(null)
+    }
+  }
+
+  async function checkSingleProduct() {
+    const pid = singleProductId.trim()
+    if (!pid) return
+    setSingleStatus('running')
+    setSingleError(null)
+    try {
+      const matches = await scanSingleProductForDuplicates(pid)
+      setSingleMatches(matches)
+      setSingleStatus('done')
+    } catch (err) {
+      setSingleError(String(err?.message || t('products.duplicateVariants.fatalError')))
+      setSingleStatus('failed')
+    }
+  }
 
   const percent =
     status === 'completed'
@@ -110,15 +168,96 @@ export function ProductDuplicateVariantsPage() {
     },
   ]
 
-  const variantDetailColumns = [
-    { title: t('products.duplicateVariants.colVariantId'), dataIndex: 'variantId', width: 120 },
-    { title: t('products.duplicateVariants.colStock'), dataIndex: 'stockQuantity', width: 100 },
-    { title: t('products.duplicateVariants.colPrice'), dataIndex: 'price', width: 100 },
-    { title: t('products.duplicateVariants.colVariantStatus'), dataIndex: 'status', width: 120 },
-  ]
+  function buildVariantDetailColumns(productId) {
+    return [
+      { title: t('products.duplicateVariants.colVariantId'), dataIndex: 'variantId', width: 120 },
+      { title: t('products.duplicateVariants.colStock'), dataIndex: 'stockQuantity', width: 100 },
+      { title: t('products.duplicateVariants.colImages'), dataIndex: 'imageCount', width: 90 },
+      { title: t('products.duplicateVariants.colPrice'), dataIndex: 'price', width: 100 },
+      { title: t('products.duplicateVariants.colVariantStatus'), dataIndex: 'status', width: 120 },
+      {
+        title: t('products.duplicateVariants.colAction'),
+        width: 140,
+        render: (_, record) => (
+          <Popconfirm
+            title={t('products.duplicateVariants.deleteConfirm')}
+            onConfirm={() => handleDeleteVariant(productId, record.variantId)}
+            okText={t('shared.yes')}
+            cancelText={t('shared.no')}
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-red-600 border-red-200 hover:bg-red-50"
+              loading={deletingVariantId === record.variantId}
+              disabled={deletingVariantId != null && deletingVariantId !== record.variantId}
+            >
+              {t('products.duplicateVariants.deleteAction')}
+            </Button>
+          </Popconfirm>
+        ),
+      },
+    ]
+  }
 
   return (
     <div className="space-y-6">
+      <Card title={t('products.duplicateVariants.singleCheckTitle')}>
+        <p className="text-sm text-slate-600 mb-3">
+          {t('products.duplicateVariants.singleCheckDescription')}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            value={singleProductId}
+            onChange={(e) => setSingleProductId(e.target.value)}
+            onPressEnter={checkSingleProduct}
+            placeholder={t('products.duplicateVariants.singleCheckPlaceholder')}
+            className="max-w-xs"
+          />
+          <Button
+            type="button"
+            variant="primary"
+            onClick={checkSingleProduct}
+            disabled={singleStatus === 'running' || !singleProductId.trim()}
+          >
+            {t('products.duplicateVariants.singleCheckAction')}
+          </Button>
+        </div>
+        {singleStatus === 'failed' && singleError ? (
+          <Alert type="error" showIcon className="mt-3" message={singleError} />
+        ) : null}
+        {singleStatus === 'done' ? (
+          <div className="mt-3">
+            {singleMatches.length === 0 ? (
+              <Alert
+                type="success"
+                showIcon
+                message={t('products.duplicateVariants.singleCheckClean')}
+              />
+            ) : (
+              <Table
+                rowKey={(row) => `${row.color}-${row.size}-${row.customOptionsLabel}`}
+                columns={columns.filter((c) => c.dataIndex !== 'productId' && c.dataIndex !== 'storeName')}
+                dataSource={singleMatches}
+                size="small"
+                pagination={false}
+                expandable={{
+                  expandedRowRender: (row) => (
+                    <Table
+                      rowKey="variantId"
+                      columns={buildVariantDetailColumns(row.productId)}
+                      dataSource={row.variants}
+                      size="small"
+                      pagination={false}
+                    />
+                  ),
+                }}
+              />
+            )}
+          </div>
+        ) : null}
+      </Card>
+
       <Card
         title={t('products.duplicateVariants.title')}
         actions={
@@ -221,7 +360,7 @@ export function ProductDuplicateVariantsPage() {
             expandedRowRender: (row) => (
               <Table
                 rowKey="variantId"
-                columns={variantDetailColumns}
+                columns={buildVariantDetailColumns(row.productId)}
                 dataSource={row.variants}
                 size="small"
                 pagination={false}
