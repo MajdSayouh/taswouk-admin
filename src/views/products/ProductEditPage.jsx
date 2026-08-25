@@ -490,40 +490,16 @@ export function ProductEditPage() {
     // Category (like store/price on create) is optional — omitted from the PUT payload when
     // unset, so a product can stay category-less across edits until someone fills it in.
 
+    // When a legacy `standard` placeholder row gains a real color/size, it's edited in place via
+    // PATCH (the backend supports a full attribute replacement, which is exactly what this needs)
+    // rather than deleted and recreated — a delete permanently destroys every image already
+    // uploaded to that variant (VariantImage cascades on variant delete), with no way back.
     const standardizedVariantRows = withStandardVariantAttributes(
       variantRows,
       form.colors,
       form.sizes,
     )
-    const legacyStandardVariantIds = new Set(
-      variantRows
-        .filter((row) => row.variantId != null && row.hasLegacyStandardAttribute)
-        .map((row) => Number(row.variantId)),
-    )
-    // Color/size attributes identify a variant and should not be rewritten in place. When a
-    // legacy `standard` row is reused for a real color/size combination, treat it as a new row;
-    // the old row is deactivated and removed before the product options are updated below.
-    const legacyVariantIdsToReplace = new Set(
-      standardizedVariantRows
-        .filter(
-          (row) =>
-            row.variantId != null &&
-            legacyStandardVariantIds.has(Number(row.variantId)) &&
-            !row.hasLegacyStandardAttribute,
-        )
-        .map((row) => Number(row.variantId)),
-    )
-    const replacementReadyRows = standardizedVariantRows.map((row) => {
-      const oldVariantId = Number(row.variantId)
-      if (!legacyVariantIdsToReplace.has(oldVariantId)) return row
-      return {
-        ...row,
-        variantId: null,
-        productId: null,
-        replacesLegacyVariantId: oldVariantId,
-      }
-    })
-    const defaultedVariantRows = withDefaultedVariantPrices(replacementReadyRows, form.price)
+    const defaultedVariantRows = withDefaultedVariantPrices(standardizedVariantRows, form.price)
     const incompleteVariants = getIncompleteVariantRows(defaultedVariantRows)
     if (incompleteVariants.length > 0) {
       message.error(t('products.variants.priceRequiredForRow'))
@@ -531,13 +507,7 @@ export function ProductEditPage() {
     }
     const validVariants = getValidVariantRowsForSave(defaultedVariantRows)
     const remainingPersistedVariantIds = new Set(
-      variantRows
-        .filter(
-          (row) =>
-            row.variantId != null &&
-            !legacyVariantIdsToReplace.has(Number(row.variantId)),
-        )
-        .map((row) => Number(row.variantId)),
+      variantRows.filter((row) => row.variantId != null).map((row) => Number(row.variantId)),
     )
     const hasActiveVariantAfterSave =
       variantRows.some((row) => row.variantId != null && isActiveVariantRow(row)) ||
@@ -565,12 +535,11 @@ export function ProductEditPage() {
     try {
       submitInFlightRef.current = true
       setProductSaving(true)
-      for (const legacyVariantId of legacyVariantIdsToReplace) {
-        await productService.updateProductVariant(id, legacyVariantId, { status: 'inactive' })
-        await productService.deleteProductVariant(Number(id), legacyVariantId)
-      }
-      const baselineCategoryId =
-        raw?.category_id ?? raw?.category_details?.id ?? form.subCategoryId ?? form.categoryId
+      // Server data only — never fall back to form state here. A form-derived baseline trivially
+      // equals whatever the form currently holds (it was hydrated from the same form), so
+      // "unchanged" would always be true and a first-time category pick would get silently
+      // omitted from the save instead of actually being set.
+      const baselineCategoryId = raw?.category_id ?? raw?.category_details?.id ?? null
       const updateOptions = {
         baselineCategoryId,
         hasVariants: validVariants.length > 0,
@@ -650,10 +619,7 @@ export function ProductEditPage() {
 
       for (let i = 0; i < idsAtLoad.length; i++) {
         const vid = Number(idsAtLoad[i])
-        if (
-          !legacyVariantIdsToReplace.has(vid) &&
-          !remainingPersistedVariantIds.has(vid)
-        ) {
+        if (!remainingPersistedVariantIds.has(vid)) {
           await productService.deleteProductVariant(Number(id), vid)
         }
       }
@@ -783,7 +749,12 @@ export function ProductEditPage() {
             <Button type="button" variant="ghost" as={Link} to={productsReturnTo}>
               {t('products.edit.cancel')}
             </Button>
-            <Button type="submit" disabled={productSaving || videoUploading || !variantsUiReady}>
+            <Button
+              type="submit"
+              disabled={
+                productSaving || videoUploading || !variantsUiReady || categoriesLoading
+              }
+            >
               {productSaving || videoUploading ? t('products.edit.saving') : t('products.edit.submit')}
             </Button>
           </ProductEditorForm>

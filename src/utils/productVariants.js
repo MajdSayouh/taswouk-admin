@@ -193,6 +193,23 @@ export function resolveCustomAttributeKey(input) {
   return CUSTOM_ATTRIBUTE_KEY_PATTERN.test(raw) ? raw.toLowerCase() : ''
 }
 
+/**
+ * The API `attribute_key` to send for a custom-attribute row: its original stored key when the
+ * admin hasn't changed what's displayed (`name` still equals the label it was loaded with), or a
+ * freshly resolved key when it's a new row or the admin actually edited/replaced it. Never
+ * re-resolves a key that's just round-tripping unchanged — that's what silently rewrites an
+ * Arabic key to its English preset slug (see `customAttributesFromApi`'s comment).
+ * @param {{ name?: string, storedAttributeKey?: string, canonicalName?: string }} attr
+ */
+export function customAttributeKeyForRow(attr) {
+  const keyUnchanged =
+    Boolean(attr?.storedAttributeKey) &&
+    String(attr?.name ?? '').trim() === String(attr?.canonicalName ?? '').trim()
+  return keyUnchanged
+    ? String(attr.storedAttributeKey).trim()
+    : resolveCustomAttributeKey(attr?.name)
+}
+
 export function makeCustomAttributeRowKey() {
   return `ca_${Math.random().toString(36).slice(2, 11)}`
 }
@@ -210,11 +227,29 @@ export function customAttributesFromApi(attrs, lang = 'ar') {
   return attrs
     .filter((a) => !FIXED_ATTRIBUTE_KEYS.has(String(a?.attribute_key ?? a?.key ?? '')))
     .map((a) => {
-      const key = String(a?.attribute_key ?? a?.key ?? '')
+      const storedAttributeKey = String(a?.attribute_key ?? a?.key ?? '')
+      const value = firstNonEmpty(a?.value_en, a?.value, a?.value_ar)
+      const label = labelForCustomAttributeKey(storedAttributeKey, lang)
       return {
         key: makeCustomAttributeRowKey(),
-        name: labelForCustomAttributeKey(key, lang),
-        value: firstNonEmpty(a?.value_en, a?.value, a?.value_ar),
+        name: label,
+        value,
+        // Preserved verbatim so a re-save can send back exactly what the backend stored, instead
+        // of re-resolving the *displayed* label through the preset table — which is lossy for a
+        // key that isn't a preset (e.g. an Arabic key like "الوزن" gets silently rewritten to the
+        // preset's English slug "weight" the moment its label round-trips). PATCH replaces the
+        // whole attribute set on every save, so a wrongly re-resolved key or a blank Arabic field
+        // here doesn't just mislabel the row — it overwrites/erases what's actually stored.
+        // buildVariantAttributes / variantIdentityKey use these instead of re-resolving, but only
+        // while the admin hasn't actually changed what's shown (see canonicalName below).
+        storedAttributeKey,
+        storedKeyAr: a?.attribute_key_ar != null ? String(a.attribute_key_ar) : '',
+        storedValue: value,
+        storedValueAr: a?.value_ar != null ? String(a.value_ar) : '',
+        // The label as computed at load time — compared against the row's current `name` to
+        // detect whether the admin actually edited the key (typed something new / picked a
+        // different preset) versus left it untouched.
+        canonicalName: label,
       }
     })
 }
@@ -482,7 +517,7 @@ export function variantIdentityKey(row) {
   const base = variantComboKey(row.color, row.size)
   const custom = (Array.isArray(row.customAttributes) ? row.customAttributes : [])
     .map((attr) => {
-      const key = resolveCustomAttributeKey(attr?.name)
+      const key = customAttributeKeyForRow(attr)
       const value = String(attr?.value ?? '').trim().toLowerCase()
       return key && value ? `${key}:${value}` : ''
     })
@@ -524,11 +559,24 @@ export function buildVariantAttributes(row) {
   let sortOrder = attributes.length
   const seen = new Set(attributes.map((a) => a.key))
   for (const attr of Array.isArray(row.customAttributes) ? row.customAttributes : []) {
-    const resolvedKey = resolveCustomAttributeKey(attr?.name)
     const value = String(attr?.value ?? '').trim()
-    if (!resolvedKey || !value || seen.has(resolvedKey)) continue
+    if (!value) continue
+    const resolvedKey = customAttributeKeyForRow(attr)
+    if (!resolvedKey || seen.has(resolvedKey)) continue
     seen.add(resolvedKey)
-    attributes.push({ key: resolvedKey, value_en: value, sort_order: sortOrder })
+    const entry = { key: resolvedKey, value_en: value, sort_order: sortOrder }
+    // PATCH replaces the whole attribute set on every save, so an omitted key_ar/value_ar isn't
+    // "left alone" server-side — it's written as "". Only resend them when we can trust they still
+    // match: the key came from this exact stored row (not a newly typed/edited one) and the value
+    // hasn't changed either (an old Arabic translation paired with a new English value would be
+    // wrong, not just stale).
+    if (resolvedKey === attr?.storedAttributeKey && attr.storedKeyAr) {
+      entry.key_ar = attr.storedKeyAr
+    }
+    if (value === String(attr?.storedValue ?? '').trim() && attr?.storedValueAr) {
+      entry.value_ar = attr.storedValueAr
+    }
+    attributes.push(entry)
     sortOrder += 1
   }
   return attributes
