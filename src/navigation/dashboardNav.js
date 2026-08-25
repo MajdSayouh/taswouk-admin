@@ -11,6 +11,7 @@ import {
   IdcardOutlined,
   PictureOutlined,
   RiseOutlined,
+  SafetyCertificateOutlined,
   ShopOutlined,
   ShoppingOutlined,
   SwapOutlined,
@@ -83,6 +84,13 @@ const MAIN_NAV = /** @type {NavItemDef[]} */ ([
 ])
 
 const ADMIN_ONLY_NAV = /** @type {NavItemDef[]} */ ([
+  {
+    key: 'moderation',
+    to: '/moderation',
+    match: 'prefix',
+    labelKey: 'nav.moderation',
+    Icon: SafetyCertificateOutlined,
+  },
   {
     key: 'restaurants',
     to: '/restaurants',

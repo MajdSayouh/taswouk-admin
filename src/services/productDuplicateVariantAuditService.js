@@ -1,6 +1,7 @@
-// Read-only report: finds products (scoped to a set of stores) that have two or more variants
-// sharing the exact same color/size/custom-option identity — the shape reported for "azzam store"
-// and "جنيد للمعاطف": duplicate variants that differ only in stock. Nothing is written back.
+// Read-only report: finds products — across every store by default — that have two or more
+// variants sharing the exact same color/size/custom-option identity: duplicate variants that
+// differ only in stock/images, first spotted on "azzam store" and "جنيد للمعاطف" but not limited
+// to them. Nothing is written back.
 import * as productService from './productService.js'
 import * as storeService from './storeService.js'
 import { mapStoreFromApi } from '../models/Store.js'
@@ -39,6 +40,12 @@ function storeNameMatches(storeName, query) {
 async function resolveTargetStores(storeNameQueries, signal) {
   const raw = await storeService.listStores({ signal })
   const stores = (Array.isArray(raw) ? raw : []).map(mapStoreFromApi)
+  // No queries given → scan every store. This is the default scan mode now; the original
+  // 2-store-only scope (from before the full extent of the duplicate-variant bug was known)
+  // undercounted affected products in every store outside that pair.
+  if (!Array.isArray(storeNameQueries) || storeNameQueries.length === 0) {
+    return { matched: stores, unmatchedQueries: [] }
+  }
   const matched = []
   const unmatchedQueries = []
   for (const query of storeNameQueries) {
@@ -69,7 +76,8 @@ function initialProgress() {
 
 /**
  * @param {string[]} storeNameQueries — case/whitespace-insensitive substrings to match store names
- *   against (e.g. `['azzam', 'جنيد للمعاطف']`). Every store whose name contains any query is scanned.
+ *   against (e.g. `['azzam', 'جنيد للمعاطف']`). Every store whose name contains any query is
+ *   scanned. Pass an empty array (or omit) to scan every store instead of narrowing by name.
  * @param {{ signal?: AbortSignal, onProgress?: (progress: object) => void }} [options]
  */
 export async function scanDuplicateVariants(storeNameQueries, { signal, onProgress } = {}) {

@@ -6,6 +6,7 @@ import { DownOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../../store/authStore.js'
 import { useUiStore } from '../../store/uiStore.jsx'
 import { getDashboardNavItems, isNavActive } from '../../navigation/dashboardNav.js'
+import { ModerationNavBadge } from './ModerationNavBadge.jsx'
 
 const navLinkClass = (active) =>
   [
@@ -83,7 +84,10 @@ export function Sidebar() {
                   <Icon />
                 </span>
                 {collapsed ? null : (
-                  <span className="truncate leading-snug !text-black">{t(item.labelKey)}</span>
+                  <span className="truncate leading-snug !text-black flex items-center gap-1.5">
+                    {t(item.labelKey)}
+                    {item.key === 'moderation' ? <ModerationNavBadge /> : null}
+                  </span>
                 )}
               </NavLink>
             )

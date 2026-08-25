@@ -193,6 +193,23 @@ export function resolveCustomAttributeKey(input) {
   return CUSTOM_ATTRIBUTE_KEY_PATTERN.test(raw) ? raw.toLowerCase() : ''
 }
 
+/**
+ * The API `attribute_key` to send for a custom-attribute row: its original stored key when the
+ * admin hasn't changed what's displayed (`name` still equals the label it was loaded with), or a
+ * freshly resolved key when it's a new row or the admin actually edited/replaced it. Never
+ * re-resolves a key that's just round-tripping unchanged — that's what silently rewrites an
+ * Arabic key to its English preset slug (see `customAttributesFromApi`'s comment).
+ * @param {{ name?: string, storedAttributeKey?: string, canonicalName?: string }} attr
+ */
+export function customAttributeKeyForRow(attr) {
+  const keyUnchanged =
+    Boolean(attr?.storedAttributeKey) &&
+    String(attr?.name ?? '').trim() === String(attr?.canonicalName ?? '').trim()
+  return keyUnchanged
+    ? String(attr.storedAttributeKey).trim()
+    : resolveCustomAttributeKey(attr?.name)
+}
+
 export function makeCustomAttributeRowKey() {
   return `ca_${Math.random().toString(36).slice(2, 11)}`
 }
@@ -210,11 +227,29 @@ export function customAttributesFromApi(attrs, lang = 'ar') {
   return attrs
     .filter((a) => !FIXED_ATTRIBUTE_KEYS.has(String(a?.attribute_key ?? a?.key ?? '')))
     .map((a) => {
-      const key = String(a?.attribute_key ?? a?.key ?? '')
+      const storedAttributeKey = String(a?.attribute_key ?? a?.key ?? '')
+      const value = firstNonEmpty(a?.value_en, a?.value, a?.value_ar)
+      const label = labelForCustomAttributeKey(storedAttributeKey, lang)
       return {
         key: makeCustomAttributeRowKey(),
-        name: labelForCustomAttributeKey(key, lang),
-        value: firstNonEmpty(a?.value_en, a?.value, a?.value_ar),
+        name: label,
+        value,
+        // Preserved verbatim so a re-save can send back exactly what the backend stored, instead
+        // of re-resolving the *displayed* label through the preset table — which is lossy for a
+        // key that isn't a preset (e.g. an Arabic key like "الوزن" gets silently rewritten to the
+        // preset's English slug "weight" the moment its label round-trips). PATCH replaces the
+        // whole attribute set on every save, so a wrongly re-resolved key or a blank Arabic field
+        // here doesn't just mislabel the row — it overwrites/erases what's actually stored.
+        // buildVariantAttributes / variantIdentityKey use these instead of re-resolving, but only
+        // while the admin hasn't actually changed what's shown (see canonicalName below).
+        storedAttributeKey,
+        storedKeyAr: a?.attribute_key_ar != null ? String(a.attribute_key_ar) : '',
+        storedValue: value,
+        storedValueAr: a?.value_ar != null ? String(a.value_ar) : '',
+        // The label as computed at load time — compared against the row's current `name` to
+        // detect whether the admin actually edited the key (typed something new / picked a
+        // different preset) versus left it untouched.
+        canonicalName: label,
       }
     })
 }
@@ -482,7 +517,7 @@ export function variantIdentityKey(row) {
   const base = variantComboKey(row.color, row.size)
   const custom = (Array.isArray(row.customAttributes) ? row.customAttributes : [])
     .map((attr) => {
-      const key = resolveCustomAttributeKey(attr?.name)
+      const key = customAttributeKeyForRow(attr)
       const value = String(attr?.value ?? '').trim().toLowerCase()
       return key && value ? `${key}:${value}` : ''
     })
@@ -524,11 +559,24 @@ export function buildVariantAttributes(row) {
   let sortOrder = attributes.length
   const seen = new Set(attributes.map((a) => a.key))
   for (const attr of Array.isArray(row.customAttributes) ? row.customAttributes : []) {
-    const resolvedKey = resolveCustomAttributeKey(attr?.name)
     const value = String(attr?.value ?? '').trim()
-    if (!resolvedKey || !value || seen.has(resolvedKey)) continue
+    if (!value) continue
+    const resolvedKey = customAttributeKeyForRow(attr)
+    if (!resolvedKey || seen.has(resolvedKey)) continue
     seen.add(resolvedKey)
-    attributes.push({ key: resolvedKey, value_en: value, sort_order: sortOrder })
+    const entry = { key: resolvedKey, value_en: value, sort_order: sortOrder }
+    // PATCH replaces the whole attribute set on every save, so an omitted key_ar/value_ar isn't
+    // "left alone" server-side — it's written as "". Only resend them when we can trust they still
+    // match: the key came from this exact stored row (not a newly typed/edited one) and the value
+    // hasn't changed either (an old Arabic translation paired with a new English value would be
+    // wrong, not just stale).
+    if (resolvedKey === attr?.storedAttributeKey && attr.storedKeyAr) {
+      entry.key_ar = attr.storedKeyAr
+    }
+    if (value === String(attr?.storedValue ?? '').trim() && attr?.storedValueAr) {
+      entry.value_ar = attr.storedValueAr
+    }
+    attributes.push(entry)
     sortOrder += 1
   }
   return attributes
@@ -591,47 +639,52 @@ function variantRowHasContent(row) {
   return customAttrs.some((a) => String(a?.name ?? '').trim() && String(a?.value ?? '').trim())
 }
 
+// Declared colors/sizes are plain values here — including "ستاندر"/"Standard" when that's
+// genuinely what the seller declared (e.g. one general size for the whole product).
+function uniqueOptions(values) {
+  const seen = new Set()
+  const out = []
+  for (const value of Array.isArray(values) ? values : []) {
+    const option = String(value ?? '').trim()
+    const key = option.toLowerCase()
+    if (!option || seen.has(key)) continue
+    seen.add(key)
+    out.push(option)
+  }
+  return out
+}
+
 /**
- * Generate every real color/size combination selected on the product form. A missing axis is
- * omitted from the variant attributes because the mobile app renders every received attribute as
- * a required selector. Legacy `standard` / `ستاندر` placeholders are removed and, where possible,
- * their existing rows are reused for the real product combinations.
+ * Per-row cleanup only — does NOT add new rows for color/size combinations the admin hasn't
+ * added. Clears a row's color/size when it has no other real identity (see
+ * isBarePlaceholderVariantRow), and lets a product's single declared size apply automatically to
+ * a row that has a color but no size picked. This is what `ProductCreatePage`/`ProductEditPage`
+ * call on every save — they must NOT auto-generate the full color × size grid: past behavior did
+ * that unconditionally on every save, which kept re-creating a blank variant for any combination
+ * the admin had deliberately deleted (that combo has no row → looked "missing" → got recreated),
+ * and force-created every combination even when only some were wanted (3 sizes × 2 colors doesn't
+ * mean all 6 combos are meant to exist). See DASHBOARD_DATA_INTEGRITY_REPORT.md-adjacent
+ * discussion — this was the dominant source of unwanted/"duplicate" variants, separate from the
+ * variants-fetch-failure bug fixed earlier.
  *
  * @param {ReturnType<typeof emptyVariantRow>[]} rows
- * @param {unknown[]} [productColors]
  * @param {unknown[]} [productSizes]
  */
-export function withStandardVariantAttributes(rows, productColors = [], productSizes = []) {
+export function normalizeVariantRowAttributes(rows, productSizes = []) {
   const source = (Array.isArray(rows) ? rows : []).filter((row) => {
     const price = Number(row?.price)
     return row?.variantId != null || variantRowHasContent(row) || (Number.isFinite(price) && price > 0)
   })
 
-  // Declared colors/sizes are plain values here — including "ستاندر"/"Standard" when that's
-  // genuinely what the seller declared (e.g. one general size for the whole product).
-  function uniqueOptions(values) {
-    const seen = new Set()
-    const out = []
-    for (const value of Array.isArray(values) ? values : []) {
-      const option = String(value ?? '').trim()
-      const key = option.toLowerCase()
-      if (!option || seen.has(key)) continue
-      seen.add(key)
-      out.push(option)
-    }
-    return out
-  }
-
-  const colors = uniqueOptions(productColors)
   const sizes = uniqueOptions(productSizes)
   // A single declared size applies to every real (non-bare) row automatically — a product with
   // one general size ("ستاندر" or otherwise) shouldn't make the seller pick it manually per row.
   const soleDeclaredSize = sizes.length === 1 ? sizes[0] : null
 
-  // Per-row: only a row with no other real identity gets its color/size cleared (see
+  // Only a row with no other real identity gets its color/size cleared (see
   // isBarePlaceholderVariantRow) — a row that already has a real color either keeps its explicit
   // size exactly as picked, or — if left blank — inherits the product's single declared size.
-  const standardized = source.map((row) => {
+  return source.map((row) => {
     const color = String(row?.color ?? '').trim()
     const rawSize = String(row?.size ?? '').trim()
     const bare = isBarePlaceholderVariantRow({ color, size: rawSize, customAttributes: row?.customAttributes })
@@ -643,6 +696,27 @@ export function withStandardVariantAttributes(rows, productColors = [], productS
       hasLegacyStandardAttribute: Boolean(row?.hasLegacyStandardAttribute) || bare,
     }
   })
+}
+
+/**
+ * Generate every real color/size combination selected on the product form — the FULL cartesian
+ * product of declared colors × sizes, filling in any combo without a row. A missing axis is
+ * omitted from the variant attributes because the mobile app renders every received attribute as
+ * a required selector. Legacy `standard` / `ستاندر` placeholders are removed and, where possible,
+ * their existing rows are reused for the real product combinations.
+ *
+ * Only for the one-time legacy-variant migration tool, which genuinely wants to expand a
+ * variant-less product into its full declared grid. `ProductCreatePage`/`ProductEditPage` must
+ * NOT call this on every save — see `normalizeVariantRowAttributes`'s doc for why.
+ *
+ * @param {ReturnType<typeof emptyVariantRow>[]} rows
+ * @param {unknown[]} [productColors]
+ * @param {unknown[]} [productSizes]
+ */
+export function withStandardVariantAttributes(rows, productColors = [], productSizes = []) {
+  const standardized = normalizeVariantRowAttributes(rows, productSizes)
+  const colors = uniqueOptions(productColors)
+  const sizes = uniqueOptions(productSizes)
 
   if (colors.length === 0 && sizes.length === 0) return standardized
 

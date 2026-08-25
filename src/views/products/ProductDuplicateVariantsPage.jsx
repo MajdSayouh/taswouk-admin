@@ -1,6 +1,7 @@
-// Read-only report: products (scoped to a fixed set of stores) that have two or more variants
-// sharing the exact same color/size/custom-option identity — duplicates that differ only in
-// stock. Nothing here writes back to the API.
+// Read-only report: products, across every store, that have two or more variants sharing the
+// exact same color/size/custom-option identity — duplicates that differ only in stock/images.
+// Nothing here writes back to the API. See DASHBOARD_DATA_INTEGRITY_REPORT.md / the backend
+// report doc for the bug that created these (fixed on the dashboard side, existing data isn't).
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -13,10 +14,6 @@ import {
 import * as productService from '../../services/productService.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-
-// The two stores this report is scoped to — case/whitespace-insensitive substring match against
-// the live store list, so partial names ("azzam") still resolve to the right store.
-const TARGET_STORE_QUERIES = ['azzam', 'جنيد للمعاطف']
 
 /** Drops the deleted variant from its duplicate group; the group itself is dropped once it's
  * down to a single variant, since that's no longer a duplicate. */
@@ -96,7 +93,7 @@ export function ProductDuplicateVariantsPage() {
     setFatalError(null)
     setStatus('running')
     try {
-      const result = await scanDuplicateVariants(TARGET_STORE_QUERIES, {
+      const result = await scanDuplicateVariants([], {
         signal: controller.signal,
         onProgress: setProgress,
       })
@@ -275,9 +272,7 @@ export function ProductDuplicateVariantsPage() {
         }
       >
         <p className="text-sm text-slate-600 mb-2">{t('products.duplicateVariants.description')}</p>
-        <p className="text-xs text-slate-400 mb-4">
-          {t('products.duplicateVariants.scopeNote', { stores: TARGET_STORE_QUERIES.join(' · ') })}
-        </p>
+        <p className="text-xs text-slate-400 mb-4">{t('products.duplicateVariants.scopeNoteAllStores')}</p>
 
         {status !== 'idle' ? (
           <div className="mb-4 space-y-2">
@@ -317,9 +312,7 @@ export function ProductDuplicateVariantsPage() {
 
         {progress.stores.length > 0 && status !== 'running' ? (
           <p className="text-xs text-slate-400 mb-2">
-            {t('products.duplicateVariants.resolvedStores', {
-              stores: progress.stores.map((s) => `${s.name} (#${s.id})`).join(' · '),
-            })}
+            {t('products.duplicateVariants.resolvedStoresCount', { count: progress.stores.length })}
           </p>
         ) : null}
         {progress.unmatchedStoreQueries.length > 0 ? (

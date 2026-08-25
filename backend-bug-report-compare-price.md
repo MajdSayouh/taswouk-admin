@@ -1,7 +1,55 @@
 # Bug report: product/variant offer & pricing issues
 
 This report covers three related issues found while working on offer/pricing
-UX in the admin dashboard.
+UX in the admin dashboard, plus one data-repair request added later.
+
+---
+
+# Issue 4: existing variant attribute data needs a repair pass
+
+## Summary
+
+A separate internal audit (`DASHBOARD_DATA_INTEGRITY_REPORT.md`) found that
+the dashboard's variant-save code was, until this fix, sending an incomplete
+attribute set on every `PATCH /api/products/{pid}/variants/{vid}` — and since
+that endpoint deletes and recreates the entire attribute set on every call
+(rather than merging), every field the dashboard omitted was erased, not
+left alone. Concretely, every dashboard save of an existing variant was:
+
+- Erasing `value_ar` and `attribute_key_ar` on every custom attribute (only
+  `value_en`/`key` were sent).
+- Silently rewriting a persisted non-English attribute key to its English
+  preset slug the moment its displayed label round-tripped through a preset
+  table (e.g. a variant's stored key `الوزن` becomes `weight` the first time
+  an admin re-saves that variant, even without touching the field).
+
+This has been fixed in the dashboard (it now preserves the originally stored
+key/Arabic fields and only re-resolves them when the admin actually changes
+what's displayed). **However, this bug has been live in production, so
+existing variant rows already have damaged data — fixing the code does not
+repair rows that were already written wrong.**
+
+## What we need from the backend
+
+A data audit/repair pass, ideally coordinated together since some of it is
+only distinguishable from legitimately-empty data by cross-checking against
+order history or the original seller-app-side records:
+
+1. Variant attributes with an empty `value_ar` / `attribute_key_ar` where a
+   non-empty value would be expected (e.g. the product's other data is
+   otherwise fully bilingual).
+2. Attribute keys that may have been rewritten to one of these preset slugs
+   when the original (seller-app-authored) value was different: `weight`,
+   `material`, `fabric`, `style`, `scent`, `volume`, `capacity`,
+   `dimensions`, `brand`.
+3. Duplicate case-variant attribute keys on a single variant (e.g. `color`
+   and `Color` both present) — a related, separate bug where a
+   non-lowercased key bypassed the database's case-sensitive uniqueness
+   constraint instead of colliding with the existing lowercase key.
+
+We don't have a reliable way to distinguish "always been empty" from
+"erased by this bug" purely from the dashboard, so this needs backend/DB-side
+investigation — happy to share the full internal report if useful context.
 
 ---
 

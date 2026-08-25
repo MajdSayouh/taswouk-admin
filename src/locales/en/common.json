@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "moderation": "Moderation",
     "orders": "Orders",
     "drivers": "Drivers",
     "products": "Products",

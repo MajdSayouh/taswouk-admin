@@ -18,7 +18,7 @@ import {
   getValidVariantRowsForSave,
   getIncompleteVariantRows,
   withDefaultedVariantPrices,
-  withStandardVariantAttributes,
+  normalizeVariantRowAttributes,
   findDuplicateVariantCombo,
   buildVariantCreatePayload,
   isVariantOfferPriceMissing,
@@ -108,11 +108,10 @@ export function ProductCreatePage() {
       return
     }
 
-    const standardizedVariantRows = withStandardVariantAttributes(
-      variantRows,
-      form.colors,
-      form.sizes,
-    )
+    // Per-row cleanup only — does NOT auto-generate the full color × size grid. See
+    // normalizeVariantRowAttributes's doc: forcing every combination on save recreated any
+    // combo the admin had deliberately deleted, and created combos nobody asked for.
+    const standardizedVariantRows = normalizeVariantRowAttributes(variantRows, form.sizes)
     const defaultedVariantRows = withDefaultedVariantPrices(standardizedVariantRows, form.price)
     const incompleteVariants = getIncompleteVariantRows(defaultedVariantRows)
     if (incompleteVariants.length > 0) {
