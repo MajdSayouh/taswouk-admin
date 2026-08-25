@@ -15,6 +15,7 @@ import { ProductEditorForm } from './ProductEditorForm.jsx'
 import { ProductVariantsInlineSection } from '../../components/products/ProductVariantsInlineSection.jsx'
 import {
   normalizeVariantList,
+  dedupeVariantListById,
   mapApiVariantToRow,
   reconcileVariantColorsWithProductOptions,
   parseVariantIdFromDto,
@@ -224,9 +225,13 @@ export function ProductEditPage() {
     if (variantsUiReady) return
     if (!raw) return
     if (variantsQuery.isPending) return
-    const list = variantsQuery.isError
-      ? []
-      : normalizeVariantList(variantsQuery.data ?? [])
+    // Do NOT fall back to an empty list on a failed variants fetch — that previously let the
+    // save flow believe the product had zero existing variants, silently RE-CREATING every
+    // color/size combo (with default price/stock and no images) alongside the real ones still
+    // sitting on the server. Leave `variantsUiReady` false instead; the section below renders a
+    // retry prompt and `handleSubmit` refuses to save until this succeeds.
+    if (variantsQuery.isError) return
+    const list = dedupeVariantListById(normalizeVariantList(variantsQuery.data ?? []))
     const lang = String(i18n.resolvedLanguage || i18n.language || 'ar').split('-')[0]
     const apiRows = list.map((v) => mapApiVariantToRow(v, lang))
     const rows = reconcileVariantColorsWithProductOptions(
@@ -308,10 +313,12 @@ export function ProductEditPage() {
         (vid) => Number(vid) !== Number(row.variantId),
       )
       initialVariantFingerprintsRef.current.delete(Number(row.variantId))
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.products.root,
-        refetchType: 'none',
-      })
+      // Invalidate the exact variants/detail keys (not just the broad `products.root` prefix
+      // with refetchType 'none') so this page's own variants query — and any other mounted
+      // consumer sharing this cache entry, like the price/offer displays — actually refetches
+      // instead of continuing to serve the pre-delete list until staleTime naturally expires.
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.variants(id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) })
       message.success(t('products.variants.deleted'))
     },
     [id, queryClient, t],
@@ -472,6 +479,14 @@ export function ProductEditPage() {
   async function handleSubmit(event) {
     event.preventDefault()
     if (submitInFlightRef.current) return
+    // Refuse to save while the existing variants haven't successfully loaded — without them in
+    // `variantRows`, the create/delete diffing below treats the product as having zero variants
+    // and would recreate every color/size combo instead of updating the real ones. See the
+    // matching guard in the variants-load effect above.
+    if (!variantsUiReady) {
+      message.error(t('products.variants.loadFailedCannotSave'))
+      return
+    }
     // Category (like store/price on create) is optional — omitted from the PUT payload when
     // unset, so a product can stay category-less across edits until someone fills it in.
 
@@ -730,7 +745,19 @@ export function ProductEditPage() {
             videoUploading={videoUploading}
             variantsAnchorRef={variantsAnchorRef}
             variantsSlot={
-              !variantsUiReady ? (
+              variantsQuery.isError ? (
+                <div className="space-y-3 py-4">
+                  <Alert
+                    type="error"
+                    title={t('products.variants.loadError')}
+                    description={t('products.variants.loadFailedHint')}
+                    showIcon
+                  />
+                  <Button type="button" variant="ghost" onClick={() => variantsQuery.refetch()}>
+                    {t('shared.retry')}
+                  </Button>
+                </div>
+              ) : !variantsUiReady ? (
                 <div className="flex justify-center py-12">
                   <Spin />
                 </div>

@@ -144,6 +144,7 @@ export async function scanDuplicateVariants(storeNameQueries, { signal, onProgre
                 stockQuantity: row.stock_quantity,
                 price: row.price,
                 status: row.status,
+                imageCount: Array.isArray(row.existingImages) ? row.existingImages.length : 0,
               })),
             })
           }
@@ -183,4 +184,52 @@ export async function scanDuplicateVariants(storeNameQueries, { signal, onProgre
 
 export function emptyDuplicateVariantAuditProgress() {
   return initialProgress()
+}
+
+/**
+ * Direct, always-fresh duplicate check for a single product id — bypasses the store scope above
+ * and any dashboard-side caching (it hits the API directly), so it's the fastest way to confirm
+ * whether a specific product (e.g. one just cleaned up) still has duplicate variant rows.
+ * @param {string | number} productId
+ * @param {{ signal?: AbortSignal }} [options]
+ * @returns {Promise<Array<object>>} same shape as `scanDuplicateVariants`'s `duplicateMatches`.
+ */
+export async function scanSingleProductForDuplicates(productId, { signal } = {}) {
+  const pid = String(productId ?? '').trim()
+  if (!pid) throw new Error('Product id is required')
+  const [product, variants] = await Promise.all([
+    productService.getProductById(pid).catch(() => null),
+    productService.listProductVariants(pid, { signal }).then(normalizeVariantList),
+  ])
+  const rows = variants.map((v) => mapApiVariantToRow(v, 'ar'))
+  const groups = new Map()
+  for (const row of rows) {
+    const key = variantIdentityKey(row)
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(row)
+  }
+  const matches = []
+  for (const [, groupRows] of groups) {
+    if (groupRows.length < 2) continue
+    const [first] = groupRows
+    matches.push({
+      productId: pid,
+      name: String(product?.name ?? ''),
+      storeId: product?.store_id ?? null,
+      storeName: '',
+      isActive: product?.is_active ?? true,
+      color: first.color,
+      size: first.size,
+      customOptionsLabel: (first.customAttributes || [])
+        .map((a) => `${a.name}: ${a.value}`)
+        .join(', '),
+      variants: groupRows.map((row) => ({
+        variantId: row.variantId,
+        stockQuantity: row.stock_quantity,
+        price: row.price,
+        status: row.status,
+      })),
+    })
+  }
+  return matches
 }

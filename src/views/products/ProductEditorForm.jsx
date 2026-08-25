@@ -139,14 +139,18 @@ export function ProductEditorForm({
 
   const imageFiles = Array.isArray(form.imageFiles) ? form.imageFiles : []
 
-  function addColor() {
-    const value = colorDraft.trim()
-    if (!value) return
+  function addColorValue(value) {
+    const v = String(value ?? '').trim()
+    if (!v) return
     setForm((prev) => {
       const colors = Array.isArray(prev.colors) ? [...prev.colors] : []
-      if (colors.some((c) => String(c).trim().toLowerCase() === value.toLowerCase())) return prev
-      return { ...prev, colors: [...colors, value] }
+      if (colors.some((c) => String(c).trim().toLowerCase() === v.toLowerCase())) return prev
+      return { ...prev, colors: [...colors, v] }
     })
+  }
+
+  function addColor() {
+    addColorValue(colorDraft)
   }
 
   function removeColor(name) {
@@ -332,6 +336,14 @@ export function ProductEditorForm({
           >
             {t('products.editor.addColor')}
           </button>
+          <button
+            type="button"
+            onClick={() => addColorValue(t('products.editor.customColorValue'))}
+            title={t('products.editor.addCustomColorHint')}
+            className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:border-[#FF7D29] hover:text-[#FF7D29] transition-colors"
+          >
+            {t('products.editor.addCustomColor')}
+          </button>
           <span className="text-xs text-slate-500">{t('products.editor.colorValueHint')}</span>
         </div>
       </div>
@@ -367,16 +379,29 @@ export function ProductEditorForm({
         }
       />
       <div className="md:col-span-2 flex flex-wrap items-center gap-x-8 gap-y-3">
-        <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
-          <span className="text-sm font-medium text-slate-800 whitespace-nowrap">
-            {t('products.editor.onOffer')}
-          </span>
-          <Switch
-            checked={form.isOffer}
-            disabled={variantPricingManaged}
-            onChange={(checked) => setForm((prev) => ({ ...prev, isOffer: checked }))}
-          />
-        </label>
+        <div>
+          <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+            <span className="text-sm font-medium text-slate-800 whitespace-nowrap">
+              {t('products.editor.onOffer')}
+            </span>
+            <Switch
+              checked={form.isOffer}
+              disabled={variantPricingManaged && !form.isOffer}
+              onChange={(checked) => {
+                // Pricing (and offers) are managed per-variant once the product has
+                // variants, so a new offer can't be started from here — but an
+                // existing offer can always be turned off.
+                if (variantPricingManaged && checked) return
+                setForm((prev) => ({ ...prev, isOffer: checked }))
+              }}
+            />
+          </label>
+          {variantPricingManaged ? (
+            <p className="mt-1 text-xs text-slate-500 max-w-xs">
+              {t('products.editor.variantOfferHint')}
+            </p>
+          ) : null}
+        </div>
         <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
           <span className="text-sm font-medium text-slate-800 whitespace-nowrap">
             {t('products.editor.active')}

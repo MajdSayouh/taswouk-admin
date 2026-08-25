@@ -200,11 +200,14 @@ export function OrderDetailModal({
         dataIndex: 'productName',
         key: 'productName',
         render: (value, row) => {
-          const productUrl = buildOrderItemProductUrl({
-            orderType: detail?.orderType,
-            mallId: detail?.mallId,
-            productId: row.productId,
-          })
+          // Internal product first; external-store items (no product_id) fall back to the
+          // direct link the backend gives us to the item on the external site.
+          const productUrl =
+            buildOrderItemProductUrl({
+              orderType: detail?.orderType,
+              mallId: detail?.mallId,
+              productId: row.productId,
+            }) || row.productExternalUrl || ''
           const thumbnail = row.productImageUrl ? (
             <ProductTableThumbnail
               storagePath={row.productImageUrl}

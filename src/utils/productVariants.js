@@ -49,6 +49,29 @@ export function normalizeVariantList(data) {
   return []
 }
 
+/**
+ * Defensive de-dup by variant id. The API is expected to return each variant once, but a
+ * backend join/pagination issue can occasionally repeat a row — without this, a repeated
+ * variant DTO turns into a duplicated row in the editor UI. Entries without a parseable id
+ * are kept as-is (nothing to de-dup them against).
+ */
+export function dedupeVariantListById(list) {
+  if (!Array.isArray(list)) return []
+  const seen = new Set()
+  const result = []
+  for (const v of list) {
+    const vid = parseVariantIdFromDto(v)
+    if (vid == null) {
+      result.push(v)
+      continue
+    }
+    if (seen.has(vid)) continue
+    seen.add(vid)
+    result.push(v)
+  }
+  return result
+}
+
 /** Lowest `price` among a product's variants, or null when there are none priced. */
 export function getMinVariantPrice(variants) {
   if (!Array.isArray(variants) || variants.length === 0) return null
