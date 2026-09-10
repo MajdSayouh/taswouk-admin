@@ -74,10 +74,6 @@ export const queryKeys = {
     detail: (id) => ['malls', 'detail', String(id)],
     products: (mallId, params) => ['malls', 'products', String(mallId), params ?? {}],
   },
-  mallCatalog: {
-    all: () => ['mallCatalog'],
-    detail: (id) => ['mallCatalog', 'detail', String(id)],
-  },
   mallCategories: {
     all: () => ['mallCategories'],
   },

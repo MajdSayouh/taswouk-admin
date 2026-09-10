@@ -1,13 +1,10 @@
-// Mall edit: assign catalog products with price / availability.
+// Mall edit: the mall's own products — create, price, stock, availability.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Alert, Input, InputNumber, Modal, Select, Spin, Switch, Table, message } from 'antd'
-import { useQuery } from '@tanstack/react-query'
-import * as mallCatalogService from '../../services/mallCatalogService.js'
+import { Alert, Form, Input, InputNumber, Modal, Select, Spin, Switch, Table, message } from 'antd'
 import * as mallService from '../../services/mallService.js'
-import { mapMallCatalogProductFromApi } from '../../models/MallCatalogProduct.js'
-import { queryKeys } from '../../query/queryKeys.js'
 import { useMallProductsViewModel } from '../../viewmodels/useMallProductsViewModel.js'
+import { useMallCategoriesViewModel } from '../../viewmodels/useMallCategoriesViewModel.js'
 import { Card } from '../../components/ui/Card.jsx'
 import { Button } from '../../components/ui/Button.jsx'
 import {
@@ -176,23 +173,25 @@ export function MallProductsSection({ mallId }) {
     loading,
     error,
     refetch,
-    assignMutation,
+    createMutation,
     updateMutation,
     removeMutation,
     renameMutation,
   } = useMallProductsViewModel(mallId, { page, pageSize, search: searchQuery })
 
-  const catalogQuery = useQuery({
-    queryKey: queryKeys.mallCatalog.all(),
-    queryFn: async () => {
-      const { products } = await mallCatalogService.listMallCatalogProducts()
-      return (Array.isArray(products) ? products : []).map(mapMallCatalogProductFromApi)
-    },
-  })
-
   const [modalOpen, setModalOpen] = useState(false)
-  const [selectedProductId, setSelectedProductId] = useState(/** @type {string | null} */ (null))
-  const [assignPrice, setAssignPrice] = useState(/** @type {number | null} */ (null))
+  const [createForm] = Form.useForm()
+
+  // Only fetched while the create dialog can be opened; the tree is shared
+  // with the mall-categories screen, so React Query serves it from cache.
+  const { categories, subcategories, loading: categoriesLoading } =
+    useMallCategoriesViewModel()
+  const categoryOptions = useMemo(() => {
+    const rows = [...(categories ?? []), ...(subcategories ?? [])]
+    return rows
+      .filter((c) => c?.isActive !== false)
+      .map((c) => ({ value: Number(c.id), label: c.name }))
+  }, [categories, subcategories])
   const [removingId, setRemovingId] = useState(/** @type {string | null} */ (null))
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -233,34 +232,29 @@ export function MallProductsSection({ mallId }) {
     }
   }
 
-  const assignedIds = useMemo(
-    () => new Set(assignments.map((a) => String(a.productId))),
-    [assignments],
-  )
-
-  const catalogOptions = useMemo(() => {
-    const list = catalogQuery.data ?? []
-    return list
-      .filter((p) => p.isActive && !assignedIds.has(String(p.id)))
-      .map((p) => ({ value: p.id, label: `${p.name} (${p.categoryName || '—'})` }))
-  }, [catalogQuery.data, assignedIds])
-
-  async function handleAssign() {
-    if (!selectedProductId || assignPrice == null || assignPrice <= 0) {
-      message.warning(t('malls.products.assignValidation'))
-      return
+  // A mall authors its own products now, so there is no catalogue to pick
+  // from and no "already assigned" list to filter it against.
+  async function handleCreate() {
+    let values
+    try {
+      values = await createForm.validateFields()
+    } catch {
+      return // antd has already marked the offending fields
     }
     try {
-      await assignMutation.mutateAsync({
-        product_id: Number(selectedProductId),
-        price: Number(assignPrice),
+      await createMutation.mutateAsync({
+        name: values.name.trim(),
+        price: Number(values.price),
+        description: values.description?.trim() || '',
+        category_id: values.categoryId ?? null,
+        stock_quantity: Number(values.stockQuantity) || 0,
+        track_stock: Boolean(values.trackStock),
       })
-      message.success(t('malls.products.assigned'))
+      message.success(t('malls.products.created'))
       setModalOpen(false)
-      setSelectedProductId(null)
-      setAssignPrice(null)
+      createForm.resetFields()
     } catch (e) {
-      message.error(e?.message ?? t('malls.products.assignErr'))
+      message.error(e?.message ?? t('malls.products.createErr'))
     }
   }
 
@@ -394,41 +388,57 @@ export function MallProductsSection({ mallId }) {
       </Spin>
 
       <Modal
-        title={t('malls.products.assignModalTitle')}
+        title={t('malls.products.createModalTitle')}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
-        onOk={handleAssign}
-        confirmLoading={assignMutation.isPending}
-        okText={t('malls.products.assignSubmit')}
+        onOk={handleCreate}
+        confirmLoading={createMutation.isPending}
+        okText={t('malls.products.createSubmit')}
+        destroyOnHidden
       >
-        <div className="space-y-4 py-2">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('malls.products.catalogProduct')}
-            </label>
+        {/* The mall authors the product here. Pictures are added from the row's
+            own actions once it exists, since an upload needs a product id. */}
+        <Form form={createForm} layout="vertical" className="py-2">
+          <Form.Item
+            name="name"
+            label={t('malls.products.colName')}
+            rules={[{ required: true, whitespace: true, message: t('malls.products.nameRequired') }]}
+          >
+            <Input maxLength={255} />
+          </Form.Item>
+          <Form.Item
+            name="price"
+            label={t('malls.products.price')}
+            rules={[{ required: true, message: t('malls.products.priceRequired') }]}
+          >
+            <InputNumber min={0.01} className="w-full" />
+          </Form.Item>
+          <Form.Item name="categoryId" label={t('malls.products.category')}>
             <Select
+              allowClear
               showSearch
               optionFilterProp="label"
-              className="w-full"
-              placeholder={t('malls.products.selectProduct')}
-              options={catalogOptions}
-              value={selectedProductId}
-              onChange={setSelectedProductId}
-              loading={catalogQuery.isFetching}
+              placeholder={t('malls.products.selectCategory')}
+              options={categoryOptions}
+              loading={categoriesLoading}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('malls.products.price')}
-            </label>
-            <InputNumber
-              min={0.01}
-              className="w-full"
-              value={assignPrice}
-              onChange={setAssignPrice}
-            />
-          </div>
-        </div>
+          </Form.Item>
+          <Form.Item name="stockQuantity" label={t('malls.products.stock')} initialValue={0}>
+            <InputNumber min={0} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="trackStock"
+            label={t('malls.products.trackStock')}
+            valuePropName="checked"
+            initialValue={false}
+            tooltip={t('malls.products.trackStockHint')}
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item name="description" label={t('malls.products.description')}>
+            <Input.TextArea rows={3} maxLength={2000} />
+          </Form.Item>
+        </Form>
       </Modal>
     </Card>
   )

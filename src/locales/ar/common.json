@@ -22,7 +22,6 @@
     "sellers": "البائعون",
     "malls": "بقالية",
     "mallCategories": "فئات البقالية",
-    "mallCatalog": "كتالوج البقالية",
     "externalShops": "المتاجر الخارجية",
     "profile": "الملف الشخصي",
     "progressiveCoupons": "كوبونات تصاعدية"
@@ -65,9 +64,6 @@
     "createMall": "إنشاء بقالية",
     "editMall": "تعديل بقالية",
     "mallCategories": "فئات البقالية",
-    "mallCatalog": "كتالوج البقالية",
-    "createMallCatalog": "إنشاء منتج كتالوج",
-    "editMallCatalog": "تعديل منتج كتالوج",
     "externalShops": "المتاجر الخارجية",
     "createExternalShop": "إنشاء متجر خارجي",
     "editExternalShop": "تعديل متجر خارجي",

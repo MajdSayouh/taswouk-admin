@@ -120,21 +120,6 @@ const MallCategoriesListPage = lazy(() =>
     default: m.MallCategoriesListPage,
   })),
 )
-const MallCatalogListPage = lazy(() =>
-  import('../views/mall-catalog/MallCatalogListPage.jsx').then((m) => ({
-    default: m.MallCatalogListPage,
-  })),
-)
-const MallCatalogCreatePage = lazy(() =>
-  import('../views/mall-catalog/MallCatalogCreatePage.jsx').then((m) => ({
-    default: m.MallCatalogCreatePage,
-  })),
-)
-const MallCatalogEditPage = lazy(() =>
-  import('../views/mall-catalog/MallCatalogEditPage.jsx').then((m) => ({
-    default: m.MallCatalogEditPage,
-  })),
-)
 const AdminProfilePage = lazy(() =>
   import('../views/profile/AdminProfilePage.jsx').then((m) => ({ default: m.AdminProfilePage })),
 )
@@ -500,32 +485,6 @@ export function AppRouter() {
                 </LazyPage>
               }
             />
-            <Route path="mall-catalog" element={<Outlet />}>
-              <Route
-                index
-                element={
-                  <LazyPage>
-                    <MallCatalogListPage />
-                  </LazyPage>
-                }
-              />
-              <Route
-                path="create"
-                element={
-                  <LazyPage>
-                    <MallCatalogCreatePage />
-                  </LazyPage>
-                }
-              />
-              <Route
-                path=":id/edit"
-                element={
-                  <LazyPage>
-                    <MallCatalogEditPage />
-                  </LazyPage>
-                }
-              />
-            </Route>
             <Route path="external-shops" element={<Outlet />}>
               <Route
                 index

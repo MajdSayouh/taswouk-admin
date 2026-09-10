@@ -3,7 +3,6 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as mallService from '../services/mallService.js'
-import * as mallCatalogService from '../services/mallCatalogService.js'
 import { mapMallProductAssignmentFromApi } from '../models/MallProductAssignment.js'
 import { queryKeys } from '../query/queryKeys.js'
 
@@ -35,8 +34,8 @@ export function useMallProductsViewModel(mallId, options = {}) {
     queryClient.invalidateQueries({ queryKey: queryKeys.malls.products(mallId) })
   }
 
-  const assignMutation = useMutation({
-    mutationFn: (payload) => mallService.assignProductToMall(mallId, payload),
+  const createMutation = useMutation({
+    mutationFn: (payload) => mallService.createMallProduct(mallId, payload),
     onSuccess: invalidate,
   })
 
@@ -51,16 +50,33 @@ export function useMallProductsViewModel(mallId, options = {}) {
     onSuccess: invalidate,
   })
 
-  // Product name isn't part of the mall assignment (only price/availability are mall-scoped) —
-  // it lives on the shared catalog product, so renaming here updates it everywhere that product
-  // is assigned. Invalidate both this mall's list and the catalog so everything stays in sync.
+  // Renaming now goes through the mall's own product, like every other edit.
+  // It used to call the catalogue service, because the name lived on a row
+  // shared between malls — so renaming a product here renamed it for every
+  // mall that stocked it. There is no shared row left, so the special case
+  // and its extra cache invalidation go with it.
   const renameMutation = useMutation({
     mutationFn: ({ productId, name }) =>
-      mallCatalogService.updateMallCatalogProduct(productId, { name }),
-    onSuccess: () => {
-      invalidate()
-      queryClient.invalidateQueries({ queryKey: queryKeys.mallCatalog.all() })
-    },
+      mallService.updateMallProduct(mallId, productId, { name }),
+    onSuccess: invalidate,
+  })
+
+  const uploadImagesMutation = useMutation({
+    mutationFn: ({ productId, files, featuredIndex }) =>
+      mallService.uploadMallProductImages(mallId, productId, files, { featuredIndex }),
+    onSuccess: invalidate,
+  })
+
+  const setFeaturedImageMutation = useMutation({
+    mutationFn: ({ productId, imageId }) =>
+      mallService.setFeaturedMallProductImage(mallId, productId, imageId),
+    onSuccess: invalidate,
+  })
+
+  const deleteImageMutation = useMutation({
+    mutationFn: ({ productId, imageId }) =>
+      mallService.deleteMallProductImage(mallId, productId, imageId),
+    onSuccess: invalidate,
   })
 
   return {
@@ -69,9 +85,12 @@ export function useMallProductsViewModel(mallId, options = {}) {
     loading: enabled && listQuery.isFetching,
     error: listQuery.error?.message ?? null,
     refetch: listQuery.refetch,
-    assignMutation,
+    createMutation,
     updateMutation,
     removeMutation,
     renameMutation,
+    uploadImagesMutation,
+    setFeaturedImageMutation,
+    deleteImageMutation,
   }
 }

@@ -22,7 +22,6 @@
     "sellers": "Sellers",
     "malls": "Malls",
     "mallCategories": "Mall categories",
-    "mallCatalog": "Mall catalog",
     "externalShops": "External shops",
     "profile": "Profile",
     "progressiveCoupons": "Progressive coupons"
@@ -65,9 +64,6 @@
     "createMall": "Create mall",
     "editMall": "Edit mall",
     "mallCategories": "Mall categories",
-    "mallCatalog": "Mall catalog",
-    "createMallCatalog": "Create catalog product",
-    "editMallCatalog": "Edit catalog product",
     "externalShops": "External shops",
     "createExternalShop": "Create external shop",
     "editExternalShop": "Edit external shop",

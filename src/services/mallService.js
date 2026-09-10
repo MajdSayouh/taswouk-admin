@@ -223,24 +223,80 @@ export async function searchMallProducts(mallId, options = {}) {
 }
 
 /**
- * POST /api/malls/{moll_id}/products — MollProductAssignSchema
+ * POST /api/malls/{moll_id}/products — MollProductCreateSchema
+ *
+ * Creates a product the mall owns. This used to take a `product_id` picked from
+ * a shared catalogue and attach a price to it; the catalogue is gone, so the
+ * full product is sent instead — the same shape a store product is created in.
  * @param {number | string} mallId
- * @param {{ product_id: number, price: number }} payload
+ * @param {{ name: string, price: number, description?: string, category_id?: number | null,
+ *           stock_quantity?: number, track_stock?: boolean, is_active?: boolean }} payload
  */
-export async function assignProductToMall(mallId, payload) {
+export async function createMallProduct(mallId, payload) {
   const { data } = await apiClient.post(`/api/malls/${mallId}/products`, payload)
   return data
 }
 
 /**
  * PUT /api/malls/{moll_id}/products/{product_id} — MollProductUpdateSchema
+ *
+ * `productId` is the mall product's own id. It named the shared catalogue row
+ * before, which is why editing a name here changed it for every mall stocking
+ * the item; now name, description and category belong to this mall alone.
+ *
+ * Omit a field to leave it; send `category_id: null` to clear the category.
  * @param {number | string} mallId
  * @param {number | string} productId
- * @param {{ price?: number | null, is_available?: boolean | null }} payload
+ * @param {{ price?: number, is_available?: boolean, stock_quantity?: number,
+ *           track_stock?: boolean, name?: string, description?: string,
+ *           category_id?: number | null, is_active?: boolean }} payload
  */
 export async function updateMallProduct(mallId, productId, payload) {
   const { data } = await apiClient.put(`/api/malls/${mallId}/products/${productId}`, payload)
   return data
+}
+
+/**
+ * POST /api/malls/{moll_id}/products/{product_id}/images — multipart, field `files`.
+ *
+ * Images belong to the mall's product now. They hung off the shared catalogue
+ * row before, so every mall selling an item showed the same photo and none
+ * could replace it.
+ * @param {number | string} mallId
+ * @param {number | string} productId
+ * @param {File[]} files
+ * @param {{ featuredIndex?: number }} [options]
+ */
+export async function uploadMallProductImages(mallId, productId, files, options = {}) {
+  const form = new FormData()
+  for (const file of files) form.append('files', file)
+  const { featuredIndex } = options
+  const { data } = await apiClient.post(
+    `/api/malls/${mallId}/products/${productId}/images`,
+    form,
+    { params: featuredIndex == null ? undefined : { featured_index: featuredIndex } },
+  )
+  return data
+}
+
+/**
+ * PATCH /api/malls/{moll_id}/products/{product_id}/images/{image_id}/set-featured
+ */
+export async function setFeaturedMallProductImage(mallId, productId, imageId) {
+  const { data } = await apiClient.patch(
+    `/api/malls/${mallId}/products/${productId}/images/${imageId}/set-featured`,
+  )
+  return data
+}
+
+/**
+ * DELETE /api/malls/{moll_id}/products/{product_id}/images/{image_id}
+ *
+ * Deleting the featured image promotes another server-side, so the card does
+ * not go blank while the product still has pictures.
+ */
+export async function deleteMallProductImage(mallId, productId, imageId) {
+  await apiClient.delete(`/api/malls/${mallId}/products/${productId}/images/${imageId}`)
 }
 
 /**

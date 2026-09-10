@@ -181,13 +181,6 @@ const ADMIN_ONLY_NAV = /** @type {NavItemDef[]} */ ([
     Icon: FolderOutlined,
   },
   {
-    key: 'mallCatalog',
-    to: '/mall-catalog',
-    match: 'prefix',
-    labelKey: 'nav.mallCatalog',
-    Icon: AppstoreOutlined,
-  },
-  {
     key: 'externalShops',
     to: '/external-shops',
     match: 'prefix',

@@ -10,8 +10,14 @@
  * @property {string} productDescription
  * @property {string | null} productImageUrl
  * @property {string} productCategory
+ * @property {{ id: string, url: string, isFeatured: boolean }[]} productImages
+ * @property {number | null} productCategoryId
  * @property {number} price
  * @property {boolean} isAvailable
+ * @property {boolean} isActive
+ * @property {number} stockQuantity
+ * @property {boolean} trackStock
+ * @property {boolean} hasVariants
  * @property {string} createdAt
  */
 
@@ -27,9 +33,15 @@ export function mapMallProductAssignmentFromApi(raw) {
       productName: '',
       productDescription: '',
       productImageUrl: null,
+      productImages: [],
       productCategory: '',
+      productCategoryId: null,
       price: 0,
       isAvailable: false,
+      isActive: true,
+      stockQuantity: 0,
+      trackStock: false,
+      hasVariants: false,
       createdAt: '',
     }
   }
@@ -42,12 +54,22 @@ export function mapMallProductAssignmentFromApi(raw) {
         ? raw.moll_product
         : null
 
+  const images = Array.isArray(raw.product_images) ? raw.product_images : []
+  const featured = images.find((img) => img?.is_featured) ?? images[0] ?? null
+
   return {
     id: String(raw.id ?? nested?.id ?? ''),
-    productId: String(raw.product_id ?? nested?.id ?? raw.moll_product_id ?? ''),
+    // `product_id` mirrors `id` now that the shared catalogue is gone — both
+    // name the mall's own product. Kept because the API still sends it.
+    productId: String(raw.product_id ?? raw.id ?? nested?.id ?? ''),
     productName: raw.product_name ?? nested?.name ?? '',
     productDescription: raw.product_description ?? nested?.description ?? '',
-    productImageUrl: raw.product_image_url ?? nested?.image_url ?? null,
+    productImageUrl: featured?.image ?? raw.product_image_url ?? nested?.image_url ?? null,
+    productImages: images.map((img) => ({
+      id: String(img?.id ?? ''),
+      url: img?.image ?? '',
+      isFeatured: Boolean(img?.is_featured),
+    })),
     productCategory:
       (raw.product_category && typeof raw.product_category === 'object'
         ? raw.product_category.name
@@ -55,8 +77,16 @@ export function mapMallProductAssignmentFromApi(raw) {
       nested?.category_name ??
       nested?.category ??
       '',
+    productCategoryId:
+      raw.product_category && typeof raw.product_category === 'object'
+        ? (raw.product_category.id ?? null)
+        : null,
     price: Number(raw.price) || 0,
     isAvailable: Boolean(raw.is_available ?? raw.available),
+    isActive: raw.is_active !== false,
+    stockQuantity: Number(raw.stock_quantity) || 0,
+    trackStock: Boolean(raw.track_stock),
+    hasVariants: Boolean(raw.has_variants),
     createdAt: raw.created_at ?? '',
   }
 }
