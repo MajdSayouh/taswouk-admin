@@ -64,6 +64,22 @@ export function normalizeOrderListItem(raw) {
       r.progressive_tier_applied != null ? Number(r.progressive_tier_applied) : null,
     discountAmount: Number(r.discount_amount ?? 0),
     progressiveDiscountApplied: Number(r.progressive_discount_applied ?? 0),
+    // A cart split across sellers is one row here and several orders behind it.
+    // `id` above names only the row the cart is numbered after, so anything that
+    // writes has to go through `cartGroup` — or through a part's own `orderId`.
+    cartGroup: String(r.cart_group ?? r.cartGroup ?? ''),
+    isSplit: Boolean(r.is_split ?? r.isSplit),
+    parts: (Array.isArray(r.stores) ? r.stores : []).map((part) => ({
+      orderId: part.order_id ?? part.orderId ?? null,
+      orderType: String(part.order_type ?? part.orderType ?? 'store')
+        .trim()
+        .toLowerCase(),
+      sellerName: String(part.store_name ?? part.moll_name ?? '').trim(),
+      status: String(part.status ?? '')
+        .trim()
+        .toLowerCase(),
+      total: Number(part.total ?? 0),
+    })),
   }
 }
 

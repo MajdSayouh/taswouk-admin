@@ -2,7 +2,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useOrdersViewModel } from '../../viewmodels/useOrdersViewModel'
-import { assignDeliveryOrderForType, getOrderById, updateOrderStatus } from '../../services/orderService.js'
+import {
+  assignDeliveryOrderForType,
+  getOrderById,
+  updateOrderStatusForRecord,
+} from '../../services/orderService.js'
 import { queryClient } from '../../query/queryClient.js'
 import { queryKeys } from '../../query/queryKeys.js'
 import { DashboardTableToolbar } from '../../components/tables/DashboardTableToolbar.jsx'
@@ -227,7 +231,7 @@ export function OrdersListPage() {
       if (!Number.isInteger(orderNum) || orderNum <= 0 || record.isMock) return
       try {
         setAcceptingOrderId(idKey)
-        await updateOrderStatus(orderNum, 'confirmed', record.orderType)
+        await updateOrderStatusForRecord(record, 'confirmed')
         await queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
         message.success(t('orders.acceptSuccess'))
       } catch (err) {
@@ -252,7 +256,7 @@ export function OrdersListPage() {
       if (!canAdminCancelOrder(record.status)) return
       try {
         setCancellingOrderId(idKey)
-        await updateOrderStatus(orderNum, 'cancelled', record.orderType)
+        await updateOrderStatusForRecord(record, 'cancelled')
         await queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
         message.success(t('orders.cancelSuccess'))
       } catch (err) {
