@@ -1208,7 +1208,8 @@
     "products": {
       "title": "Products in this mall",
       "add": "+ New product",
-      "empty": "No catalog products assigned yet.",
+      "empty": "No products yet.",
+      "offerPrice": "On sale: {{price}}",
       "searchPlaceholder": "Search products by name…",
       "totalCount": "{{count}} products",
       "colName": "Product",

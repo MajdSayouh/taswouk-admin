@@ -1204,6 +1204,7 @@
       "title": "منتجات هذه البقالية",
       "add": "+ منتج جديد",
       "empty": "لا منتجات بعد.",
+      "offerPrice": "العرض: {{price}}",
       "searchPlaceholder": "ابحث عن منتج بالاسم…",
       "totalCount": "{{count}} منتج",
       "colName": "المنتج",

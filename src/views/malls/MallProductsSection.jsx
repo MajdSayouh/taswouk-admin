@@ -71,7 +71,12 @@ function AssignmentNameCell({ row, renameMutation, t }) {
 }
 
 function AssignmentPriceCell({ row, updateMutation, t }) {
-  const [price, setPrice] = useState(row.price)
+  // `row.price` is the EFFECTIVE price, so on a discounted product it is the
+  // sale figure rather than the one this box sets. Editing from it would
+  // write the sale price back as the real price and ratchet the product down
+  // on every save; `comparePrice` is the original in that case.
+  const basePrice = row.isOffer && row.comparePrice != null ? row.comparePrice : row.price
+  const [price, setPrice] = useState(basePrice)
   const [editing, setEditing] = useState(false)
   const pending =
     updateMutation.isPending &&
@@ -112,6 +117,14 @@ function AssignmentPriceCell({ row, updateMutation, t }) {
           {t('shared.edit')}
         </Button>
       )}
+      {row.isOffer && row.comparePrice != null ? (
+        // The box holds the original; this is what the customer actually
+        // pays. Without it a discounted product looked identical to an
+        // undiscounted one at the same listed price.
+        <span className="whitespace-nowrap text-xs text-emerald-600 dark:text-emerald-400">
+          {t('malls.products.offerPrice', { price: row.price })}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -260,6 +273,25 @@ export function MallProductsSection({ mallId }) {
 
   const columns = [
     {
+      // The model has mapped `productImageUrl` since the catalogue was
+      // retired and nothing read it, so a mall's products listed here as
+      // rows of text while the merchant app showed their photos.
+      title: '',
+      key: 'image',
+      width: 56,
+      render: (_, row) =>
+        row.productImageUrl ? (
+          <img
+            src={row.productImageUrl}
+            alt=""
+            loading="lazy"
+            className="h-10 w-10 rounded object-cover"
+          />
+        ) : (
+          <div className="h-10 w-10 rounded bg-slate-100 dark:bg-slate-800" />
+        ),
+    },
+    {
       title: t('malls.products.colName'),
       key: 'name',
       ellipsis: true,
@@ -396,8 +428,12 @@ export function MallProductsSection({ mallId }) {
         okText={t('malls.products.createSubmit')}
         destroyOnHidden
       >
-        {/* The mall authors the product here. Pictures are added from the row's
-            own actions once it exists, since an upload needs a product id. */}
+        {/* The mall authors the product here. Pictures are NOT set from this
+            dashboard: an upload needs a product id, and the merchant adds them
+            from the seller app, which owns that flow. The column on the left
+            shows what they uploaded. (`uploadMallProductImages` and its two
+            siblings exist in the service and the view model if this screen
+            ever needs to manage them too.) */}
         <Form form={createForm} layout="vertical" className="py-2">
           <Form.Item
             name="name"

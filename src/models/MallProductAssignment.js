@@ -13,6 +13,8 @@
  * @property {{ id: string, url: string, isFeatured: boolean }[]} productImages
  * @property {number | null} productCategoryId
  * @property {number} price
+ * @property {boolean} isOffer
+ * @property {number | null} comparePrice
  * @property {boolean} isAvailable
  * @property {boolean} isActive
  * @property {number} stockQuantity
@@ -37,6 +39,8 @@ export function mapMallProductAssignmentFromApi(raw) {
       productCategory: '',
       productCategoryId: null,
       price: 0,
+      isOffer: false,
+      comparePrice: null,
       isAvailable: false,
       isActive: true,
       stockQuantity: 0,
@@ -82,6 +86,13 @@ export function mapMallProductAssignmentFromApi(raw) {
         ? (raw.product_category.id ?? null)
         : null,
     price: Number(raw.price) || 0,
+    // `price` above is the EFFECTIVE price — what the customer pays — so an
+    // offer does not change it, it only adds the original beside it. Named
+    // after the server's `compare_price` rather than the store side's
+    // `new_price`, which means the opposite number.
+    isOffer: Boolean(raw.is_offer),
+    comparePrice:
+      raw.compare_price == null ? null : Number(raw.compare_price) || null,
     isAvailable: Boolean(raw.is_available ?? raw.available),
     isActive: raw.is_active !== false,
     stockQuantity: Number(raw.stock_quantity) || 0,
