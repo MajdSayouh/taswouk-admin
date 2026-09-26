@@ -921,6 +921,7 @@
       "global": "Global store",
       "syrian": "Syrian store",
       "grocery": "Grocery",
+      "mall": "Mall",
       "restaurant": "Restaurant"
     },
     "fields": {

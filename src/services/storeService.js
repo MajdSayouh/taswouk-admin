@@ -89,7 +89,7 @@ export async function getStore(storeId) {
  *   longitude?: number | null
  *   exchange_rate?: number | null
  *   currency?: 'USD' | 'SYP' | null
- *   store_type?: 'syrian' | 'grocery' | 'global' | 'restaurant' | null
+ *   store_type?: 'syrian' | 'global' | 'restaurant' | 'mall' | null
  *   start_working_at?: string | null
  *   end_working_at?: string | null
  *   preparation_time?: number | null

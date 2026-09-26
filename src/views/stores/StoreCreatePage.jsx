@@ -20,7 +20,11 @@ const STORE_CURRENCY_OPTIONS = [
   { value: 'syp', i18nKey: 'stores.currency.syp' },
 ]
 
-const STORE_TYPE_OPTIONS = ['global', 'syrian', 'grocery', 'restaurant']
+// `grocery` was removed from `StoreType` on the backend, which now
+// rejects it with a 400 -- so offering it here hands the admin a choice
+// that cannot be saved. `mall` replaced it and belongs in the list: a
+// mall is a store with this type since phase 3.
+const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant', 'mall']
 
 /**
  * @param {{ firstName?: string; lastName?: string; email?: string; id: string }} s
