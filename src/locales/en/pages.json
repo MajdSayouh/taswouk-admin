@@ -785,6 +785,14 @@
     "formSubcategoryOptional": "Subcategory (optional)",
     "formSubcategoryOptionalPh": "Create first subcategory with this category",
     "formActive": "Active",
+    "formScope": "Section",
+    "formScopeHint": "Moving a category to another section moves all its subcategories with it.",
+    "scopeMoved": "Category and its subcategories moved to {{scope}}",
+    "scopes": {
+      "store": "Stores",
+      "restaurant": "Restaurants",
+      "mall": "Malls"
+    },
     "formParent": "Parent category",
     "formParentPh": "Select category",
     "logo": "Category image",

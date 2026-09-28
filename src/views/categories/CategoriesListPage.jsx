@@ -9,6 +9,7 @@ import {
   Form,
   Input,
   Modal,
+  Segmented,
   Select,
   Space,
   Spin,
@@ -26,6 +27,7 @@ import { TableRowActions } from '../../components/tables/TableRowActions.jsx'
 import { DashboardAddTriggerButton } from '../../components/tables/DashboardAddButton.jsx'
 import { buildDashboardPagination, DASHBOARD_TABLE_PROPS, DEFAULT_PAGE_SIZE } from '../../components/tables/tableDefaults.js'
 import { useCategoriesViewModel } from '../../viewmodels/useCategoriesViewModel.js'
+import { CATEGORY_SCOPES } from '../../models/Category.js'
 import { rowMatchesSearch } from '../../utils/tableFilters.js'
 import { resolvePublicMediaUrl } from '../../utils/mediaUrl.js'
 import { CategoryLogoField } from '../../components/categories/CategoryLogoField.jsx'
@@ -104,6 +106,9 @@ function matchesTriYesNo(/** @type {string[] | null} */ col, /** @type {boolean}
 
 export function CategoriesListPage() {
   const { t } = useTranslation('pages')
+  // One vertical at a time: store, restaurant and mall categories are separate
+  // trees, and the backend leaves the mall's out of an unscoped request.
+  const [scope, setScope] = useState('store')
   const {
     categories,
     subcategories,
@@ -120,7 +125,7 @@ export function CategoriesListPage() {
     deleteCategoryLogo,
     updateCategoryMutation,
     updateSubcategoryMutation,
-  } = useCategoriesViewModel()
+  } = useCategoriesViewModel({ scope })
 
   const [categorySearch, setCategorySearch] = useState('')
   const [subSearch, setSubSearch] = useState('')
@@ -348,7 +353,12 @@ export function CategoriesListPage() {
   function openEditCategory(row) {
     setEditingCategory(row)
     setCategoryLogoFile(null)
-    categoryForm.setFieldsValue({ name: row.name, subcategory_name: '', is_active: row.isActive })
+    categoryForm.setFieldsValue({
+      name: row.name,
+      subcategory_name: '',
+      is_active: row.isActive,
+      scope: row.scope,
+    })
     setCategoryModalOpen(true)
   }
 
@@ -368,11 +378,17 @@ export function CategoriesListPage() {
       is_active: Boolean(values.is_active),
     }
     if (editingCategory) {
-      await updateCategory(editingCategory.id, payload)
+      const moved = values.scope && values.scope !== editingCategory.scope
+      await updateCategory(editingCategory.id, moved ? { ...payload, scope: values.scope } : payload)
       await syncCategoryLogo(editingCategory.id)
-      message.success(t('categories.categoryUpdated'))
+      message.success(
+        moved
+          ? t('categories.scopeMoved', { scope: t(`categories.scopes.${values.scope}`) })
+          : t('categories.categoryUpdated'),
+      )
     } else {
-      const created = await createCategory(payload)
+      // A new root belongs to the tab it was created from.
+      const created = await createCategory({ ...payload, scope })
       const parentId =
         created?.id ??
         created?.category_id ??
@@ -668,6 +684,20 @@ export function CategoriesListPage() {
         <Alert type="error" showIcon title={t('categories.errorTitle')} description={error} />
       ) : null}
 
+      <Segmented
+        size="large"
+        value={scope}
+        onChange={(next) => {
+          setScope(next)
+          setCatPage(1)
+          setSubPage(1)
+        }}
+        options={CATEGORY_SCOPES.map((value) => ({
+          value,
+          label: t(`categories.scopes.${value}`),
+        }))}
+      />
+
       <Card
         title={t('categories.listTitle', { suffix: catTitleSuffix })}
         actions={
@@ -776,7 +806,20 @@ export function CategoriesListPage() {
             <Form.Item label={t('categories.formSubcategoryOptional')} name="subcategory_name">
               <Input placeholder={t('categories.formSubcategoryOptionalPh')} />
             </Form.Item>
-          ) : null}
+          ) : (
+            <Form.Item
+              label={t('categories.formScope')}
+              name="scope"
+              extra={t('categories.formScopeHint')}
+            >
+              <Select
+                options={CATEGORY_SCOPES.map((value) => ({
+                  value,
+                  label: t(`categories.scopes.${value}`),
+                }))}
+              />
+            </Form.Item>
+          )}
           <Form.Item label={t('categories.formActive')} name="is_active" valuePropName="checked">
             <Switch />
           </Form.Item>

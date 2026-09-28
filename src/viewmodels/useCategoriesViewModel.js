@@ -12,13 +12,15 @@ function invalidateAll(queryClient) {
 
 export function useCategoriesViewModel(options = {}) {
   const enabled = options.enabled !== false
+  const scope = options.scope
   const queryClient = useQueryClient()
 
   const categoriesQuery = useQuery({
-    queryKey: queryKeys.categories.all(),
+    // Under `categories` so `invalidateAll` still reaches every scope.
+    queryKey: scope ? [...queryKeys.categories.all(), 'scope', scope] : queryKeys.categories.all(),
     enabled,
     queryFn: async ({ signal }) => {
-      const rows = await categoryService.listCategories({ signal })
+      const rows = await categoryService.listCategories({ signal, scope })
       return flattenCategoryTree(rows)
     },
   })

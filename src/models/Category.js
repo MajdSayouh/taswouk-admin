@@ -4,6 +4,7 @@
  *   name: string
  *   isActive: boolean
  *   logoUrl: string | null
+ *   scope: 'store' | 'restaurant' | 'mall'
  * }} CategoryModel
  */
 
@@ -32,8 +33,15 @@ export function mapCategoryFromApi(raw) {
     name: String(r.name ?? r.title ?? '').trim() || `Category #${id}`,
     isActive: Boolean(r.is_active ?? r.active ?? true),
     logoUrl: r.logo ?? r.logo_url ?? null,
+    scope: CATEGORY_SCOPES.includes(r.scope) ? r.scope : 'store',
   }
 }
+
+/**
+ * The vertical a category belongs to. A subcategory always carries its root's
+ * scope -- the backend enforces it, and re-scoping a root moves its subtree.
+ */
+export const CATEGORY_SCOPES = ['store', 'restaurant', 'mall']
 
 /**
  * @param {unknown} raw

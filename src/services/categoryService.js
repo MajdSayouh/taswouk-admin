@@ -64,11 +64,18 @@ function multipartConfig() {
  * should only list categories and subcategories where `is_active` is true; that filtering is
  * enforced on the API for those clients or in their BFF, not in this call.
  *
- * @param {{ signal?: AbortSignal }} [options]
+ * Without `scope` the backend returns the store and restaurant trees but not the
+ * mall's (those are still cut-over copies); pass `scope` to get one vertical,
+ * the mall included.
+ *
+ * @param {{ signal?: AbortSignal, scope?: 'store' | 'restaurant' | 'mall' }} [options]
  * @returns {Promise<unknown[]>}
  */
 export async function listCategories(options = {}) {
-  const { data } = await apiClient.get(getCategoriesListPath(), { signal: options.signal })
+  const { data } = await apiClient.get(getCategoriesListPath(), {
+    signal: options.signal,
+    params: options.scope ? { scope: options.scope } : undefined,
+  })
   return normalizeListResponse(data)
 }
 
@@ -82,7 +89,8 @@ function normalizeCreateOrUpdatePayload(payload) {
 }
 
 /**
- * @param {{ name: string, is_active?: boolean | null }} payload
+ * `scope` only counts on a root; a subcategory takes its parent's.
+ * @param {{ name: string, is_active?: boolean | null, scope?: 'store' | 'restaurant' | 'mall' }} payload
  */
 export async function createCategory(payload) {
   const body = normalizeCreateOrUpdatePayload(payload)

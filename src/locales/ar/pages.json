@@ -785,6 +785,14 @@
     "formSubcategoryOptional": "تصنيف فرعي (اختياري)",
     "formSubcategoryOptionalPh": "أنشئ أول تصنيف فرعي مع هذا التصنيف",
     "formActive": "نشط",
+    "formScope": "القسم",
+    "formScopeHint": "نقل الفئة إلى قسم آخر ينقل معها كل فئاتها الفرعية.",
+    "scopeMoved": "نُقلت الفئة وفئاتها الفرعية إلى {{scope}}",
+    "scopes": {
+      "store": "المتاجر",
+      "restaurant": "المطاعم",
+      "mall": "المولات"
+    },
     "formParent": "التصنيف الأب",
     "formParentPh": "اختر التصنيف",
     "ruleCategoryName": "اسم التصنيف مطلوب",
