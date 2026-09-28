@@ -206,12 +206,24 @@ const PROFILE_ITEM = /** @type {NavItemDef} */ ({
 })
 
 /**
+ * Legacy mall screens. After the backend's mall cut-over a mall is a store
+ * (`store_type = "mall"`) and its categories are the `mall` section of the
+ * categories page, so these entries go; the routes redirect (see
+ * LegacyMallRoute). Removed outright in the post-cut-over cleanup.
+ */
+const LEGACY_MALL_NAV_KEYS = new Set(['malls', 'mallCategories'])
+
+/**
  * @param {{ role?: string } | null | undefined} user
+ * @param {{ mallCutover?: boolean }} [options] — from GET /api/features
  * @returns {NavItemDef[]}
  */
-export function getDashboardNavItems(user) {
+export function getDashboardNavItems(user, options = {}) {
   if (user && isAdminRole(user.role)) {
-    return [...MAIN_NAV, ...ADMIN_ONLY_NAV, SELLERS_ITEM, PROFILE_ITEM]
+    const adminNav = options.mallCutover
+      ? ADMIN_ONLY_NAV.filter((item) => !LEGACY_MALL_NAV_KEYS.has(item.key))
+      : ADMIN_ONLY_NAV
+    return [...MAIN_NAV, ...adminNav, SELLERS_ITEM, PROFILE_ITEM]
   }
   return [...MAIN_NAV, PROFILE_ITEM]
 }

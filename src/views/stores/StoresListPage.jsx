@@ -1,6 +1,7 @@
 // View: stores — toolbar + column filter dropdowns, left-aligned.
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { Table, Tag, Space, Alert, Spin, Select, Switch, message, Button as AntButton } from 'antd'
 import { useStoresViewModel } from '../../viewmodels/useStoresViewModel'
 import { DashboardTableToolbar } from '../../components/tables/DashboardTableToolbar.jsx'
@@ -17,6 +18,18 @@ import { Button } from '../../components/ui/Button'
 import { TruncatedTextCell } from '../../components/tables/TruncatedTextCell.jsx'
 
 const DEFAULT_PAGE_SIZE = 10
+
+// Every `store_type` the backend can return. `mall` rows exist before the cut-over too
+// (a mall's store copy), so the filter offers it regardless of /api/features.
+const STORE_TYPE_FILTER_OPTIONS = ['global', 'syrian', 'restaurant', 'mall']
+
+const STORE_TYPE_TAG_COLORS = { restaurant: 'orange', mall: 'purple' }
+
+/** `?type=mall` (the legacy mall routes redirect here with it) → type filter. */
+function typeFilterFromParams(searchParams) {
+  const value = searchParams.get('type')
+  return STORE_TYPE_FILTER_OPTIONS.includes(value) ? value : 'all'
+}
 
 function TriStateColumnFilter({ options, value, onApply, confirm }) {
   const { t } = useTranslation('pages')
@@ -135,6 +148,21 @@ export function StoresListPage({ restaurantMode = false }) {
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState(/** @type {'all' | 'yes' | 'no'} */ ('all'))
   const [brandFilter, setBrandFilter] = useState(/** @type {'all' | 'yes' | 'no'} */ ('all'))
+  // Kept in the URL rather than in state, so a redirect from /malls lands filtered and
+  // the filter survives a reload or a shared link.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const typeFilter = typeFilterFromParams(searchParams)
+  function setTypeFilter(next) {
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev)
+        if (next === 'all') params.delete('type')
+        else params.set('type', next)
+        return params
+      },
+      { replace: true },
+    )
+  }
   const [deletingId, setDeletingId] = useState(null)
 
   const [colOwnerId, setColOwnerId] = useState('')
@@ -157,6 +185,9 @@ export function StoresListPage({ restaurantMode = false }) {
     return scopedStores.filter((row) => {
       if (!matchesYesNoTriState(activeFilter, row.isActive)) return false
       if (!matchesYesNoTriState(brandFilter, row.isBrand)) return false
+      if (!restaurantMode && typeFilter !== 'all' && (row.storeType || 'global') !== typeFilter) {
+        return false
+      }
       if (
         !rowMatchesSearch(
           search,
@@ -211,9 +242,11 @@ export function StoresListPage({ restaurantMode = false }) {
     })
   }, [
     scopedStores,
+    restaurantMode,
     search,
     activeFilter,
     brandFilter,
+    typeFilter,
     colStoreName,
     colOwnerId,
     colOwnerEmail,
@@ -232,6 +265,7 @@ export function StoresListPage({ restaurantMode = false }) {
     search,
     activeFilter,
     brandFilter,
+    typeFilter,
     colStoreName,
     colOwnerId,
     colOwnerEmail,
@@ -303,7 +337,7 @@ export function StoresListPage({ restaurantMode = false }) {
             align: 'left',
             width: 120,
             render: (value) => (
-              <Tag color={value === 'restaurant' ? 'orange' : undefined} style={{ marginInlineEnd: 0 }}>
+              <Tag color={STORE_TYPE_TAG_COLORS[value]} style={{ marginInlineEnd: 0 }}>
                 {t(`stores.types.${value || 'global'}`)}
               </Tag>
             ),
@@ -551,6 +585,20 @@ export function StoresListPage({ restaurantMode = false }) {
                     { value: 'no', label: t('stores.list.brandNo') },
                   ]}
                 />
+                {!restaurantMode ? (
+                  <Select
+                    value={typeFilter}
+                    onChange={setTypeFilter}
+                    className="min-w-[150px]"
+                    options={[
+                      { value: 'all', label: t('stores.list.typeAny') },
+                      ...STORE_TYPE_FILTER_OPTIONS.map((value) => ({
+                        value,
+                        label: t(`stores.types.${value}`),
+                      })),
+                    ]}
+                  />
+                ) : null}
               </>
             }
           />

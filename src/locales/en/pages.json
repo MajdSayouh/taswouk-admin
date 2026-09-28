@@ -828,6 +828,7 @@
       "brandAny": "Brand: any",
       "brandYes": "Brand: yes",
       "brandNo": "Brand: no",
+      "typeAny": "Type: any",
       "colStore": "Store",
       "colSellerId": "Seller ID",
       "colType": "Type",

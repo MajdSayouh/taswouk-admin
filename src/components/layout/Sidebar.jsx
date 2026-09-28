@@ -6,6 +6,7 @@ import { DownOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../../store/authStore.js'
 import { useUiStore } from '../../store/uiStore.jsx'
 import { getDashboardNavItems, isNavActive } from '../../navigation/dashboardNav.js'
+import { useFeatures } from '../../hooks/useFeatures.js'
 import { ModerationNavBadge } from './ModerationNavBadge.jsx'
 
 const navLinkClass = (active) =>
@@ -27,7 +28,8 @@ const navIconWrapClass = (active) =>
 export function Sidebar() {
   const location = useLocation()
   const user = useAuthStore((s) => s.user)
-  const navItems = getDashboardNavItems(user)
+  const { features } = useFeatures()
+  const navItems = getDashboardNavItems(user, { mallCutover: features.mall_cutover })
   const { t } = useTranslation()
   const sidebarOpen = useUiStore((s) => s.sidebarOpen)
   const [openKeys, setOpenKeys] = useState(() =>

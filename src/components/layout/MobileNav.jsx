@@ -6,13 +6,15 @@ import { MenuOutlined, DownOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore.js'
 import { getDashboardNavItems, isNavActive } from '../../navigation/dashboardNav.js'
+import { useFeatures } from '../../hooks/useFeatures.js'
 import { ModerationNavBadge } from './ModerationNavBadge.jsx'
 
 export function MobileNav() {
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const user = useAuthStore((s) => s.user)
-  const items = getDashboardNavItems(user)
+  const { features } = useFeatures()
+  const items = getDashboardNavItems(user, { mallCutover: features.mall_cutover })
   const { t, i18n: i18nInstance } = useTranslation()
   const langValue = i18nInstance.language?.startsWith('ar') ? 'ar' : 'en'
   const [openKeys, setOpenKeys] = useState(() =>

@@ -6,6 +6,7 @@ import { LoginPage } from '../views/auth/LoginPage'
 import { RequireAuth } from './RequireAuth.jsx'
 import { RequireAdmin } from '../components/auth/RequireAdmin.jsx'
 import { GuestOnly } from './GuestOnly.jsx'
+import { LegacyMallRoute } from './LegacyMallRoute.jsx'
 import { PageLoader } from '../components/ui/PageLoader.jsx'
 
 const DashboardPage = lazy(() =>
@@ -451,40 +452,42 @@ export function AppRouter() {
                 }
               />
             </Route>
-            <Route path="malls" element={<Outlet />}>
+            <Route element={<LegacyMallRoute />}>
+              <Route path="malls" element={<Outlet />}>
+                <Route
+                  index
+                  element={
+                    <LazyPage>
+                      <MallsListPage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path="create"
+                  element={
+                    <LazyPage>
+                      <MallCreatePage />
+                    </LazyPage>
+                  }
+                />
+                <Route
+                  path=":id/edit"
+                  element={
+                    <LazyPage>
+                      <MallEditPage />
+                    </LazyPage>
+                  }
+                />
+              </Route>
               <Route
-                index
+                path="mall-categories"
                 element={
                   <LazyPage>
-                    <MallsListPage />
-                  </LazyPage>
-                }
-              />
-              <Route
-                path="create"
-                element={
-                  <LazyPage>
-                    <MallCreatePage />
-                  </LazyPage>
-                }
-              />
-              <Route
-                path=":id/edit"
-                element={
-                  <LazyPage>
-                    <MallEditPage />
+                    <MallCategoriesListPage />
                   </LazyPage>
                 }
               />
             </Route>
-            <Route
-              path="mall-categories"
-              element={
-                <LazyPage>
-                  <MallCategoriesListPage />
-                </LazyPage>
-              }
-            />
             <Route path="external-shops" element={<Outlet />}>
               <Route
                 index
