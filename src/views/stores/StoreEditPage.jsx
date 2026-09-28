@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Textarea } from '../../components/ui/Textarea.jsx'
 import { LocationPickerMap } from '../../components/maps/LocationPickerMap.jsx'
+import { PriceSheetActions } from '../../components/prices/PriceSheetActions.jsx'
 import { isAdminRole, useAuthStore } from '../../store/authStore.js'
 import {
   SYRIAN_GOVERNORATE_OPTIONS,
@@ -556,6 +557,23 @@ export function StoreEditPage({ restaurantMode = false }) {
           </div>
         </form>
       </Card>
+
+      {/* Admin-only on the backend; works for every store type, not just malls. */}
+      {isAdmin ? (
+        <Card
+          title={t('stores.prices.title')}
+          actions={
+            <PriceSheetActions
+              exportPrices={() => storeService.exportStorePrices(id)}
+              importPrices={(file) => storeService.importStorePrices(id, file)}
+              fallbackFilename={`store_${id}_prices.xlsx`}
+              onImported={() => queryClient.invalidateQueries({ queryKey: queryKeys.products.root })}
+            />
+          }
+        >
+          <p className="text-xs text-slate-500">{t('stores.prices.hint')}</p>
+        </Card>
+      ) : null}
     </div>
   )
 }

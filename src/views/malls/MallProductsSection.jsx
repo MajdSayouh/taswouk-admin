@@ -1,5 +1,5 @@
 // Mall edit: the mall's own products — create, price, stock, availability.
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Alert, Form, Input, InputNumber, Modal, Select, Spin, Switch, Table, message } from 'antd'
 import * as mallService from '../../services/mallService.js'
@@ -7,6 +7,7 @@ import { useMallProductsViewModel } from '../../viewmodels/useMallProductsViewMo
 import { useMallCategoriesViewModel } from '../../viewmodels/useMallCategoriesViewModel.js'
 import { Card } from '../../components/ui/Card.jsx'
 import { Button } from '../../components/ui/Button.jsx'
+import { PriceSheetActions } from '../../components/prices/PriceSheetActions.jsx'
 import {
   DASHBOARD_TABLE_PROPS,
   DEFAULT_PAGE_SIZE,
@@ -206,45 +207,6 @@ export function MallProductsSection({ mallId }) {
       .map((c) => ({ value: Number(c.id), label: c.name }))
   }, [categories, subcategories])
   const [removingId, setRemovingId] = useState(/** @type {string | null} */ (null))
-  const [exporting, setExporting] = useState(false)
-  const [importing, setImporting] = useState(false)
-  const importInputRef = useRef(/** @type {HTMLInputElement | null} */ (null))
-
-  async function handleExportPrices() {
-    setExporting(true)
-    try {
-      const { blob, filename } = await mallService.exportMallPrices(mallId)
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename || `mall-${mallId}-prices.xlsx`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    } catch (e) {
-      message.error(e?.message ?? t('malls.products.exportErr'))
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  async function handleImportFileChosen(e) {
-    const file = e.target.files?.[0] ?? null
-    e.target.value = '' // allow re-selecting the same file name next time
-    if (!file) return
-    setImporting(true)
-    try {
-      await mallService.importMallPrices(mallId, file)
-      message.success(t('malls.products.importSuccess'))
-      refetch()
-    } catch (err) {
-      message.error(err?.message ?? t('malls.products.importErr'))
-    } finally {
-      setImporting(false)
-    }
-  }
-
   // A mall authors its own products now, so there is no catalogue to pick
   // from and no "already assigned" list to filter it against.
   async function handleCreate() {
@@ -348,29 +310,12 @@ export function MallProductsSection({ mallId }) {
       title={t('malls.products.title')}
       actions={
         <>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-            className="hidden"
-            onChange={handleImportFileChosen}
+          <PriceSheetActions
+            exportPrices={() => mallService.exportMallPrices(mallId)}
+            importPrices={(file) => mallService.importMallPrices(mallId, file)}
+            fallbackFilename={`mall-${mallId}-prices.xlsx`}
+            onImported={refetch}
           />
-          <Button
-            type="button"
-            variant="secondary"
-            loading={exporting}
-            onClick={handleExportPrices}
-          >
-            {t('malls.products.exportPrices')}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            loading={importing}
-            onClick={() => importInputRef.current?.click()}
-          >
-            {t('malls.products.importPrices')}
-          </Button>
           <Button type="button" onClick={() => setModalOpen(true)}>
             {t('malls.products.add')}
           </Button>

@@ -3,6 +3,7 @@
  * @see https://v2.taswouk.com/api/docs#/Stores%20Admin
  */
 import { apiClient } from './apiClient.js'
+import { exportPriceSheet, importPriceSheet } from './priceSheetService.js'
 
 function isFileLike(value) {
   return (
@@ -271,6 +272,29 @@ export async function setStoreType(storeId, storeType) {
     store_type: storeType,
   })
   return data
+}
+
+/**
+ * GET /api/stores/{store_id}/prices/export — admin; the store's price sheet as .xlsx
+ * (`product_id, name, price, new_price, category, stock`), any store type.
+ * @param {number | string} storeId
+ * @param {{ signal?: AbortSignal }} [options]
+ * @returns {Promise<{ blob: Blob, filename: string | null }>}
+ */
+export async function exportStorePrices(storeId, options = {}) {
+  return exportPriceSheet(`/api/stores/${storeId}/prices/export`, options)
+}
+
+/**
+ * POST /api/stores/{store_id}/prices/import — admin; multipart `file` (.xlsx/.xlsm).
+ * A row with an empty `product_id` creates a product; `category` resolves within the
+ * store's section only. Returns `{ store_id, store_name, total_rows, updated, created,
+ * linked, unchanged, skipped, variants_updated, errors: [{ row, reason, raw }] }`.
+ * @param {number | string} storeId
+ * @param {File | Blob} file
+ */
+export async function importStorePrices(storeId, file) {
+  return importPriceSheet(`/api/stores/${storeId}/prices/import`, file)
 }
 
 /**

@@ -953,6 +953,30 @@
       "workingHoursPair": "Set both opening and closing times, or leave both empty.",
       "preparationTime": "Preparation time must be a whole number between 0 and 1440 minutes.",
       "minimumOrder": "Minimum order must be a whole number of 0 or more."
+    },
+    "prices": {
+      "title": "Price sheet (Excel)",
+      "hint": "Export the store's price sheet, edit prices in that same file (a row with an empty product_id adds a product), then import it back. Categories are matched within this store's section only.",
+      "export": "Export prices (Excel)",
+      "exportErr": "Could not export prices",
+      "import": "Import prices (Excel)",
+      "importSuccess": "Prices imported successfully",
+      "importedWithErrors": "Prices imported; {{count}} rows were rejected",
+      "importErr": "Could not import the price file",
+      "reportTitle": "Import report",
+      "totalRows": "Rows read",
+      "updated": "Updated",
+      "created": "Created",
+      "linked": "Linked",
+      "unchanged": "Unchanged",
+      "skipped": "Skipped",
+      "variantsUpdated": "Variants updated",
+      "errorsTitle": "Rejected rows ({{count}})",
+      "noErrors": "Every row was accepted.",
+      "colRow": "Row",
+      "colReason": "Reason",
+      "colRaw": "Raw value",
+      "close": "Close"
     }
   },
   "restaurants": {
@@ -1252,12 +1276,7 @@
       "updateErr": "Could not update assignment",
       "removed": "Product deleted",
       "removeErr": "Could not delete the product",
-      "exportPrices": "Export prices (Excel)",
-      "exportErr": "Could not export prices",
-      "importPrices": "Import prices (Excel)",
-      "importPricesHint": "Export the current price file, edit prices in that same file, then import it to bulk-update this mall's product prices.",
-      "importSuccess": "Prices imported successfully",
-      "importErr": "Could not import the price file"
+      "importPricesHint": "Export the current price file, edit prices in that same file, then import it to bulk-update this mall's product prices."
     }
   },
   "externalShops": {
