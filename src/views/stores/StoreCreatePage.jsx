@@ -20,11 +20,12 @@ const STORE_CURRENCY_OPTIONS = [
   { value: 'syp', i18nKey: 'stores.currency.syp' },
 ]
 
-// `grocery` was removed from `StoreType` on the backend, which now
-// rejects it with a 400 -- so offering it here hands the admin a choice
-// that cannot be saved. `mall` replaced it and belongs in the list: a
-// mall is a store with this type since phase 3.
-const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant', 'mall']
+// `grocery` was removed from `StoreType` on the backend, which rejects it
+// with a 400. `mall` is not offered either: until phase 4 a mall is still
+// created and run from the malls pages, and the backend refuses a `mall`
+// store on these paths -- offering it made a store that 400'd on every
+// product.
+const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant']
 
 /**
  * @param {{ firstName?: string; lastName?: string; email?: string; id: string }} s
@@ -220,6 +221,9 @@ export function StoreCreatePage({ restaurantMode = false }) {
           description: desc,
           phone,
           address,
+          // The picker writes a governorate into `address`; the backend keeps
+          // it in its own field too, and that field is what orders stores.
+          governorate: address || undefined,
           latitude: lat != null && !Number.isNaN(lat) ? lat : null,
           longitude: lng != null && !Number.isNaN(lng) ? lng : null,
           exchange_rate: exchangeRate,
@@ -233,6 +237,7 @@ export function StoreCreatePage({ restaurantMode = false }) {
           description: desc,
           phone,
           address,
+          governorate: address || undefined,
           latitude: lat != null && !Number.isNaN(lat) ? lat : null,
           longitude: lng != null && !Number.isNaN(lng) ? lng : null,
           exchange_rate: exchangeRate,

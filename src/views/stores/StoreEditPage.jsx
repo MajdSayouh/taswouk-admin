@@ -14,18 +14,21 @@ import { Input } from '../../components/ui/Input'
 import { Textarea } from '../../components/ui/Textarea.jsx'
 import { LocationPickerMap } from '../../components/maps/LocationPickerMap.jsx'
 import { isAdminRole, useAuthStore } from '../../store/authStore.js'
-import { SYRIAN_GOVERNORATE_OPTIONS } from '../../constants/syrianGovernorates.js'
+import {
+  SYRIAN_GOVERNORATE_OPTIONS,
+  SYRIAN_GOVERNORATES,
+} from '../../constants/syrianGovernorates.js'
 
 const STORE_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
   { value: 'syp', i18nKey: 'stores.currency.syp' },
 ]
 
-// `grocery` was removed from `StoreType` on the backend, which now
-// rejects it with a 400 -- so offering it here hands the admin a choice
-// that cannot be saved. `mall` replaced it and belongs in the list: a
-// mall is a store with this type since phase 3.
-const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant', 'mall']
+// `grocery` was removed from `StoreType` on the backend, which rejects it
+// with a 400. `mall` is listed only for a store that already is one (see
+// `typeOptions`): until phase 4 the backend refuses to switch a store to
+// it, since a mall is still run from the malls pages.
+const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant']
 
 function toTimeInput(value) {
   return value ? String(value).slice(0, 5) : ''
@@ -83,6 +86,9 @@ export function StoreEditPage({ restaurantMode = false }) {
   const [useSystemExchangeRate, setUseSystemExchangeRate] = useState(false)
 
   const raw = storeQuery.data
+  // A store that is already a mall shows its type rather than a blank.
+  const typeOptions =
+    raw?.store_type === 'mall' ? [...STORE_TYPE_OPTIONS, 'mall'] : STORE_TYPE_OPTIONS
 
   useEffect(() => {
     if (!raw) return
@@ -200,6 +206,14 @@ export function StoreEditPage({ restaurantMode = false }) {
         name: form.name.trim() || null,
         phone: form.phone.trim() || null,
         address: form.address.trim() || null,
+        // The picker is a governorate picker, but on edit the backend only
+        // fills an *empty* governorate from `address` -- so changing Homs to
+        // Aleppo here moved the address and left the store ordered as Homs.
+        // Sent only when it is one of the list: older stores hold a street in
+        // `address`, which the backend rightly refuses as a governorate.
+        ...(SYRIAN_GOVERNORATES.includes(form.address.trim())
+          ? { governorate: form.address.trim() }
+          : {}),
         description: form.description.trim() || null,
         currency: form.currency.toUpperCase(),
         latitude: latNum != null && !Number.isNaN(latNum) ? latNum : null,
@@ -327,7 +341,7 @@ export function StoreEditPage({ restaurantMode = false }) {
                 className="w-full"
                 size="large"
                 value={form.storeType}
-                options={STORE_TYPE_OPTIONS.map((value) => ({
+                options={typeOptions.map((value) => ({
                   value,
                   label: t(`stores.types.${value}`),
                 }))}

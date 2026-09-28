@@ -104,6 +104,7 @@ export async function adminCreateStore(payload) {
     description: payload.description,
     phone: payload.phone,
     address: payload.address,
+    governorate: payload.governorate,
     latitude: payload.latitude,
     longitude: payload.longitude,
     currency: payload.currency,
@@ -134,8 +135,17 @@ export async function adminCreateStore(payload) {
  * }} payload
  */
 export async function sellerCreateStore(payload) {
-  const body = shouldUseMultipart(payload) ? toMultipart(payload) : payload
-  const { data } = await apiClient.post('/api/stores/my/create', body, multipartConfig())
+  // `/my/create` takes a JSON body only; a form with a logo has its own
+  // endpoint, which parses the same schema from the multipart fields.
+  if (shouldUseMultipart(payload)) {
+    const { data } = await apiClient.post(
+      '/api/stores/my/create-with-logo',
+      toMultipart(payload),
+      multipartConfig(),
+    )
+    return data
+  }
+  const { data } = await apiClient.post('/api/stores/my/create', payload)
   return data
 }
 
