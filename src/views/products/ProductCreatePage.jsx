@@ -1,5 +1,5 @@
 // View: create product (POST /api/products/).
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, Link } from 'react-router-dom'
@@ -10,6 +10,7 @@ import { queryKeys } from '../../query/queryKeys.js'
 import { useProductsViewModel } from '../../viewmodels/useProductsViewModel'
 import { useCategoriesViewModel } from '../../viewmodels/useCategoriesViewModel.js'
 import { useAuthStore, isSellerRole } from '../../store/authStore.js'
+import { useFeatures } from '../../hooks/useFeatures.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { ProductEditorForm } from './ProductEditorForm.jsx'
@@ -27,6 +28,7 @@ import {
 } from '../../utils/productVariants.js'
 import {
   categoriesForProductPicker,
+  categoryScopeForStoreType,
   subcategoriesForProductPicker,
 } from '../../utils/categoryPicker.js'
 
@@ -61,15 +63,51 @@ export function ProductCreatePage() {
     queryFn: () => storeService.listStores(),
   })
 
-  const stores = Array.isArray(storesQuery.data) ? storesQuery.data : []
+  const stores = useMemo(
+    () => (Array.isArray(storesQuery.data) ? storesQuery.data : []),
+    [storesQuery.data],
+  )
   const storesLoading = storesQuery.isFetching
   const storesError = storesQuery.error?.message ?? null
+  const [form, setRawForm] = useState(emptyForm)
+  const { features } = useFeatures()
+  const scopeEnforced = features.category_scope_enforced
+
+  // Once the backend enforces sections, a product's category must be in its store's
+  // section, so only that section is offered. Before that the whole tree, as always.
+  const scopeForStoreId = useCallback(
+    (storeId) => {
+      if (!scopeEnforced) return undefined
+      const store = stores.find((s) => String(s?.id) === String(storeId))
+      return categoryScopeForStoreType(store?.store_type)
+    },
+    [scopeEnforced, stores],
+  )
+  const categoryScope = scopeForStoreId(form.storeId)
+
+  // Switching to a store in another section drops the chosen category: it would no longer
+  // be offered, and the backend refuses it.
+  const setForm = useCallback(
+    (update) =>
+      setRawForm((prev) => {
+        const next = typeof update === 'function' ? update(prev) : update
+        if (
+          next.storeId !== prev.storeId &&
+          scopeForStoreId(next.storeId) !== scopeForStoreId(prev.storeId)
+        ) {
+          return { ...next, categoryId: '', category: '', subCategoryId: '', subCategory: '' }
+        }
+        return next
+      }),
+    [scopeForStoreId],
+  )
+
   const {
     categories,
     subcategories,
     loading: categoriesLoading,
     error: categoriesError,
-  } = useCategoriesViewModel()
+  } = useCategoriesViewModel({ scope: categoryScope })
 
   const pickerCategories = useMemo(
     () => categoriesForProductPicker(categories, {}),
@@ -80,7 +118,6 @@ export function ProductCreatePage() {
     [subcategories, categories],
   )
 
-  const [form, setForm] = useState(emptyForm)
   const [variantRows, setVariantRows] = useState([])
   const [videoUploading, setVideoUploading] = useState(false)
   const validVariantRows = getValidVariantRowsForSave(variantRows)
@@ -93,7 +130,8 @@ export function ProductCreatePage() {
       stores.length === 1 &&
       stores[0]?.id != null
     ) {
-      setForm((prev) => ({ ...prev, storeId: String(stores[0].id) }))
+      // The first pick, before any category -- nothing for `setForm` to drop.
+      setRawForm((prev) => ({ ...prev, storeId: String(stores[0].id) }))
     }
   }, [user, stores])
 

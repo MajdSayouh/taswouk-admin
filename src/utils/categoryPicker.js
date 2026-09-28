@@ -61,3 +61,38 @@ export function subcategoriesForProductPicker(subcategories, categories, opts = 
   if (!selected || base.some((sc) => String(sc.id) === selSub)) return [...base].sort(byName)
   return [...base, selected].sort(byName)
 }
+
+/**
+ * The category section a store's products belong to (backend mapping):
+ * restaurant → restaurant, mall → mall, syrian/global → store.
+ * `undefined` for no store, so the caller falls back to the unscoped tree.
+ *
+ * @param {string | null | undefined} storeType
+ * @returns {'store' | 'restaurant' | 'mall' | undefined}
+ */
+export function categoryScopeForStoreType(storeType) {
+  if (!storeType) return undefined
+  if (storeType === 'restaurant') return 'restaurant'
+  if (storeType === 'mall') return 'mall'
+  return 'store'
+}
+
+/**
+ * `scoped` plus the currently selected row taken from `all`, when the selection is
+ * outside the scoped list — so editing a product whose category is in another
+ * section still shows that category instead of a bare id.
+ *
+ * @template {{ id: string }} T
+ * @param {T[]} scoped
+ * @param {T[]} all
+ * @param {string | null | undefined} selectedId
+ * @returns {T[]}
+ */
+export function withSelectedRow(scoped, all, selectedId) {
+  const list = Array.isArray(scoped) ? scoped : []
+  if (selectedId == null || selectedId === '') return list
+  const sel = String(selectedId)
+  if (list.some((row) => String(row.id) === sel)) return list
+  const current = (Array.isArray(all) ? all : []).find((row) => String(row.id) === sel)
+  return current ? [...list, current] : list
+}

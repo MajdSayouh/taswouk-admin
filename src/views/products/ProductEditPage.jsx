@@ -8,6 +8,7 @@ import * as productService from '../../services/productService.js'
 import * as storeService from '../../services/storeService.js'
 import { queryKeys } from '../../query/queryKeys.js'
 import { useCategoriesViewModel } from '../../viewmodels/useCategoriesViewModel.js'
+import { useFeatures } from '../../hooks/useFeatures.js'
 import { buildProductUpdatePayload } from '../../utils/productWritePayload.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -34,7 +35,9 @@ import {
 } from '../../utils/productVariants.js'
 import {
   categoriesForProductPicker,
+  categoryScopeForStoreType,
   subcategoriesForProductPicker,
+  withSelectedRow,
 } from '../../utils/categoryPicker.js'
 
 function commaSplit(s) {
@@ -162,11 +165,13 @@ export function ProductEditPage() {
   const stores = Array.isArray(storesQuery.data) ? storesQuery.data : []
   const storesLoading = storesQuery.isFetching
   const storesError = storesQuery.error?.message ?? null
+  // The whole tree: what the product's saved category is resolved against, whichever
+  // section it is in.
   const {
     categories,
     subcategories,
-    loading: categoriesLoading,
-    error: categoriesError,
+    loading: allCategoriesLoading,
+    error: allCategoriesError,
   } = useCategoriesViewModel()
 
   const [variantRows, setVariantRows] = useState([])
@@ -195,16 +200,48 @@ export function ProductEditPage() {
     videoFile: null,
   })
 
+  // Once the backend enforces sections, only the store's section is offered. Without a
+  // scope this is the same query as the whole tree above, so nothing extra is fetched.
+  const { features } = useFeatures()
+  const categoryScope = features.category_scope_enforced
+    ? categoryScopeForStoreType(
+        stores.find((s) => String(s?.id) === String(form.storeId))?.store_type,
+      )
+    : undefined
+  const {
+    categories: scopedCategories,
+    subcategories: scopedSubcategories,
+    loading: scopedCategoriesLoading,
+    error: scopedCategoriesError,
+  } = useCategoriesViewModel({ scope: categoryScope })
+  const categoriesLoading = allCategoriesLoading || scopedCategoriesLoading
+  const categoriesError = scopedCategoriesError ?? allCategoriesError
+
+  // A product saved before enforcement can sit in another section; its current category
+  // is still listed so the form shows it rather than a bare id.
+  const offeredCategories = useMemo(
+    () =>
+      categoryScope ? withSelectedRow(scopedCategories, categories, form.categoryId) : categories,
+    [categoryScope, scopedCategories, categories, form.categoryId],
+  )
+  const offeredSubcategories = useMemo(
+    () =>
+      categoryScope
+        ? withSelectedRow(scopedSubcategories, subcategories, form.subCategoryId)
+        : subcategories,
+    [categoryScope, scopedSubcategories, subcategories, form.subCategoryId],
+  )
+
   const pickerCategories = useMemo(
-    () => categoriesForProductPicker(categories, { selectedCategoryId: form.categoryId }),
-    [categories, form.categoryId],
+    () => categoriesForProductPicker(offeredCategories, { selectedCategoryId: form.categoryId }),
+    [offeredCategories, form.categoryId],
   )
   const pickerSubcategories = useMemo(
     () =>
-      subcategoriesForProductPicker(subcategories, categories, {
+      subcategoriesForProductPicker(offeredSubcategories, offeredCategories, {
         selectedSubcategoryId: form.subCategoryId,
       }),
-    [subcategories, categories, form.subCategoryId],
+    [offeredSubcategories, offeredCategories, form.subCategoryId],
   )
   const validVariantRows = getValidVariantRowsForSave(variantRows)
   const variantPricingManaged =
