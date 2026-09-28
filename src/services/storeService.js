@@ -74,6 +74,9 @@ export async function getStore(storeId) {
  * POST /api/stores/admin/create-with-logo — multipart/form-data (admin JWT).
  * Fields: seller_id, name, description?, phone?, address?, latitude?, longitude?, exchange_rate?, is_active?, logo? (binary).
  *
+ * `price_match` goes out as the string "true"/"false" like every other form field; the
+ * backend's `Form[StoreCreateByAdminSchema]` parses those into a bool (as it does `is_active`).
+ *
  * `is_active` is sent explicitly (default `true` from the create form) — without it, a store
  * created here stayed invisible on GET /api/stores/public until someone separately called
  * toggleStoreActive, which was easy to forget and the actual cause of "I created a store but it
@@ -93,6 +96,9 @@ export async function getStore(storeId) {
  *   start_working_at?: string | null
  *   end_working_at?: string | null
  *   preparation_time?: number | null
+ *   minimum_order?: number | null
+ *   contact_email?: string | null
+ *   price_match?: boolean | null
  *   is_active?: boolean
  *   logo?: File | Blob | null
  * }} payload
@@ -113,6 +119,9 @@ export async function adminCreateStore(payload) {
     start_working_at: payload.start_working_at,
     end_working_at: payload.end_working_at,
     preparation_time: payload.preparation_time,
+    minimum_order: payload.minimum_order,
+    contact_email: payload.contact_email,
+    price_match: payload.price_match,
     is_active: payload.is_active,
     logo: payload.logo,
   })
@@ -130,6 +139,10 @@ export async function adminCreateStore(payload) {
  *   latitude?: number | null
  *   longitude?: number | null
  *   exchange_rate?: number | null
+ *   store_type?: 'syrian' | 'global' | 'restaurant' | 'mall' | null
+ *   minimum_order?: number | null
+ *   contact_email?: string | null
+ *   price_match?: boolean | null
  *   is_active?: boolean
  *   logo?: File | Blob | null
  * }} payload
@@ -164,6 +177,9 @@ export async function sellerCreateStore(payload) {
  *   start_working_at?: string | null
  *   end_working_at?: string | null
  *   preparation_time?: number | null
+ *   minimum_order?: number | null
+ *   contact_email?: string | null
+ *   price_match?: boolean | null
  * }} payload
  */
 export async function updateStore(storeId, payload) {
@@ -247,7 +263,8 @@ export async function toggleStoreBrand(storeId) {
 /**
  * PATCH /api/stores/{store_id}/set-type — admin only.
  * @param {number | string} storeId
- * @param {'syrian' | 'grocery' | 'global' | 'restaurant'} storeType
+ * `mall` is refused (400) until the backend's mall cut-over.
+ * @param {'syrian' | 'global' | 'restaurant' | 'mall'} storeType
  */
 export async function setStoreType(storeId, storeType) {
   const { data } = await apiClient.patch(`/api/stores/${storeId}/set-type`, {

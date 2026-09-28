@@ -940,11 +940,19 @@
       "startWorkingAt": "Opens at",
       "endWorkingAt": "Closes at",
       "preparationTime": "Preparation time",
-      "minutes": "Minutes (0–1440)"
+      "minutes": "Minutes (0–1440)",
+      "mallTitle": "Mall settings",
+      "mallHint": "Used only while the store type is Mall.",
+      "minimumOrder": "Minimum order",
+      "minimumOrderDesc": "Whole number in the store's currency. 0 or empty means no minimum.",
+      "contactEmail": "Contact email",
+      "priceMatch": "Price match",
+      "priceMatchDesc": "The mall matches its competitors' prices."
     },
     "validation": {
       "workingHoursPair": "Set both opening and closing times, or leave both empty.",
-      "preparationTime": "Preparation time must be a whole number between 0 and 1440 minutes."
+      "preparationTime": "Preparation time must be a whole number between 0 and 1440 minutes.",
+      "minimumOrder": "Minimum order must be a whole number of 0 or more."
     }
   },
   "restaurants": {

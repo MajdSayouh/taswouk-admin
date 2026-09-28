@@ -14,6 +14,8 @@ import { Textarea } from '../../components/ui/Textarea.jsx'
 import { LocationPickerMap } from '../../components/maps/LocationPickerMap.jsx'
 import { useSellersViewModel } from '../../viewmodels/useSellersViewModel.js'
 import { SYRIAN_GOVERNORATE_OPTIONS } from '../../constants/syrianGovernorates.js'
+import { useFeatures } from '../../hooks/useFeatures.js'
+import { StoreMallFields } from './StoreMallFields.jsx'
 
 const STORE_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
@@ -21,10 +23,10 @@ const STORE_CURRENCY_OPTIONS = [
 ]
 
 // `grocery` was removed from `StoreType` on the backend, which rejects it
-// with a 400. `mall` is not offered either: until phase 4 a mall is still
-// created and run from the malls pages, and the backend refuses a `mall`
-// store on these paths -- offering it made a store that 400'd on every
-// product.
+// with a 400. `mall` is added only once the backend reports the mall
+// cut-over (see `typeOptions`): before it a mall is still created and run
+// from the malls pages, and the backend refuses a `mall` store on these
+// paths -- offering it made a store that 400'd on every product.
 const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant']
 
 /**
@@ -53,6 +55,10 @@ function emptyForm(restaurantMode = false) {
     startWorkingAt: '',
     endWorkingAt: '',
     preparationTime: '',
+    // Mall only -- see StoreMallFields.
+    minimumOrder: '',
+    contactEmail: '',
+    priceMatch: false,
     // Explicit — the admin/seller create endpoints don't set this on their own, and the store
     // otherwise stays invisible on the public site/app until someone remembers a separate
     // "toggle active" step after creation.
@@ -85,6 +91,12 @@ export function StoreCreatePage({ restaurantMode = false }) {
   const [mapOpen, setMapOpen] = useState(false)
   const [logoFile, setLogoFile] = useState(/** @type {File | null} */ (null))
   const [lastUsdExchangeRate, setLastUsdExchangeRate] = useState('1')
+  const { features } = useFeatures()
+  const typeOptions = features.mall_cutover
+    ? [...STORE_TYPE_OPTIONS, 'mall']
+    : STORE_TYPE_OPTIONS
+  const storeType = restaurantMode ? 'restaurant' : form.storeType
+  const isMall = storeType === 'mall'
 
   const isAdmin = useMemo(() => (user ? isAdminRole(user.role) : false), [user])
   const isSeller = useMemo(() => (user ? isSellerRole(user.role) : false), [user])
@@ -203,13 +215,27 @@ export function StoreCreatePage({ restaurantMode = false }) {
       setError(t('stores.validation.preparationTime'))
       return
     }
+    const minimumOrder = form.minimumOrder === '' ? null : Number(form.minimumOrder)
+    if (isMall && minimumOrder != null && (!Number.isInteger(minimumOrder) || minimumOrder < 0)) {
+      setError(t('stores.validation.minimumOrder'))
+      return
+    }
 
     const restaurantFields = {
-      store_type: restaurantMode ? 'restaurant' : form.storeType,
+      store_type: storeType,
       start_working_at: normalizeTime(form.startWorkingAt),
       end_working_at: normalizeTime(form.endWorkingAt),
       preparation_time: preparationTime,
       currency: form.currency.toUpperCase(),
+      // Left out for every other type rather than sent empty: the backend
+      // keeps them on any store, but only a mall acts on them.
+      ...(isMall
+        ? {
+            minimum_order: minimumOrder,
+            contact_email: form.contactEmail.trim() || null,
+            price_match: form.priceMatch,
+          }
+        : {}),
     }
 
     setSubmitting(true)
@@ -373,9 +399,9 @@ export function StoreCreatePage({ restaurantMode = false }) {
             <Select
               className="w-full"
               size="large"
-              value={restaurantMode ? 'restaurant' : form.storeType}
+              value={storeType}
               disabled={restaurantMode}
-              options={STORE_TYPE_OPTIONS.map((value) => ({
+              options={typeOptions.map((value) => ({
                 value,
                 label: t(`stores.types.${value}`),
               }))}
@@ -450,6 +476,13 @@ export function StoreCreatePage({ restaurantMode = false }) {
               />
             </div>
           </div>
+          {isMall ? (
+            <StoreMallFields
+              form={form}
+              onChange={handleChange}
+              onPriceMatchChange={(checked) => setForm((prev) => ({ ...prev, priceMatch: checked }))}
+            />
+          ) : null}
           <label className="md:col-span-2 flex flex-col gap-1 text-sm text-slate-900">
             <span className="font-medium">{t('stores.create.logo')}</span>
             <input

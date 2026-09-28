@@ -18,6 +18,8 @@ import {
   SYRIAN_GOVERNORATE_OPTIONS,
   SYRIAN_GOVERNORATES,
 } from '../../constants/syrianGovernorates.js'
+import { useFeatures } from '../../hooks/useFeatures.js'
+import { StoreMallFields } from './StoreMallFields.jsx'
 
 const STORE_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
@@ -25,9 +27,10 @@ const STORE_CURRENCY_OPTIONS = [
 ]
 
 // `grocery` was removed from `StoreType` on the backend, which rejects it
-// with a 400. `mall` is listed only for a store that already is one (see
-// `typeOptions`): until phase 4 the backend refuses to switch a store to
-// it, since a mall is still run from the malls pages.
+// with a 400. `mall` is listed only for a store that already is one, or
+// once the backend reports the mall cut-over (see `typeOptions`): before it
+// the backend refuses to switch a store to it, since a mall is still run
+// from the malls pages.
 const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant']
 
 function toTimeInput(value) {
@@ -78,6 +81,9 @@ export function StoreEditPage({ restaurantMode = false }) {
     startWorkingAt: '',
     endWorkingAt: '',
     preparationTime: '',
+    minimumOrder: '',
+    contactEmail: '',
+    priceMatch: false,
   })
   const [logoFile, setLogoFile] = useState(/** @type {File | null} */ (null))
   const [existingLogo, setExistingLogo] = useState('')
@@ -86,9 +92,13 @@ export function StoreEditPage({ restaurantMode = false }) {
   const [useSystemExchangeRate, setUseSystemExchangeRate] = useState(false)
 
   const raw = storeQuery.data
+  const { features } = useFeatures()
   // A store that is already a mall shows its type rather than a blank.
   const typeOptions =
-    raw?.store_type === 'mall' ? [...STORE_TYPE_OPTIONS, 'mall'] : STORE_TYPE_OPTIONS
+    features.mall_cutover || raw?.store_type === 'mall'
+      ? [...STORE_TYPE_OPTIONS, 'mall']
+      : STORE_TYPE_OPTIONS
+  const isMall = form.storeType === 'mall'
 
   useEffect(() => {
     if (!raw) return
@@ -114,6 +124,9 @@ export function StoreEditPage({ restaurantMode = false }) {
       endWorkingAt: toTimeInput(raw?.end_working_at),
       preparationTime:
         raw?.preparation_time == null ? '' : String(raw.preparation_time),
+      minimumOrder: raw?.minimum_order == null ? '' : String(raw.minimum_order),
+      contactEmail: raw?.contact_email ?? '',
+      priceMatch: Boolean(raw?.price_match),
     })
     if (nextRate) setLastUsdExchangeRate(nextRate)
     setUseSystemExchangeRate(nextCurrency === 'usd' && raw?.exchange_rate == null)
@@ -199,6 +212,13 @@ export function StoreEditPage({ restaurantMode = false }) {
       setSubmitError(t('stores.validation.preparationTime'))
       return
     }
+    // Empty means 0 here, not "leave alone": `minimum_order` is NOT NULL on
+    // the backend, and clearing the field should lift the minimum.
+    const minimumOrder = form.minimumOrder === '' ? 0 : Number(form.minimumOrder)
+    if (isMall && (!Number.isInteger(minimumOrder) || minimumOrder < 0)) {
+      setSubmitError(t('stores.validation.minimumOrder'))
+      return
+    }
     const latNum = form.latitude === '' ? null : Number(form.latitude)
     const lngNum = form.longitude === '' ? null : Number(form.longitude)
     updateMutation.mutate({
@@ -221,6 +241,16 @@ export function StoreEditPage({ restaurantMode = false }) {
         start_working_at: normalizeTime(form.startWorkingAt),
         end_working_at: normalizeTime(form.endWorkingAt),
         preparation_time: preparationTime,
+        // Only while the type is mall; otherwise left out, which the backend
+        // reads as "leave alone" (`None` = not sent for these three).
+        ...(isMall
+          ? {
+              minimum_order: minimumOrder,
+              // "" clears the address; null would leave the old one.
+              contact_email: form.contactEmail.trim(),
+              price_match: form.priceMatch,
+            }
+          : {}),
       },
       exchangeRate,
       logo: logoFile,
@@ -444,6 +474,13 @@ export function StoreEditPage({ restaurantMode = false }) {
               />
             </div>
           </div>
+          {isMall ? (
+            <StoreMallFields
+              form={form}
+              onChange={handleChange}
+              onPriceMatchChange={(checked) => setForm((prev) => ({ ...prev, priceMatch: checked }))}
+            />
+          ) : null}
           <Textarea
             label={t('stores.edit.description')}
             name="description"
