@@ -81,4 +81,7 @@ export const queryKeys = {
     all: () => ['externalShops'],
     detail: (id) => ['externalShops', 'detail', String(id)],
   },
+  features: {
+    all: () => ['features'],
+  },
 }
