@@ -118,3 +118,42 @@ export async function updateOrderStatus(orderId, status, orderType = 'store') {
   )
   return data
 }
+
+/**
+ * PATCH /api/orders/cart/{cart_group}/status
+ *
+ * A cart split across sellers is several orders underneath the one row we show.
+ * This moves every part the caller may move, so accepting the order accepts all
+ * of it. Parts already in that status are skipped, so pressing twice is fine.
+ *
+ * @param {string} cartGroup
+ * @param {'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled'} status
+ * @returns {Promise<unknown>}
+ */
+export async function updateCartStatus(cartGroup, status) {
+  const { data } = await apiClient.patch(`/api/orders/cart/${cartGroup}/status`, { status })
+  return data
+}
+
+/**
+ * Move an order exactly as this dashboard displays it.
+ *
+ * A split cart's header carries the id of the row the cart is *numbered* after,
+ * not a row that stands for the whole thing — the other sellers' orders are in
+ * `parts`. Sending the header id to the per-order endpoint moved one seller's
+ * part and left the rest pending with no way to reach them from here; order
+ * 1112 sat like that on 2026-09-17 while every press moved 1113 instead. So a
+ * split cart goes to the cart endpoint, and a plain order keeps its old path.
+ *
+ * @param {{ id: string|number, orderType?: string, cartGroup?: string, isSplit?: boolean }} record
+ * @param {'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled'} status
+ * @returns {Promise<unknown>}
+ */
+export async function updateOrderStatusForRecord(record, status) {
+  const cartGroup = String(record?.cartGroup ?? record?.cart_group ?? '').trim()
+  const isSplit = Boolean(record?.isSplit ?? record?.is_split)
+  if (isSplit && cartGroup) {
+    return updateCartStatus(cartGroup, status)
+  }
+  return updateOrderStatus(Number(record?.id), status, record?.orderType)
+}

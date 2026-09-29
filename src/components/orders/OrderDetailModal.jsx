@@ -347,6 +347,22 @@ export function OrderDetailModal({
             <Descriptions.Item label={t('orders.detail.address')} span={2}>
               {detail.addressText}
             </Descriptions.Item>
+            {Array.isArray(detail.parts) && detail.parts.length > 1 ? (
+              // One basket, several sellers: the lines below are all of them
+              // together, so say who owns what and where each one has reached.
+              // Accepting the order accepts every part at once.
+              <Descriptions.Item label={t('orders.detail.sellers')} span={2}>
+                <span className="flex flex-wrap items-center gap-2">
+                  {detail.parts.map((part) => (
+                    <Tag key={part.orderId ?? part.sellerName} className="!m-0">
+                      {part.sellerName || t('shared.emDash')} ·{' '}
+                      {part.total.toFixed(2)} SYP ·{' '}
+                      {t(`orders.status.${part.status}`, { defaultValue: part.status })}
+                    </Tag>
+                  ))}
+                </span>
+              </Descriptions.Item>
+            ) : null}
             <Descriptions.Item label={t('orders.detail.subtotal')}>
               {detail.subtotal.toFixed(2)} SYP
             </Descriptions.Item>

@@ -608,6 +608,7 @@
       "status": "Status",
       "created": "Placed at",
       "address": "Delivery address",
+      "sellers": "Sellers in this order",
       "subtotal": "Subtotal",
       "discount": "Discount",
       "total": "Total",

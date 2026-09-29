@@ -205,5 +205,23 @@ export function normalizeOrderDetail(raw) {
     createdAt: String(r.created_at ?? r.createdAt ?? ''),
     isMock: Boolean(r.isMock),
     isExternal: isExternalOrderRaw(r),
+    // A cart split across sellers arrives as one order with everyone's lines in
+    // `items`, which is why a seller's product can look like it wandered in from
+    // somewhere else. `parts` is who actually owns what, and each carries the id
+    // a status change has to address — `id` above names only the row the cart is
+    // numbered after.
+    cartGroup: String(r.cart_group ?? r.cartGroup ?? ''),
+    isSplit: Boolean(r.is_split ?? r.isSplit),
+    parts: (Array.isArray(r.stores) ? r.stores : []).map((part) => ({
+      orderId: part.order_id ?? part.orderId ?? null,
+      orderType: String(part.order_type ?? part.orderType ?? 'store')
+        .trim()
+        .toLowerCase(),
+      sellerName: String(part.store_name ?? part.moll_name ?? '').trim(),
+      status: String(part.status ?? '')
+        .trim()
+        .toLowerCase(),
+      total: Number(part.total ?? 0),
+    })),
   }
 }
