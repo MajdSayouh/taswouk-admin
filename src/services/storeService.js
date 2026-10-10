@@ -287,8 +287,9 @@ export async function exportStorePrices(storeId, options = {}) {
 
 /**
  * POST /api/stores/{store_id}/prices/import — admin; multipart `file` (.xlsx/.xlsm).
- * A row with an empty `product_id` creates a product; `category` resolves within the
- * store's section only. Returns `{ store_id, store_name, total_rows, updated, created,
+ * A row with an empty or unknown `product_id` creates a product; unknown IDs are saved
+ * as store-scoped external IDs so later imports update the same product. `category`
+ * resolves within the store's section only. Returns `{ store_id, store_name, total_rows, updated, created,
  * linked, unchanged, skipped, variants_updated, errors: [{ row, reason, raw }] }`.
  * @param {number | string} storeId
  * @param {File | Blob} file
