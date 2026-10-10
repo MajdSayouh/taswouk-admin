@@ -82,8 +82,10 @@ const SellerCreatePage = lazy(() =>
 const SellerEditPage = lazy(() =>
   import('../views/sellers/SellerEditPage.jsx').then((m) => ({ default: m.SellerEditPage })),
 )
-const MallsListPage = lazy(() =>
-  import('../views/malls/MallsListPage.jsx').then((m) => ({ default: m.MallsListPage })),
+const MallAdminListPage = lazy(() =>
+  import('../views/malls/MallAdminListPage.jsx').then((m) => ({
+    default: m.MallAdminListPage,
+  })),
 )
 const MallCreatePage = lazy(() =>
   import('../views/malls/MallCreatePage.jsx').then((m) => ({ default: m.MallCreatePage })),
@@ -458,7 +460,7 @@ export function AppRouter() {
                   index
                   element={
                     <LazyPage>
-                      <MallsListPage />
+                      <MallAdminListPage />
                     </LazyPage>
                   }
                 />

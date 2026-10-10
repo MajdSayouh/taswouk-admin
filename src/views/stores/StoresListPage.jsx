@@ -16,6 +16,7 @@ import {
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { TruncatedTextCell } from '../../components/tables/TruncatedTextCell.jsx'
+import { filterStoresByType } from '../../utils/storeFilters.js'
 
 const DEFAULT_PAGE_SIZE = 10
 
@@ -132,7 +133,7 @@ function StoreBrandSwitch({ row, mutation }) {
   )
 }
 
-export function StoresListPage({ restaurantMode = false }) {
+export function StoresListPage({ restaurantMode = false, mallMode = false }) {
   const { t } = useTranslation('pages')
   const {
     stores,
@@ -176,9 +177,10 @@ export function StoresListPage({ restaurantMode = false }) {
   /** @type {string[] | null} */
   const [colBrand, setColBrand] = useState(null)
 
+  const scopedType = restaurantMode ? 'restaurant' : mallMode ? 'mall' : null
   const scopedStores = useMemo(
-    () => (restaurantMode ? stores.filter((row) => row.storeType === 'restaurant') : stores),
-    [stores, restaurantMode],
+    () => filterStoresByType(stores, scopedType),
+    [stores, scopedType],
   )
 
   const displayData = useMemo(() => {
@@ -547,13 +549,22 @@ export function StoresListPage({ restaurantMode = false }) {
       ) : null}
 
       <Card
-        title={t(restaurantMode ? 'restaurants.list.title' : 'stores.list.title', {
-          suffix: titleSuffix,
-        })}
+        title={t(
+          restaurantMode
+            ? 'restaurants.list.title'
+            : mallMode
+              ? 'malls.list.title'
+              : 'stores.list.title',
+          {
+            suffix: titleSuffix,
+          },
+        )}
         actions={
-          <DashboardAddLinkButton to={restaurantMode ? '/restaurants/create' : '/stores/create'}>
-            {t(restaurantMode ? 'restaurants.list.newRestaurant' : 'stores.list.newStore')}
-          </DashboardAddLinkButton>
+          mallMode ? null : (
+            <DashboardAddLinkButton to={restaurantMode ? '/restaurants/create' : '/stores/create'}>
+              {t(restaurantMode ? 'restaurants.list.newRestaurant' : 'stores.list.newStore')}
+            </DashboardAddLinkButton>
+          )
         }
       >
         <Spin spinning={loading}>
@@ -585,7 +596,7 @@ export function StoresListPage({ restaurantMode = false }) {
                     { value: 'no', label: t('stores.list.brandNo') },
                   ]}
                 />
-                {!restaurantMode ? (
+                {!restaurantMode && !mallMode ? (
                   <Select
                     value={typeFilter}
                     onChange={setTypeFilter}

@@ -206,12 +206,10 @@ const PROFILE_ITEM = /** @type {NavItemDef} */ ({
 })
 
 /**
- * Legacy mall screens. After the backend's mall cut-over a mall is a store
- * (`store_type = "mall"`) and its categories are the `mall` section of the
- * categories page, so these entries go; the routes redirect (see
- * LegacyMallRoute). Removed outright in the post-cut-over cleanup.
+ * Mall categories stay in the categories page after cut-over; the mall list
+ * remains available as a store-type-filtered view.
  */
-const LEGACY_MALL_NAV_KEYS = new Set(['malls', 'mallCategories'])
+const LEGACY_MALL_NAV_KEYS = new Set(['mallCategories'])
 
 /**
  * @param {{ role?: string } | null | undefined} user
