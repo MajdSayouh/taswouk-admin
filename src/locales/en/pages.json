@@ -1011,6 +1011,28 @@
       "back": "Back to restaurants"
     }
   },
+  "pharmacies": {
+    "list": {
+      "loadError": "Could not load pharmacies",
+      "title": "Pharmacies ({{suffix}})",
+      "newPharmacy": "+ New pharmacy",
+      "searchPlaceholder": "Search pharmacy, seller, phone, address, or hours…",
+      "pagination": "{{count}} pharmacies",
+      "deleteTitle": "Delete this pharmacy?",
+      "deleteDesc": "The pharmacy is a store record. Deleting it cannot be undone.",
+      "deleted": "Pharmacy deleted",
+      "deleteErr": "Could not delete pharmacy"
+    },
+    "create": {
+      "title": "New pharmacy",
+      "hint": "Create a pharmacy for an existing seller and set its opening hours if needed. Its products go in the pharmacy category section.",
+      "submit": "Create pharmacy"
+    },
+    "edit": {
+      "title": "Edit pharmacy #{{id}}",
+      "back": "Back to pharmacies"
+    }
+  },
   "coupons": {
     "list": {
       "loadError": "Could not load coupons",

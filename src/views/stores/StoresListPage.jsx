@@ -17,6 +17,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { TruncatedTextCell } from '../../components/tables/TruncatedTextCell.jsx'
 import { filterStoresByType } from '../../utils/storeFilters.js'
+import { storeSection } from './storeSections.js'
 
 const DEFAULT_PAGE_SIZE = 10
 
@@ -133,8 +134,10 @@ function StoreBrandSwitch({ row, mutation }) {
   )
 }
 
-export function StoresListPage({ restaurantMode = false, mallMode = false }) {
+export function StoresListPage({ section: sectionType = null, mallMode = false }) {
   const { t } = useTranslation('pages')
+  const section = storeSection(sectionType)
+  const sectionMode = section.storeType != null
   const {
     stores,
     loading,
@@ -177,7 +180,7 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
   /** @type {string[] | null} */
   const [colBrand, setColBrand] = useState(null)
 
-  const scopedType = restaurantMode ? 'restaurant' : mallMode ? 'mall' : null
+  const scopedType = section.storeType ?? (mallMode ? 'mall' : null)
   const scopedStores = useMemo(
     () => filterStoresByType(stores, scopedType),
     [stores, scopedType],
@@ -187,7 +190,7 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
     return scopedStores.filter((row) => {
       if (!matchesYesNoTriState(activeFilter, row.isActive)) return false
       if (!matchesYesNoTriState(brandFilter, row.isBrand)) return false
-      if (!restaurantMode && typeFilter !== 'all' && (row.storeType || 'global') !== typeFilter) {
+      if (!sectionMode && typeFilter !== 'all' && (row.storeType || 'global') !== typeFilter) {
         return false
       }
       if (
@@ -244,7 +247,7 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
     })
   }, [
     scopedStores,
-    restaurantMode,
+    sectionMode,
     search,
     activeFilter,
     brandFilter,
@@ -330,7 +333,7 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
         <span className="tabular-nums text-slate-700">{v || t('shared.emDash')}</span>
       ),
     },
-    ...(!restaurantMode
+    ...(!sectionMode
       ? [
           {
             title: t('stores.list.colType'),
@@ -418,7 +421,7 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
         <TruncatedTextCell text={v} emptyLabel={t('shared.emDash')} />
       ),
     },
-    ...(restaurantMode
+    ...(section.showsHours
       ? [
           {
             title: t('restaurants.list.colHours'),
@@ -433,15 +436,21 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
               </span>
             ),
           },
-          {
-            title: t('restaurants.list.colPreparation'),
-            dataIndex: 'preparationTime',
-            key: 'preparationTime',
-            align: 'left',
-            width: 120,
-            render: (value) =>
-              value == null ? t('shared.emDash') : t('restaurants.list.minutes', { count: value }),
-          },
+          ...(section.showsPreparation
+            ? [
+                {
+                  title: t('restaurants.list.colPreparation'),
+                  dataIndex: 'preparationTime',
+                  key: 'preparationTime',
+                  align: 'left',
+                  width: 120,
+                  render: (value) =>
+                    value == null
+                      ? t('shared.emDash')
+                      : t('restaurants.list.minutes', { count: value }),
+                },
+              ]
+            : []),
           {
             title: t('restaurants.list.colOpenNow'),
             dataIndex: 'isOpenNow',
@@ -504,29 +513,24 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
       fixed: 'right',
       render: (_, row) => (
         <TableRowActions
-          editTo={`/${restaurantMode ? 'restaurants' : 'stores'}/${row.id}/edit`}
+          editTo={`${section.path}/${row.id}/edit`}
           showDelete
           deleteLoading={String(deletingId) === String(row.id)}
           onDelete={async () => {
             setDeletingId(row.id)
             try {
               await deleteStore(row.id)
-              message.success(t(restaurantMode ? 'restaurants.list.deleted' : 'stores.list.deleted'))
+              message.success(t(`${section.i18n}.list.deleted`))
             } catch (err) {
               message.error(
-                err?.message ??
-                  t(restaurantMode ? 'restaurants.list.deleteErr' : 'stores.list.deleteErr'),
+                err?.message ?? t(`${section.i18n}.list.deleteErr`),
               )
             } finally {
               setDeletingId(null)
             }
           }}
-          deleteTitle={t(
-            restaurantMode ? 'restaurants.list.deleteTitle' : 'stores.list.deleteTitle',
-          )}
-          deleteDescription={t(
-            restaurantMode ? 'restaurants.list.deleteDesc' : 'stores.list.deleteDesc',
-          )}
+          deleteTitle={t(`${section.i18n}.list.deleteTitle`)}
+          deleteDescription={t(`${section.i18n}.list.deleteDesc`)}
         />
       ),
     },
@@ -537,7 +541,7 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
       {error ? (
         <Alert
           type="error"
-          title={t(restaurantMode ? 'restaurants.list.loadError' : 'stores.list.loadError')}
+          title={t(`${section.i18n}.list.loadError`)}
           description={error}
           showIcon
           action={
@@ -550,8 +554,8 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
 
       <Card
         title={t(
-          restaurantMode
-            ? 'restaurants.list.title'
+          sectionMode
+            ? `${section.i18n}.list.title`
             : mallMode
               ? 'malls.list.title'
               : 'stores.list.title',
@@ -561,17 +565,15 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
         )}
         actions={
           mallMode ? null : (
-            <DashboardAddLinkButton to={restaurantMode ? '/restaurants/create' : '/stores/create'}>
-              {t(restaurantMode ? 'restaurants.list.newRestaurant' : 'stores.list.newStore')}
+            <DashboardAddLinkButton to={`${section.path}/create`}>
+              {t(section.newKey)}
             </DashboardAddLinkButton>
           )
         }
       >
         <Spin spinning={loading}>
           <DashboardTableToolbar
-            searchPlaceholder={t(
-              restaurantMode ? 'restaurants.list.searchPlaceholder' : 'stores.list.searchPlaceholder',
-            )}
+            searchPlaceholder={t(`${section.i18n}.list.searchPlaceholder`)}
             searchValue={search}
             onSearchChange={setSearch}
             filterSlot={
@@ -596,7 +598,7 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
                     { value: 'no', label: t('stores.list.brandNo') },
                   ]}
                 />
-                {!restaurantMode && !mallMode ? (
+                {!sectionMode && !mallMode ? (
                   <Select
                     value={typeFilter}
                     onChange={setTypeFilter}
@@ -622,9 +624,7 @@ export function StoresListPage({ restaurantMode = false, mallMode = false }) {
               pageSize,
               total: displayTotal,
               showTotal: (total) =>
-                t(restaurantMode ? 'restaurants.list.pagination' : 'stores.list.pagination', {
-                  count: total,
-                }),
+                t(`${section.i18n}.list.pagination`, { count: total }),
               onChange: (p, ps) => {
                 setPage(p)
                 setPageSize(ps)

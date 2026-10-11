@@ -9,6 +9,7 @@ import {
   GlobalOutlined,
   GiftOutlined,
   IdcardOutlined,
+  MedicineBoxOutlined,
   PictureOutlined,
   RiseOutlined,
   SafetyCertificateOutlined,
@@ -97,6 +98,13 @@ const ADMIN_ONLY_NAV = /** @type {NavItemDef[]} */ ([
     match: 'prefix',
     labelKey: 'nav.restaurants',
     Icon: CoffeeOutlined,
+  },
+  {
+    key: 'pharmacies',
+    to: '/pharmacies',
+    match: 'prefix',
+    labelKey: 'nav.pharmacies',
+    Icon: MedicineBoxOutlined,
   },
   {
     key: 'progressiveCoupons',

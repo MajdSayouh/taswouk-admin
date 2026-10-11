@@ -21,6 +21,7 @@ import {
 } from '../../constants/syrianGovernorates.js'
 import { useFeatures } from '../../hooks/useFeatures.js'
 import { StoreMallFields } from './StoreMallFields.jsx'
+import { storeSection } from './storeSections.js'
 
 const STORE_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
@@ -51,8 +52,9 @@ function parseExchangeRateInput(value) {
   return rate
 }
 
-export function StoreEditPage({ restaurantMode = false }) {
+export function StoreEditPage({ section: sectionType = null }) {
   const { t } = useTranslation('pages')
+  const section = storeSection(sectionType)
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -157,7 +159,7 @@ export function StoreEditPage({ restaurantMode = false }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.all() })
       if (id != null) queryClient.invalidateQueries({ queryKey: queryKeys.stores.detail(id) })
-      navigate(restaurantMode ? '/restaurants' : '/stores')
+      navigate(section.path)
     },
   })
 
@@ -277,8 +279,8 @@ export function StoreEditPage({ restaurantMode = false }) {
     return (
       <div className="space-y-4">
         <Alert type="error" title={loadError || t('stores.edit.loadErr')} showIcon />
-        <Button as={Link} variant="ghost" to={restaurantMode ? '/restaurants' : '/stores'}>
-          {t(restaurantMode ? 'restaurants.edit.back' : 'stores.edit.backStores')}
+        <Button as={Link} variant="ghost" to={section.path}>
+          {t(section.backKey)}
         </Button>
       </div>
     )
@@ -300,7 +302,7 @@ export function StoreEditPage({ restaurantMode = false }) {
     <div className="space-y-6">
       {error ? <Alert type="error" title={error} showIcon /> : null}
 
-      <Card title={t(restaurantMode ? 'restaurants.edit.title' : 'stores.edit.title', { id })}>
+      <Card title={t(`${section.i18n}.edit.title`, { id })}>
         <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2 flex flex-wrap gap-6 rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
             <label className="inline-flex items-center gap-3 cursor-pointer select-none">
@@ -548,7 +550,7 @@ export function StoreEditPage({ restaurantMode = false }) {
           </div>
 
           <div className="md:col-span-2 flex justify-end gap-3 pt-2">
-            <Button as={Link} variant="ghost" to={restaurantMode ? '/restaurants' : '/stores'}>
+            <Button as={Link} variant="ghost" to={section.path}>
               {t('stores.edit.cancel')}
             </Button>
             <Button type="submit" disabled={submitting}>

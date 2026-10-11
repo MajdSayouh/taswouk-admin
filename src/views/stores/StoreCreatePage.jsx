@@ -16,6 +16,7 @@ import { useSellersViewModel } from '../../viewmodels/useSellersViewModel.js'
 import { SYRIAN_GOVERNORATE_OPTIONS } from '../../constants/syrianGovernorates.js'
 import { useFeatures } from '../../hooks/useFeatures.js'
 import { StoreMallFields } from './StoreMallFields.jsx'
+import { storeSection } from './storeSections.js'
 
 const STORE_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
@@ -40,7 +41,7 @@ function formatSellerLabel(s) {
   return `#${s.id}`
 }
 
-function emptyForm(restaurantMode = false) {
+function emptyForm(lockedType = null) {
   return {
     sellerId: '',
     name: '',
@@ -51,7 +52,7 @@ function emptyForm(restaurantMode = false) {
     exchangeRate: '1',
     latitude: '',
     longitude: '',
-    storeType: restaurantMode ? 'restaurant' : 'global',
+    storeType: lockedType ?? 'global',
     startWorkingAt: '',
     endWorkingAt: '',
     preparationTime: '',
@@ -79,13 +80,15 @@ function normalizeTime(value) {
   return trimmed && trimmed.length === 5 ? `${trimmed}:00` : trimmed || null
 }
 
-export function StoreCreatePage({ restaurantMode = false }) {
+export function StoreCreatePage({ section: sectionType = null }) {
   const { t } = useTranslation('pages')
+  const section = storeSection(sectionType)
+  const sectionMode = section.storeType != null
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)
-  const [form, setForm] = useState(() => emptyForm(restaurantMode))
+  const [form, setForm] = useState(() => emptyForm(section.storeType))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [mapOpen, setMapOpen] = useState(false)
@@ -95,7 +98,7 @@ export function StoreCreatePage({ restaurantMode = false }) {
   const typeOptions = features.mall_cutover
     ? [...STORE_TYPE_OPTIONS, 'mall']
     : STORE_TYPE_OPTIONS
-  const storeType = restaurantMode ? 'restaurant' : form.storeType
+  const storeType = section.storeType ?? form.storeType
   const isMall = storeType === 'mall'
 
   const isAdmin = useMemo(() => (user ? isAdminRole(user.role) : false), [user])
@@ -273,7 +276,7 @@ export function StoreCreatePage({ restaurantMode = false }) {
         })
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.stores.all() })
-      navigate(restaurantMode ? '/restaurants' : '/stores')
+      navigate(section.path)
     } catch (err) {
       setError(err?.message ?? t('stores.create.createFailed'))
     } finally {
@@ -309,10 +312,10 @@ export function StoreCreatePage({ restaurantMode = false }) {
     <div className="space-y-6">
       {error ? <Alert type="error" title={error} showIcon /> : null}
 
-      <Card title={t(restaurantMode ? 'restaurants.create.title' : 'stores.create.title')}>
+      <Card title={t(`${section.i18n}.create.title`)}>
         <p className="text-sm text-slate-600 mb-4">
-          {restaurantMode
-            ? t('restaurants.create.hint')
+          {sectionMode
+            ? t(`${section.i18n}.create.hint`)
             : isAdmin
               ? t('stores.create.adminHint')
               : t('stores.create.sellerHint')}
@@ -400,7 +403,7 @@ export function StoreCreatePage({ restaurantMode = false }) {
               className="w-full"
               size="large"
               value={storeType}
-              disabled={restaurantMode}
+              disabled={sectionMode}
               options={typeOptions.map((value) => ({
                 value,
                 label: t(`stores.types.${value}`),
@@ -546,13 +549,13 @@ export function StoreCreatePage({ restaurantMode = false }) {
           </div>
 
           <div className="md:col-span-2 flex justify-end gap-3 pt-2 flex-wrap">
-            <Button as={Link} variant="ghost" to={restaurantMode ? '/restaurants' : '/stores'}>
+            <Button as={Link} variant="ghost" to={section.path}>
               {t('stores.create.cancel')}
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting
                 ? t('stores.create.submitting')
-                : t(restaurantMode ? 'restaurants.create.submit' : 'stores.create.submit')}
+                : t(`${section.i18n}.create.submit`)}
             </Button>
           </div>
         </form>

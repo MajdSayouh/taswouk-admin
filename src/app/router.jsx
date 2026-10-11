@@ -306,7 +306,7 @@ export function AppRouter() {
                 index
                 element={
                   <LazyPage>
-                    <StoresListPage restaurantMode />
+                    <StoresListPage section="restaurant" />
                   </LazyPage>
                 }
               />
@@ -314,7 +314,7 @@ export function AppRouter() {
                 path="create"
                 element={
                   <LazyPage>
-                    <StoreCreatePage restaurantMode />
+                    <StoreCreatePage section="restaurant" />
                   </LazyPage>
                 }
               />
@@ -322,7 +322,33 @@ export function AppRouter() {
                 path=":id/edit"
                 element={
                   <LazyPage>
-                    <StoreEditPage restaurantMode />
+                    <StoreEditPage section="restaurant" />
+                  </LazyPage>
+                }
+              />
+            </Route>
+            <Route path="pharmacies" element={<Outlet />}>
+              <Route
+                index
+                element={
+                  <LazyPage>
+                    <StoresListPage section="pharmacy" />
+                  </LazyPage>
+                }
+              />
+              <Route
+                path="create"
+                element={
+                  <LazyPage>
+                    <StoreCreatePage section="pharmacy" />
+                  </LazyPage>
+                }
+              />
+              <Route
+                path=":id/edit"
+                element={
+                  <LazyPage>
+                    <StoreEditPage section="pharmacy" />
                   </LazyPage>
                 }
               />
