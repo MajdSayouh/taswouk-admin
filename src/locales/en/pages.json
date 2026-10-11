@@ -792,6 +792,7 @@
     "scopes": {
       "store": "Stores",
       "restaurant": "Restaurants",
+      "pharmacy": "Pharmacies",
       "mall": "Malls"
     },
     "formParent": "Parent category",
@@ -931,7 +932,8 @@
       "global": "Global store",
       "syrian": "Syrian store",
       "mall": "Mall",
-      "restaurant": "Restaurant"
+      "restaurant": "Restaurant",
+      "pharmacy": "Pharmacy"
     },
     "fields": {
       "storeType": "Store type",

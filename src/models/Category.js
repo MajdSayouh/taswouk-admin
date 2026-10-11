@@ -4,7 +4,7 @@
  *   name: string
  *   isActive: boolean
  *   logoUrl: string | null
- *   scope: 'store' | 'restaurant' | 'mall'
+ *   scope: 'store' | 'restaurant' | 'mall' | 'pharmacy'
  * }} CategoryModel
  */
 
@@ -41,7 +41,7 @@ export function mapCategoryFromApi(raw) {
  * The vertical a category belongs to. A subcategory always carries its root's
  * scope -- the backend enforces it, and re-scoping a root moves its subtree.
  */
-export const CATEGORY_SCOPES = ['store', 'restaurant', 'mall']
+export const CATEGORY_SCOPES = ['store', 'restaurant', 'pharmacy', 'mall']
 
 /**
  * @param {unknown} raw

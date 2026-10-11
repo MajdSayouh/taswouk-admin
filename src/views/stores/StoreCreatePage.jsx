@@ -27,7 +27,7 @@ const STORE_CURRENCY_OPTIONS = [
 // cut-over (see `typeOptions`): before it a mall is still created and run
 // from the malls pages, and the backend refuses a `mall` store on these
 // paths -- offering it made a store that 400'd on every product.
-const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant']
+const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant', 'pharmacy']
 
 /**
  * @param {{ firstName?: string; lastName?: string; email?: string; id: string }} s

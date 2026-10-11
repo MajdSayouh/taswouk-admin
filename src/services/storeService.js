@@ -93,7 +93,7 @@ export async function getStore(storeId) {
  *   longitude?: number | null
  *   exchange_rate?: number | null
  *   currency?: 'USD' | 'SYP' | null
- *   store_type?: 'syrian' | 'global' | 'restaurant' | 'mall' | null
+ *   store_type?: 'syrian' | 'global' | 'restaurant' | 'pharmacy' | 'mall' | null
  *   start_working_at?: string | null
  *   end_working_at?: string | null
  *   preparation_time?: number | null
@@ -140,7 +140,7 @@ export async function adminCreateStore(payload) {
  *   latitude?: number | null
  *   longitude?: number | null
  *   exchange_rate?: number | null
- *   store_type?: 'syrian' | 'global' | 'restaurant' | 'mall' | null
+ *   store_type?: 'syrian' | 'global' | 'restaurant' | 'pharmacy' | 'mall' | null
  *   minimum_order?: number | null
  *   contact_email?: string | null
  *   price_match?: boolean | null
@@ -265,7 +265,7 @@ export async function toggleStoreBrand(storeId) {
  * PATCH /api/stores/{store_id}/set-type — admin only.
  * @param {number | string} storeId
  * `mall` is refused (400) until the backend's mall cut-over.
- * @param {'syrian' | 'global' | 'restaurant' | 'mall'} storeType
+ * @param {'syrian' | 'global' | 'restaurant' | 'pharmacy' | 'mall'} storeType
  */
 export async function setStoreType(storeId, storeType) {
   const { data } = await apiClient.patch(`/api/stores/${storeId}/set-type`, {

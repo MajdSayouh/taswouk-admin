@@ -32,7 +32,7 @@ const STORE_CURRENCY_OPTIONS = [
 // once the backend reports the mall cut-over (see `typeOptions`): before it
 // the backend refuses to switch a store to it, since a mall is still run
 // from the malls pages.
-const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant']
+const STORE_TYPE_OPTIONS = ['global', 'syrian', 'restaurant', 'pharmacy']
 
 function toTimeInput(value) {
   return value ? String(value).slice(0, 5) : ''

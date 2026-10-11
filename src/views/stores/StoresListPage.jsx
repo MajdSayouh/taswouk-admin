@@ -22,9 +22,9 @@ const DEFAULT_PAGE_SIZE = 10
 
 // Every `store_type` the backend can return. `mall` rows exist before the cut-over too
 // (a mall's store copy), so the filter offers it regardless of /api/features.
-const STORE_TYPE_FILTER_OPTIONS = ['global', 'syrian', 'restaurant', 'mall']
+const STORE_TYPE_FILTER_OPTIONS = ['global', 'syrian', 'restaurant', 'pharmacy', 'mall']
 
-const STORE_TYPE_TAG_COLORS = { restaurant: 'orange', mall: 'purple' }
+const STORE_TYPE_TAG_COLORS = { restaurant: 'orange', pharmacy: 'green', mall: 'purple' }
 
 /** `?type=mall` (the legacy mall routes redirect here with it) → type filter. */
 function typeFilterFromParams(searchParams) {

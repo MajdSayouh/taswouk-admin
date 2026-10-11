@@ -106,7 +106,7 @@ function matchesTriYesNo(/** @type {string[] | null} */ col, /** @type {boolean}
 
 export function CategoriesListPage() {
   const { t } = useTranslation('pages')
-  // One vertical at a time: store, restaurant and mall categories are separate
+  // One vertical at a time: store, restaurant, pharmacy and mall categories are separate
   // trees, and the backend leaves the mall's out of an unscoped request.
   const [scope, setScope] = useState('store')
   const {

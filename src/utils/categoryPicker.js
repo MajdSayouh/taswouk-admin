@@ -64,16 +64,17 @@ export function subcategoriesForProductPicker(subcategories, categories, opts = 
 
 /**
  * The category section a store's products belong to (backend mapping):
- * restaurant → restaurant, mall → mall, syrian/global → store.
+ * restaurant → restaurant, pharmacy → pharmacy, mall → mall, syrian/global → store.
  * `undefined` for no store, so the caller falls back to the unscoped tree.
  *
  * @param {string | null | undefined} storeType
- * @returns {'store' | 'restaurant' | 'mall' | undefined}
+ * @returns {'store' | 'restaurant' | 'mall' | 'pharmacy' | undefined}
  */
 export function categoryScopeForStoreType(storeType) {
   if (!storeType) return undefined
   if (storeType === 'restaurant') return 'restaurant'
   if (storeType === 'mall') return 'mall'
+  if (storeType === 'pharmacy') return 'pharmacy'
   return 'store'
 }
 

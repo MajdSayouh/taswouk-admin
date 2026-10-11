@@ -792,6 +792,7 @@
     "scopes": {
       "store": "المتاجر",
       "restaurant": "المطاعم",
+      "pharmacy": "الصيدليات",
       "mall": "المولات"
     },
     "formParent": "التصنيف الأب",
@@ -926,7 +927,8 @@
       "global": "متجر عالمي",
       "syrian": "متجر سوري",
       "mall": "مول",
-      "restaurant": "مطعم"
+      "restaurant": "مطعم",
+      "pharmacy": "صيدلية"
     },
     "fields": {
       "storeType": "نوع المتجر",

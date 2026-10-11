@@ -68,7 +68,7 @@ function multipartConfig() {
  * mall's (those are still cut-over copies); pass `scope` to get one vertical,
  * the mall included.
  *
- * @param {{ signal?: AbortSignal, scope?: 'store' | 'restaurant' | 'mall' }} [options]
+ * @param {{ signal?: AbortSignal, scope?: 'store' | 'restaurant' | 'mall' | 'pharmacy' }} [options]
  * @returns {Promise<unknown[]>}
  */
 export async function listCategories(options = {}) {
@@ -90,7 +90,7 @@ function normalizeCreateOrUpdatePayload(payload) {
 
 /**
  * `scope` only counts on a root; a subcategory takes its parent's.
- * @param {{ name: string, is_active?: boolean | null, scope?: 'store' | 'restaurant' | 'mall' }} payload
+ * @param {{ name: string, is_active?: boolean | null, scope?: 'store' | 'restaurant' | 'mall' | 'pharmacy' }} payload
  */
 export async function createCategory(payload) {
   const body = normalizeCreateOrUpdatePayload(payload)
