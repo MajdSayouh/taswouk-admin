@@ -47,6 +47,7 @@ export function DashboardLayout() {
     if (p.startsWith('/products')) return t('titles.products')
     if (p.startsWith('/categories')) return t('titles.categories')
     if (p.startsWith('/orders')) return t('titles.orders')
+    if (p.startsWith('/drivers/live')) return t('titles.liveDrivers')
     if (p.startsWith('/drivers')) return t('titles.drivers')
     if (p.startsWith('/banners')) return t('titles.banners')
     if (p.startsWith('/points')) return t('titles.points')

@@ -25,7 +25,8 @@
     "mallCategories": "فئات البقالية",
     "externalShops": "المتاجر الخارجية",
     "profile": "الملف الشخصي",
-    "progressiveCoupons": "كوبونات تصاعدية"
+    "progressiveCoupons": "كوبونات تصاعدية",
+    "liveDrivers": "الخريطة الحية"
   },
   "mobile": {
     "menu": "القائمة",
@@ -71,7 +72,8 @@
     "externalShops": "المتاجر الخارجية",
     "createExternalShop": "إنشاء متجر خارجي",
     "editExternalShop": "تعديل متجر خارجي",
-    "defaultApp": "إدارة جومران"
+    "defaultApp": "إدارة جومران",
+    "liveDrivers": "الخريطة الحية لعمال التوصيل"
   },
   "topbar": {
     "subtitle": "لوحة إدارة متجر جومران",

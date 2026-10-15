@@ -81,6 +81,39 @@
 .order-map-marker--driver span {
   background: #ea580c;
 }
+.order-map-marker--pickup span {
+  background: #16a34a;
+}
+
+/* Live drivers map: a teardrop whose point shows the heading (no heading = a dot). */
+.live-driver-marker span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.4s ease;
+}
+.live-driver-marker--heading span {
+  border-radius: 50% 0 50% 50%;
+}
+.live-driver-marker--selected span {
+  outline: 3px solid rgba(15, 23, 42, 0.55);
+  outline-offset: 1px;
+}
+.live-driver-marker--onTheRoad span {
+  background: #2563eb;
+}
+.live-driver-marker--assigned span {
+  background: #d97706;
+}
+.live-driver-marker--available span {
+  background: #16a34a;
+}
+.live-driver-marker--stale span {
+  background: #94a3b8;
+}
 
 /* Dashboard tables: keep column headers and cells left-aligned */
 .ant-table-wrapper .ant-table-thead > tr > th,

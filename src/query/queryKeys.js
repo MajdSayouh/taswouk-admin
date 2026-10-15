@@ -64,6 +64,8 @@ export const queryKeys = {
   },
   drivers: {
     all: () => ['drivers'],
+    live: () => ['drivers', 'live'],
+    route: (assignmentId) => ['drivers', 'route', String(assignmentId)],
   },
   notifications: {
     all: () => ['notifications', 'log'],

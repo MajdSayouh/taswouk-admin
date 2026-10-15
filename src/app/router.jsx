@@ -40,6 +40,9 @@ const OrdersListPage = lazy(() =>
 const DriversListPage = lazy(() =>
   import('../views/drivers/DriversListPage.jsx').then((m) => ({ default: m.DriversListPage })),
 )
+const LiveDriversMapPage = lazy(() =>
+  import('../views/drivers/LiveDriversMapPage.jsx').then((m) => ({ default: m.LiveDriversMapPage })),
+)
 const CategoriesListPage = lazy(() =>
   import('../views/categories/CategoriesListPage.jsx').then((m) => ({
     default: m.CategoriesListPage,
@@ -285,6 +288,14 @@ export function AppRouter() {
             }
           />
           <Route element={<RequireAdmin />}>
+            <Route
+              path="drivers/live"
+              element={
+                <LazyPage>
+                  <LiveDriversMapPage />
+                </LazyPage>
+              }
+            />
             <Route
               path="products/variant-audit"
               element={

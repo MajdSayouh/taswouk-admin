@@ -12,6 +12,7 @@ import { normalizeOrderDetail, extractDriverLocation, coordsFromLatLng } from '.
 import { buildOrderItemProductUrl } from '../../utils/publicSiteLinks.js'
 import { ProductTableThumbnail } from '../products/ProductTableThumbnail.jsx'
 import { OrderTrackingMap } from '../maps/OrderTrackingMap.jsx'
+import { AssignmentRouteMap } from '../maps/AssignmentRouteMap.jsx'
 import { OrderFulfillmentStepper } from './OrderFulfillmentStepper.jsx'
 import { ExternalOrderTag } from './ExternalOrderTag.jsx'
 import { ExternalOrderProductCell } from './ExternalOrderProductCell.jsx'
@@ -103,11 +104,20 @@ export function OrderDetailModal({
   })
 
   const assignmentQuery = useQuery({
-    queryKey: [...queryKeys.orders.all(), 'assignment', orderId],
+    queryKey: [...queryKeys.orders.all(), 'assignment', orderId, previewOrderType ?? ''],
     queryFn: async () => {
       const list = await getDeliveryAssignments()
       const rows = Array.isArray(list) ? list : []
-      return rows.find((row) => String(row?.order_id ?? row?.orderId) === String(orderId)) ?? null
+      // Store and mall order ids are separate sequences, so the same id can name two
+      // orders — match the kind too when it is known.
+      const kind = previewOrderType === 'mall' ? 'mall' : previewOrderType === 'store' ? 'store' : null
+      return (
+        rows.find(
+          (row) =>
+            String(row?.order_id ?? row?.orderId) === String(orderId) &&
+            (!kind || !row?.order_kind || row.order_kind === kind),
+        ) ?? null
+      )
     },
     enabled: canFetch,
     refetchInterval: open ? 15_000 : false,
@@ -120,6 +130,9 @@ export function OrderDetailModal({
 
   const detail = isMockPreview ? mockDetail : detailQuery.data
   const assignment = assignmentQuery.data
+  // The route endpoint is admin-only; everyone else keeps the destination-only map.
+  const routeAssignmentId =
+    user && isAdminRole(user.role) && assignment?.assignment_id != null ? assignment.assignment_id : null
   const previewCustomerPhone = String(previewRecord?.customerPhone ?? '').trim()
   const knownCustomerPhone = detail?.customerPhone || previewCustomerPhone
 
@@ -450,23 +463,30 @@ export function OrderDetailModal({
             />
           </div>
 
-          <div>
-            <h4 className="text-sm font-semibold text-slate-800 mb-2">{t('orders.detail.mapTitle')}</h4>
-            {mapLegend}
-            <OrderTrackingMap
-              destination={destination}
-              driver={driverLocation}
-              destinationLabel={t('orders.detail.legendDestination')}
-              driverLabel={t('orders.detail.legendDriver')}
-              height={300}
-            />
-            {!destination && !driverLocation ? (
-              <p className="text-xs text-slate-500 mt-2">{t('orders.detail.noCoordinates')}</p>
-            ) : null}
-            {effectiveDriverId && !driverLocation ? (
-              <p className="text-xs text-amber-700 mt-2">{t('orders.detail.driverLocationUnavailable')}</p>
-            ) : null}
-          </div>
+          {routeAssignmentId != null ? (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-800 mb-2">{t('orders.detail.mapTitle')}</h4>
+              <AssignmentRouteMap assignmentId={routeAssignmentId} enabled={open} height={300} />
+            </div>
+          ) : (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-800 mb-2">{t('orders.detail.mapTitle')}</h4>
+              {mapLegend}
+              <OrderTrackingMap
+                destination={destination}
+                driver={driverLocation}
+                destinationLabel={t('orders.detail.legendDestination')}
+                driverLabel={t('orders.detail.legendDriver')}
+                height={300}
+              />
+              {!destination && !driverLocation ? (
+                <p className="text-xs text-slate-500 mt-2">{t('orders.detail.noCoordinates')}</p>
+              ) : null}
+              {effectiveDriverId && !driverLocation ? (
+                <p className="text-xs text-amber-700 mt-2">{t('orders.detail.driverLocationUnavailable')}</p>
+              ) : null}
+            </div>
+          )}
         </div>
       )}
     </Modal>

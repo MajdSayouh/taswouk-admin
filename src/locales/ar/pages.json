@@ -1570,5 +1570,53 @@
       "expired": "منتهي",
       "valid": "ساري"
     }
+  },
+  "liveDrivers": {
+    "title": "الخريطة الحية لعمال التوصيل",
+    "subtitle": "مواقع كل عمال التوصيل الآن وطلباتهم المفتوحة، تتحدث كل 10 ثوانٍ. تطبيق التوصيل يرسل موقعه والتطبيق مفتوح فقط، لذا قد يظهر بعضهم منقطعاً.",
+    "loadError": "تعذر تحميل مواقع السائقين",
+    "searchPlaceholder": "ابحث بالاسم أو الهاتف أو المركبة…",
+    "connected": "{{count}} متصل",
+    "disconnected": "{{count}} منقطع",
+    "filter": {
+      "all": "الكل",
+      "onTheRoad": "في الطريق",
+      "available": "متاح",
+      "stale": "منقطع"
+    },
+    "state": {
+      "onTheRoad": "في الطريق",
+      "assigned": "بانتظار الاستلام",
+      "available": "متاح",
+      "stale": "منقطع",
+      "noLocation": "لا موقع"
+    },
+    "staleFor": "منقطع منذ {{time}}",
+    "noLocation": "لم يرسل موقعه بعد",
+    "noneLocated": "لم يرسل أي سائق موقعه بعد.",
+    "updatedAgo": "آخر تحديث منذ {{time}}",
+    "units": {
+      "seconds": "{{value}} ث",
+      "minutes": "{{value}} د",
+      "hours": "{{value}} س",
+      "days": "{{value}} ي"
+    },
+    "showRoute": "عرض المسار",
+    "fitAll": "عرض الكل",
+    "empty": "لا يوجد سائقون مطابقون"
+  },
+  "route": {
+    "title": "مسار التوصيل — {{number}}",
+    "loadError": "تعذر تحميل مسار الرحلة",
+    "pickup": "نقطة الاستلام",
+    "pickedUp": "الاستلام",
+    "delivered": "التسليم",
+    "duration": "المدة",
+    "distance": "المسافة المقطوعة",
+    "minutes": "{{value}} دقيقة",
+    "km": "{{value}} كم",
+    "timeline": "مراجعة المسار بالوقت",
+    "empty": "لا يوجد مسار مسجّل لهذه الرحلة",
+    "live": "مباشر"
   }
 }

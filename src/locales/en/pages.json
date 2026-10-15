@@ -1570,5 +1570,53 @@
       "expired": "Expired",
       "valid": "Valid"
     }
+  },
+  "liveDrivers": {
+    "title": "Live drivers map",
+    "subtitle": "Where every delivery driver is now and their open orders, refreshed every 10 seconds. The delivery app only sends its position while open, so some drivers may show as signal lost.",
+    "loadError": "Could not load driver positions",
+    "searchPlaceholder": "Search by name, phone or vehicle…",
+    "connected": "{{count}} connected",
+    "disconnected": "{{count}} signal lost",
+    "filter": {
+      "all": "All",
+      "onTheRoad": "On the road",
+      "available": "Available",
+      "stale": "Signal lost"
+    },
+    "state": {
+      "onTheRoad": "On the road",
+      "assigned": "Awaiting pickup",
+      "available": "Available",
+      "stale": "Signal lost",
+      "noLocation": "No location"
+    },
+    "staleFor": "Signal lost {{time}} ago",
+    "noLocation": "No location yet",
+    "noneLocated": "No driver has sent a location yet.",
+    "updatedAgo": "Updated {{time}} ago",
+    "units": {
+      "seconds": "{{value}}s",
+      "minutes": "{{value}}m",
+      "hours": "{{value}}h",
+      "days": "{{value}}d"
+    },
+    "showRoute": "Show route",
+    "fitAll": "Show all",
+    "empty": "No matching drivers"
+  },
+  "route": {
+    "title": "Delivery route — {{number}}",
+    "loadError": "Could not load the trip route",
+    "pickup": "Pickup",
+    "pickedUp": "Picked up",
+    "delivered": "Delivered",
+    "duration": "Duration",
+    "distance": "Distance travelled",
+    "minutes": "{{value}} min",
+    "km": "{{value}} km",
+    "timeline": "Replay the route by time",
+    "empty": "No route recorded for this trip",
+    "live": "Live"
   }
 }
