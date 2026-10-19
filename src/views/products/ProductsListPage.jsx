@@ -27,6 +27,8 @@ import { mapStoreFromApi } from '../../models/Store.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { ProductTableThumbnail } from '../../components/products/ProductTableThumbnail.jsx'
+import { BulkOfferModal } from '../../components/products/BulkOfferModal.jsx'
+import { BULK_OFFER_MAX_PRODUCTS } from '../../utils/bulkOffer.js'
 const DEFAULT_PAGE_SIZE = 50
 
 function positiveInteger(value, fallback) {
@@ -232,6 +234,11 @@ export function ProductsListPage() {
   })
 
   const [deletingId, setDeletingId] = useState(null)
+  // Ids picked across pages for a bulk offer; `preserveSelectedRowKeys` on the
+  // table keeps them when the page or filters change.
+  const [selectedRowKeys, setSelectedRowKeys] = useState(/** @type {Array<string | number>} */ ([]))
+  const [bulkOfferOpen, setBulkOfferOpen] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [variantFilter, setVariantFilter] = useState('all')
   const [migrationOpen, setMigrationOpen] = useState(false)
@@ -360,6 +367,53 @@ export function ProductsListPage() {
     },
     [deleteProduct, t, refetch],
   )
+
+  const runBulkOffer = useCallback(
+    async (input) => {
+      setBulkBusy(true)
+      try {
+        const result = await productService.bulkOffer({ productIds: selectedRowKeys, ...input })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.products.root })
+        if (result.updated.length) {
+          message.success(t('products.list.bulkOfferDone', { count: result.updated.length }))
+        }
+        if (result.skipped.length) {
+          // Named, with the server's reason, so nobody assumes every product changed.
+          Modal.warning({
+            title: t('products.list.bulkOfferSkippedTitle', { count: result.skipped.length }),
+            width: 560,
+            content: (
+              <ul className="max-h-80 list-disc space-y-1 overflow-auto ps-5">
+                {result.skipped.map((row) => (
+                  <li key={row.id}>
+                    <strong>{row.name || `#${row.id}`}</strong> — {row.reason}
+                  </li>
+                ))}
+              </ul>
+            ),
+          })
+        }
+        setSelectedRowKeys([])
+        setBulkOfferOpen(false)
+      } catch (e) {
+        message.error(e?.message ?? t('products.list.bulkOfferError'))
+      } finally {
+        setBulkBusy(false)
+      }
+    },
+    [selectedRowKeys, queryClient, t],
+  )
+
+  const confirmBulkRemove = useCallback(() => {
+    Modal.confirm({
+      title: t('products.list.bulkRemoveOfferTitle'),
+      content: t('products.list.bulkRemoveOfferConfirm', { count: selectedRowKeys.length }),
+      okText: t('products.list.bulkRemoveOffer'),
+      okButtonProps: { danger: true },
+      cancelText: t('shared.cancel'),
+      onOk: () => runBulkOffer({ action: 'remove' }),
+    })
+  }, [runBulkOffer, selectedRowKeys.length, t])
 
   async function startVariantMigration() {
     if (!user || !isAdminRole(user.role) || migrationStatus === 'running') return
@@ -822,8 +876,34 @@ export function ProductsListPage() {
               </>
             }
           />
+          {selectedRowKeys.length > 0 ? (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--color-border,#e5e7eb)] px-3 py-2">
+              <span className="font-semibold">
+                {t('products.list.bulkSelected', { count: selectedRowKeys.length })}
+              </span>
+              <span className="flex-1" />
+              <AntButton
+                type="primary"
+                disabled={bulkBusy}
+                onClick={() => setBulkOfferOpen(true)}
+              >
+                {t('products.list.bulkAddOffer')}
+              </AntButton>
+              <AntButton danger disabled={bulkBusy} loading={bulkBusy && !bulkOfferOpen} onClick={confirmBulkRemove}>
+                {t('products.list.bulkRemoveOffer')}
+              </AntButton>
+              <AntButton type="text" disabled={bulkBusy} onClick={() => setSelectedRowKeys([])}>
+                {t('products.list.bulkClearSelection')}
+              </AntButton>
+            </div>
+          ) : null}
           <Table
             rowKey="id"
+            rowSelection={{
+              selectedRowKeys,
+              preserveSelectedRowKeys: true,
+              onChange: (keys) => setSelectedRowKeys(keys.slice(0, BULK_OFFER_MAX_PRODUCTS)),
+            }}
             columns={columns}
             dataSource={displayData}
             pagination={buildDashboardPagination({
@@ -843,6 +923,15 @@ export function ProductsListPage() {
           />
         </Spin>
       </Card>
+
+      <BulkOfferModal
+        key={bulkOfferOpen ? 'open' : 'closed'}
+        open={bulkOfferOpen}
+        count={selectedRowKeys.length}
+        loading={bulkBusy}
+        onCancel={() => setBulkOfferOpen(false)}
+        onSubmit={(discountType, value) => runBulkOffer({ action: 'apply', discountType, value })}
+      />
 
       <Modal
         open={migrationOpen}

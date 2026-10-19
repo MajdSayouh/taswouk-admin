@@ -9,6 +9,7 @@ import {
   sanitizeProductWritePayload,
 } from '../utils/productWritePayload.js'
 import { parseVariantIdFromDto, variantStatusForApiRow } from '../utils/productVariants.js'
+import { buildBulkOfferPayload, normalizeBulkOfferResult } from '../utils/bulkOffer.js'
 
 function waitForRetry(delayMs) {
   return new Promise((resolve) => globalThis.setTimeout(resolve, delayMs))
@@ -199,6 +200,18 @@ export { sanitizeProductWritePayload } from '../utils/productWritePayload.js'
  */
 export async function deleteProduct(productId) {
   await apiClient.delete(`/api/products/${productId}`)
+}
+
+/**
+ * Put several products on offer (percent or fixed amount off each) or take them off.
+ * Products the rule cannot apply to come back in `skipped` with the server's reason;
+ * the rest are saved.
+ *
+ * @param {{ productIds: Array<number | string>, action: 'apply' | 'remove', discountType?: 'percent' | 'amount', value?: number }} input
+ */
+export async function bulkOffer(input) {
+  const { data } = await apiClient.post('/api/products/bulk-offer', buildBulkOfferPayload(input))
+  return normalizeBulkOfferResult(data)
 }
 
 /**
