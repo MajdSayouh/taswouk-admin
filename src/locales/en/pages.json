@@ -999,6 +999,22 @@
       "colReason": "Reason",
       "colRaw": "Raw value",
       "close": "Close"
+    },
+    "deleteProducts": {
+      "title": "Danger zone — delete all store products",
+      "hint": "Permanently deletes every product of this store, with its variants, images and ratings. The store itself stays, and past orders keep their details.",
+      "counting": "Counting products…",
+      "countErr": "Could not load the product count",
+      "current": "Current products: {{count}}",
+      "empty": "There are no products to delete",
+      "button": "Delete all products",
+      "confirmTitle": "Delete all products?",
+      "confirmWarning": "{{count}} products of “{{store}}” will be deleted for good.",
+      "confirmDetails": "This cannot be undone. Variants, images and ratings go with them, and the products disappear from the app at once.",
+      "typeToConfirm": "To confirm, type the number of products ({{count}}) below:",
+      "confirmOk": "Delete {{count}} products",
+      "success": "{{count}} products deleted",
+      "error": "Could not delete the products"
     }
   },
   "restaurants": {

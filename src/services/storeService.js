@@ -229,6 +229,27 @@ export async function deleteStore(storeId) {
 }
 
 /**
+ * GET /api/stores/{store_id}/products/count — admin; every product, hidden ones included.
+ * @param {number | string} storeId
+ * @returns {Promise<number>}
+ */
+export async function getStoreProductsCount(storeId) {
+  const { data } = await apiClient.get(`/api/stores/${storeId}/products/count`)
+  return Number(data?.count ?? 0)
+}
+
+/**
+ * DELETE /api/stores/{store_id}/products — admin; deletes every product of the
+ * store for good (the store itself stays). Past orders keep their lines.
+ * @param {number | string} storeId
+ * @returns {Promise<number>} how many products were deleted
+ */
+export async function deleteStoreProducts(storeId) {
+  const { data } = await apiClient.delete(`/api/stores/${storeId}/products`)
+  return Number(data?.deleted ?? 0)
+}
+
+/**
  * PATCH /api/stores/{store_id}/toggle-active
  * @param {number | string} storeId
  * @param {boolean} isActive

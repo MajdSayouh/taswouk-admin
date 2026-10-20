@@ -10,6 +10,7 @@ const variants = {
   secondary:
     'bg-white text-slate-900 hover:bg-slate-50 border border-slate-200',
   ghost: 'bg-transparent text-slate-700 hover:bg-slate-100 border border-transparent',
+  danger: 'bg-rose-600 text-white hover:bg-rose-700 border border-rose-600',
 }
 
 export function Button({

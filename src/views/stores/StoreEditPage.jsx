@@ -14,6 +14,7 @@ import { Input } from '../../components/ui/Input'
 import { Textarea } from '../../components/ui/Textarea.jsx'
 import { LocationPickerMap } from '../../components/maps/LocationPickerMap.jsx'
 import { PriceSheetActions } from '../../components/prices/PriceSheetActions.jsx'
+import { DeleteStoreProductsCard } from '../../components/stores/DeleteStoreProductsCard.jsx'
 import { isAdminRole, useAuthStore } from '../../store/authStore.js'
 import {
   SYRIAN_GOVERNORATE_OPTIONS,
@@ -576,6 +577,8 @@ export function StoreEditPage({ section: sectionType = null }) {
           <p className="text-xs text-slate-500">{t('stores.prices.hint')}</p>
         </Card>
       ) : null}
+
+      {isAdmin ? <DeleteStoreProductsCard storeId={id} storeName={raw?.name ?? ''} /> : null}
     </div>
   )
 }
