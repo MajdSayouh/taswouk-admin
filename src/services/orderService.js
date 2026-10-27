@@ -157,3 +157,22 @@ export async function updateOrderStatusForRecord(record, status) {
   }
   return updateOrderStatus(Number(record?.id), status, record?.orderType)
 }
+
+/**
+ * POST /api/orders/{order_id}/items/remove — admin only.
+ *
+ * `orderId` is the store row the lines sit on (`items[].order_id`), not a split
+ * cart's header id: a cart's lines span several rows. Removing every remaining
+ * line cancels that row, which drops one store from the cart and leaves the
+ * others running. Answers with the whole cart.
+ *
+ * @param {number} orderId
+ * @param {number[]} itemIds
+ * @returns {Promise<unknown>}
+ */
+export async function removeOrderItems(orderId, itemIds) {
+  const { data } = await apiClient.post(`/api/orders/${orderId}/items/remove`, {
+    item_ids: itemIds,
+  })
+  return data
+}

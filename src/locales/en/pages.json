@@ -648,7 +648,21 @@
       "progressiveCoupon": "Progressive coupon",
       "progressiveTier": "Tier",
       "progressiveDiscount": "Progressive discount",
-      "noDiscount": "No coupon used"
+      "noDiscount": "No coupon used",
+      "removeItems": "Remove",
+      "removeSelected": "Remove selected ({{count}})",
+      "removeItemAria": "Remove {{name}} from the order",
+      "removeItemsConfirm": "Remove {{count}} line(s) from the order?",
+      "removeAllItemsConfirm": "Remove every line? The order will be cancelled.",
+      "removeItemsDesc": "Stock is returned, subtotal and discount are recalculated, and any wallet excess is refunded. Removing all of a store's lines cancels its part of the order.",
+      "removeItemsSuccess": "Removed {{count}} line(s) from the order.",
+      "removeItemsError": "Could not remove the lines.",
+      "removeStore": "Remove store",
+      "removeStoreAria": "Remove {{store}} from the order",
+      "removeStoreConfirm": "Remove {{store}}'s items from this order?",
+      "removeStoreDesc": "Only this store's part is cancelled and its stock returned; the other stores in the order carry on.",
+      "removeStoreSuccess": "Removed {{store}} from the order.",
+      "removeStoreError": "Could not remove the store from the order."
     },
     "status": {
       "pending": "Pending",
@@ -820,7 +834,7 @@
     "logoHint": "Upload an image for this mall category or subcategory.",
     "logoUpload": "Choose image",
     "logoRemove": "Remove image",
-    "logoRemoved": "Category image removed",
+    "logoRemoved": "Logo removed",
     "ruleCategoryName": "Category name is required",
     "ruleSubName": "Subcategory name is required",
     "ruleParent": "Parent category is required",
@@ -828,8 +842,7 @@
     "formLogoHint": "PNG, JPG, or WebP. Saved after you create or save the category.",
     "formLogoUpload": "Choose image",
     "formLogoRemove": "Remove logo",
-    "logoUploadErr": "Category saved, but logo upload failed",
-    "logoRemoved": "Logo removed"
+    "logoUploadErr": "Category saved, but logo upload failed"
   },
   "stores": {
     "currency": {

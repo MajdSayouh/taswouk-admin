@@ -116,6 +116,10 @@ export function normalizeOrderDetail(raw) {
     const productId = row.product_id ?? row.moll_product_id ?? null
     return {
       key: `${String(productId ?? row.variant_id ?? 'item')}:${idx}`,
+      // The line's own id and the store row it sits on — what removing it
+      // addresses. Legacy mall lines carry neither and cannot be removed singly.
+      itemId: row.id ?? null,
+      orderId: row.order_id ?? null,
       productId,
       variantId: row.variant_id ?? null,
       productName: String(row.product_name ?? row.name ?? nestedProduct?.name ?? '—'),

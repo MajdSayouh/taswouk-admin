@@ -1,9 +1,16 @@
 // Modal: full order details + delivery / driver map.
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Modal, Descriptions, Table, Tag, Spin, Alert } from 'antd'
-import { getOrderById, getDeliveryAssignments } from '../../services/orderService.js'
+import { Modal, Descriptions, Table, Tag, Spin, Alert, Button, Popconfirm, message } from 'antd'
+import { DeleteOutlined } from '@ant-design/icons'
+import {
+  getOrderById,
+  getDeliveryAssignments,
+  removeOrderItems,
+  updateOrderStatus,
+} from '../../services/orderService.js'
+import { queryClient } from '../../query/queryClient.js'
 import { listAdminUsersByRole } from '../../services/adminService.js'
 import { deliveryUserDisplayName } from '../../viewmodels/useDriversViewModel.js'
 import { queryKeys } from '../../query/queryKeys.js'
@@ -47,6 +54,13 @@ function buildMockDetailPayload(record) {
   }
 }
 
+// A line can come off an order until it is delivered — the backend's rule too.
+const ITEM_REMOVABLE_STATUSES = new Set(['pending', 'confirmed', 'preparing', 'out_for_delivery'])
+
+function errorDetail(err) {
+  return err && typeof err === 'object' && 'message' in err ? String(err.message) : ''
+}
+
 function normalizeUserDirectory(data) {
   if (Array.isArray(data)) return data
   if (Array.isArray(data?.users)) return data.users
@@ -87,6 +101,9 @@ export function OrderDetailModal({
 }) {
   const { t } = useTranslation('pages')
   const user = useAuthStore((state) => state.user)
+  const isAdmin = Boolean(user && isAdminRole(user.role))
+  const [selectedItemKeys, setSelectedItemKeys] = useState([])
+  const [removing, setRemoving] = useState(false)
 
   const isMockPreview = Boolean(previewRecord?.isMock)
   const numericId = orderId != null ? Number(orderId) : NaN
@@ -202,6 +219,80 @@ export function OrderDetailModal({
     return null
   }, [detail?.destination, assignment])
 
+  // Which lines the admin may take off: a store line (it has its own id) whose
+  // store part has not been delivered or cancelled yet.
+  const removableItemKeys = useMemo(() => {
+    if (!isAdmin || isMockPreview || !detail) return new Set()
+    const storeParts = new Map(
+      (detail.parts ?? [])
+        .filter((part) => part.orderType === 'store' && part.orderId != null)
+        .map((part) => [String(part.orderId), part]),
+    )
+    return new Set(
+      detail.items
+        .filter((item) => {
+          if (item.itemId == null || item.orderId == null) return false
+          const status = storeParts.get(String(item.orderId))?.status ?? detail.status
+          return ITEM_REMOVABLE_STATUSES.has(status)
+        })
+        .map((item) => item.key),
+    )
+  }, [isAdmin, isMockPreview, detail])
+
+  const refreshOrders = () => queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
+
+  // Selected lines may span several stores, and each store is its own row on the
+  // backend — so one request per store.
+  const handleRemoveItems = async (items) => {
+    const byOrder = new Map()
+    for (const item of items) {
+      const key = String(item.orderId)
+      byOrder.set(key, [...(byOrder.get(key) ?? []), Number(item.itemId)])
+    }
+    setRemoving(true)
+    try {
+      for (const [orderKey, itemIds] of byOrder) {
+        await removeOrderItems(Number(orderKey), itemIds)
+      }
+      message.success(t('orders.detail.removeItemsSuccess', { count: items.length }))
+      setSelectedItemKeys([])
+    } catch (err) {
+      const detailText = errorDetail(err)
+      message.error(
+        detailText ? `${t('orders.detail.removeItemsError')} ${detailText}` : t('orders.detail.removeItemsError'),
+      )
+    } finally {
+      await refreshOrders()
+      setRemoving(false)
+    }
+  }
+
+  // Drops one store from a split cart: its part is cancelled (stock, coupon and
+  // wallet returned) and the other stores carry on. Works for legacy mall parts
+  // too, which have no line ids to remove one by one.
+  const handleRemovePart = async (part) => {
+    setRemoving(true)
+    try {
+      await updateOrderStatus(Number(part.orderId), 'cancelled', part.orderType)
+      message.success(t('orders.detail.removeStoreSuccess', { store: part.sellerName }))
+      setSelectedItemKeys([])
+    } catch (err) {
+      const detailText = errorDetail(err)
+      message.error(
+        detailText ? `${t('orders.detail.removeStoreError')} ${detailText}` : t('orders.detail.removeStoreError'),
+      )
+    } finally {
+      await refreshOrders()
+      setRemoving(false)
+    }
+  }
+
+  // Taking off every remaining line of a single-store order cancels it — say so.
+  const removeConfirmTitle = (count) =>
+    count >= removableItemKeys.size && (detail?.parts?.length ?? 0) <= 1
+      ? t('orders.detail.removeAllItemsConfirm')
+      : t('orders.detail.removeItemsConfirm', { count })
+
   const statusLabel = detail?.status
     ? t(`orders.status.${detail.status}`, { defaultValue: detail.status })
     : '—'
@@ -277,8 +368,43 @@ export function OrderDetailModal({
         width: 110,
         render: (v) => <span className="tabular-nums font-medium">{Number(v).toFixed(2)}</span>,
       },
+      ...(removableItemKeys.size > 0
+        ? [
+            {
+              title: '',
+              key: 'actions',
+              width: 56,
+              align: 'center',
+              render: (_value, row) =>
+                removableItemKeys.has(row.key) ? (
+                  <Popconfirm
+                    title={removeConfirmTitle(1)}
+                    description={t('orders.detail.removeItemsDesc')}
+                    okText={t('orders.detail.removeItems')}
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => handleRemoveItems([row])}
+                  >
+                    <Button
+                      type="text"
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      disabled={removing}
+                      aria-label={t('orders.detail.removeItemAria', { name: row.productName })}
+                    />
+                  </Popconfirm>
+                ) : null,
+            },
+          ]
+        : []),
     ],
-    [t, detail?.isExternal, detail?.orderType, detail?.mallId],
+    // The handlers are recreated each render but only read state already listed here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, detail?.isExternal, detail?.orderType, detail?.mallId, removableItemKeys, removing],
+  )
+
+  const selectedItems = (detail?.items ?? []).filter(
+    (item) => selectedItemKeys.includes(item.key) && removableItemKeys.has(item.key),
   )
 
   const mapLegend = (
@@ -367,10 +493,28 @@ export function OrderDetailModal({
               <Descriptions.Item label={t('orders.detail.sellers')} span={2}>
                 <span className="flex flex-wrap items-center gap-2">
                   {detail.parts.map((part) => (
-                    <Tag key={part.orderId ?? part.sellerName} className="!m-0">
+                    <Tag key={part.orderId ?? part.sellerName} className="!m-0 inline-flex items-center gap-1">
                       {part.sellerName || t('shared.emDash')} ·{' '}
                       {part.total.toFixed(2)} SYP ·{' '}
                       {t(`orders.status.${part.status}`, { defaultValue: part.status })}
+                      {isAdmin && !isMockPreview && part.orderId != null && ITEM_REMOVABLE_STATUSES.has(part.status) ? (
+                        <Popconfirm
+                          title={t('orders.detail.removeStoreConfirm', { store: part.sellerName })}
+                          description={t('orders.detail.removeStoreDesc')}
+                          okText={t('orders.detail.removeStore')}
+                          okButtonProps={{ danger: true }}
+                          onConfirm={() => handleRemovePart(part)}
+                        >
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            disabled={removing}
+                            aria-label={t('orders.detail.removeStoreAria', { store: part.sellerName })}
+                          />
+                        </Popconfirm>
+                      ) : null}
                     </Tag>
                   ))}
                 </span>
@@ -436,13 +580,37 @@ export function OrderDetailModal({
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-slate-800 mb-2">{t('orders.detail.items')}</h4>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <h4 className="text-sm font-semibold text-slate-800">{t('orders.detail.items')}</h4>
+              {selectedItems.length > 0 ? (
+                <Popconfirm
+                  title={removeConfirmTitle(selectedItems.length)}
+                  description={t('orders.detail.removeItemsDesc')}
+                  okText={t('orders.detail.removeItems')}
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => handleRemoveItems(selectedItems)}
+                >
+                  <Button danger size="small" icon={<DeleteOutlined />} loading={removing}>
+                    {t('orders.detail.removeSelected', { count: selectedItems.length })}
+                  </Button>
+                </Popconfirm>
+              ) : null}
+            </div>
             <Table
               size="small"
               rowKey="key"
               pagination={false}
               dataSource={detail.items}
               columns={itemColumns}
+              rowSelection={
+                removableItemKeys.size > 0
+                  ? {
+                      selectedRowKeys: selectedItemKeys,
+                      onChange: (keys) => setSelectedItemKeys(keys),
+                      getCheckboxProps: (row) => ({ disabled: !removableItemKeys.has(row.key) || removing }),
+                    }
+                  : undefined
+              }
               expandable={
                 detail.items.some((i) => i.variantSku || i.variantAttributes)
                   ? {

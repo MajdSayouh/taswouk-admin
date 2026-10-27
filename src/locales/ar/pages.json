@@ -648,7 +648,21 @@
       "progressiveCoupon": "كوبون تصاعدي",
       "progressiveTier": "المستوى",
       "progressiveDiscount": "خصم تصاعدي",
-      "noDiscount": "لم يُستخدم كوبون"
+      "noDiscount": "لم يُستخدم كوبون",
+      "removeItems": "حذف",
+      "removeSelected": "حذف المحدد ({{count}})",
+      "removeItemAria": "حذف {{name}} من الطلب",
+      "removeItemsConfirm": "حذف {{count}} صنف من الطلب؟",
+      "removeAllItemsConfirm": "حذف كل أصناف الطلب؟ سيُلغى الطلب.",
+      "removeItemsDesc": "يُعاد المخزون ويُعاد حساب المجموع والخصم، ويُرجَع فائض المحفظة للعميل. حذف كل أصناف متجر يلغي جزءه من الطلب.",
+      "removeItemsSuccess": "تم حذف {{count}} صنف من الطلب.",
+      "removeItemsError": "تعذر حذف الأصناف.",
+      "removeStore": "إزالة المتجر",
+      "removeStoreAria": "إزالة {{store}} من الطلب",
+      "removeStoreConfirm": "إزالة طلبات {{store}} من هذا الطلب؟",
+      "removeStoreDesc": "يُلغى جزء هذا المتجر فقط ويُعاد مخزونه، وتبقى بقية المتاجر في الطلب كما هي.",
+      "removeStoreSuccess": "تمت إزالة {{store}} من الطلب.",
+      "removeStoreError": "تعذر إزالة المتجر من الطلب."
     },
     "status": {
       "pending": "قيد الانتظار",
