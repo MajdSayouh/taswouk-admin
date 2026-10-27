@@ -26,7 +26,8 @@
     "externalShops": "External shops",
     "profile": "Profile",
     "progressiveCoupons": "Progressive coupons",
-    "liveDrivers": "Live map"
+    "liveDrivers": "Live map",
+    "externalInvoices": "Global order prices"
   },
   "mobile": {
     "menu": "Menu",
@@ -73,7 +74,8 @@
     "createExternalShop": "Create external shop",
     "editExternalShop": "Edit external shop",
     "defaultApp": "Jomran Admin",
-    "liveDrivers": "Live drivers map"
+    "liveDrivers": "Live drivers map",
+    "externalInvoices": "Global store order prices"
   },
   "topbar": {
     "subtitle": "Jomran ecommerce administration panel",

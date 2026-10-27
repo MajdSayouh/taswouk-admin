@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Sidebar } from '../components/layout/Sidebar'
 import { MobileNav } from '../components/layout/MobileNav.jsx'
 import { Topbar } from '../components/layout/Topbar'
+import { ExternalInvoicesAlert } from '../components/layout/ExternalInvoicesAlert.jsx'
 import { useAuthStore } from '../store/authStore.js'
 import { useDashboardFirebaseMessaging } from '../hooks/useDashboardFirebaseMessaging.js'
 
@@ -62,6 +63,7 @@ export function DashboardLayout() {
     if (p.match(/^\/external-shops\/[^/]+\/edit$/)) return t('titles.editExternalShop')
     if (p.startsWith('/external-shops/create')) return t('titles.createExternalShop')
     if (p.startsWith('/external-shops')) return t('titles.externalShops')
+    if (p.startsWith('/external-invoices')) return t('titles.externalInvoices')
     if (p === '/' || p.startsWith('/home')) return t('titles.dashboard')
     if (p.startsWith('/profile')) return t('titles.profile')
     return t('titles.defaultApp')
@@ -82,6 +84,7 @@ export function DashboardLayout() {
           className="relative z-0 flex-1 p-6 lg:p-8 bg-slate-50 overflow-y-auto min-h-0"
         >
           <div className="max-w-[110rem] mx-auto">
+            <ExternalInvoicesAlert />
             <Outlet />
           </div>
         </main>

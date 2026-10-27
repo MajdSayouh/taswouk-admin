@@ -23,6 +23,7 @@ import { AssignmentRouteMap } from '../maps/AssignmentRouteMap.jsx'
 import { OrderFulfillmentStepper } from './OrderFulfillmentStepper.jsx'
 import { ExternalOrderTag } from './ExternalOrderTag.jsx'
 import { ExternalOrderProductCell } from './ExternalOrderProductCell.jsx'
+import { ExternalInvoicePanel } from './ExternalInvoicePanel.jsx'
 
 function buildMockDetailPayload(record) {
   return {
@@ -573,6 +574,18 @@ export function OrderDetailModal({
               )}
             </Descriptions.Item>
           </Descriptions>
+
+          {detail.isExternal && isAdmin && !isMockPreview ? (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-800 mb-2">
+                {t('externalInvoices.sectionTitle')}
+              </h4>
+              <ExternalInvoicePanel
+                orderId={detail.parts[0]?.orderId ?? numericId}
+                delivered={detail.status === 'delivered'}
+              />
+            </div>
+          ) : null}
 
           <div>
             <h4 className="text-sm font-semibold text-slate-800 mb-2">{t('orders.detail.fulfillment')}</h4>

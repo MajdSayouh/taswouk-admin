@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore.js'
 import { getDashboardNavItems, isNavActive } from '../../navigation/dashboardNav.js'
 import { useFeatures } from '../../hooks/useFeatures.js'
 import { ModerationNavBadge } from './ModerationNavBadge.jsx'
+import { ExternalInvoicesNavBadge } from './ExternalInvoicesNavBadge.jsx'
 
 export function MobileNav() {
   const [open, setOpen] = useState(false)
@@ -102,6 +103,7 @@ export function MobileNav() {
                   <span className="truncate leading-snug !text-black flex items-center gap-1.5">
                     {t(item.labelKey)}
                     {item.key === 'moderation' ? <ModerationNavBadge /> : null}
+                    {item.key === 'externalInvoices' ? <ExternalInvoicesNavBadge /> : null}
                   </span>
                 </NavLink>
               )

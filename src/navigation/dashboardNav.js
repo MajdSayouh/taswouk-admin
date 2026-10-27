@@ -4,6 +4,7 @@ import {
   BankOutlined,
   DashboardOutlined,
   EnvironmentOutlined,
+  FileDoneOutlined,
   FolderOutlined,
   CarOutlined,
   CoffeeOutlined,
@@ -195,6 +196,13 @@ const ADMIN_ONLY_NAV = /** @type {NavItemDef[]} */ ([
     match: 'prefix',
     labelKey: 'nav.externalShops',
     Icon: GlobalOutlined,
+  },
+  {
+    key: 'externalInvoices',
+    to: '/external-invoices',
+    match: 'exact',
+    labelKey: 'nav.externalInvoices',
+    Icon: FileDoneOutlined,
   },
 ])
 

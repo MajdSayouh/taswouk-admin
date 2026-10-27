@@ -140,6 +140,11 @@ const ExchangeRateSettingsPage = lazy(() =>
     default: m.ExchangeRateSettingsPage,
   })),
 )
+const ExternalInvoicesPage = lazy(() =>
+  import('../views/external-invoices/ExternalInvoicesPage.jsx').then((m) => ({
+    default: m.ExternalInvoicesPage,
+  })),
+)
 const UsersByRolePage = lazy(() =>
   import('../views/users/UsersByRolePage.jsx').then((m) => ({ default: m.UsersByRolePage })),
 )
@@ -401,6 +406,14 @@ export function AppRouter() {
               element={
                 <LazyPage>
                   <ExchangeRateSettingsPage />
+                </LazyPage>
+              }
+            />
+            <Route
+              path="external-invoices"
+              element={
+                <LazyPage>
+                  <ExternalInvoicesPage />
                 </LazyPage>
               }
             />

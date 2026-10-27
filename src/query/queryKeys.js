@@ -24,6 +24,11 @@ export const queryKeys = {
     all: () => ['orders'],
     detail: (id, orderType) => ['orders', 'detail', String(id ?? ''), String(orderType ?? '')],
   },
+  externalInvoices: {
+    root: ['externalInvoices'],
+    pending: () => ['externalInvoices', 'pending'],
+    detail: (orderId) => ['externalInvoices', 'detail', String(orderId ?? '')],
+  },
   categories: {
     all: () => ['categories'],
     subcategories: () => ['categories', 'subcategories'],
