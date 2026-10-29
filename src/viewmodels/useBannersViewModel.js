@@ -5,8 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as bannerService from '../services/bannerService.js'
 import { queryKeys } from '../query/queryKeys.js'
 
+// Returned so a mutation stays pending until the list has refetched: a toggle
+// that settled first would snap back to the old value for a moment.
 function invalidateBanners(queryClient) {
-  queryClient.invalidateQueries({ queryKey: queryKeys.banners.all() })
+  return queryClient.invalidateQueries({ queryKey: queryKeys.banners.all() })
 }
 
 /**

@@ -1476,7 +1476,12 @@
       "colLink": "الرابط",
       "colDescription": "الوصف",
       "colPlacement": "الموضع",
-      "colCreated": "تاريخ الإنشاء"
+      "colCreated": "تاريخ الإنشاء",
+      "updated": "تم حفظ التعديلات",
+      "updateFailed": "تعذر حفظ التعديلات",
+      "colSortOrder": "الترتيب",
+      "colActive": "ظاهرة",
+      "allPlacements": "كل المواضع"
     },
     "form": {
       "createTitle": "لافتة جديدة",
@@ -1489,10 +1494,15 @@
       "placementRequired": "يرجى اختيار مكان ظهور اللافتة.",
       "placementPlaceholder": "اختر الموضع",
       "link": "الرابط",
-      "linkPlaceholder": "قريباً",
+      "linkPlaceholder": "https://",
       "description": "الوصف",
-      "descriptionPlaceholder": "قريباً",
-      "comingSoon": "سيُفعّل التعديل في إصدار لاحق."
+      "descriptionPlaceholder": "نص قصير يصف اللافتة (اختياري)",
+      "editTitle": "تعديل اللافتة #{{id}}",
+      "sortOrder": "ترتيب العرض",
+      "sortOrderHint": "الأصغر يظهر أولاً داخل الموضع",
+      "isActive": "ظاهرة في التطبيق",
+      "linkHint": "اختياري. يُحفظ الآن، لكن التطبيق لا يفتح روابط اللافتات بعد.",
+      "linkInvalid": "أدخل رابطاً كاملاً يبدأ بـ https://"
     }
   },
   "points": {

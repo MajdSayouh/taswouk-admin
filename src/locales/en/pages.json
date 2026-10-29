@@ -1475,7 +1475,12 @@
       "colLink": "Link",
       "colDescription": "Description",
       "colPlacement": "Placement",
-      "colCreated": "Created"
+      "colCreated": "Created",
+      "updated": "Changes saved",
+      "updateFailed": "Could not save changes",
+      "colSortOrder": "Order",
+      "colActive": "Visible",
+      "allPlacements": "All placements"
     },
     "form": {
       "createTitle": "New banner",
@@ -1488,10 +1493,15 @@
       "placementRequired": "Please choose where this banner appears.",
       "placementPlaceholder": "Choose a placement",
       "link": "Link",
-      "linkPlaceholder": "Coming soon",
+      "linkPlaceholder": "https://",
       "description": "Description",
-      "descriptionPlaceholder": "Coming soon",
-      "comingSoon": "Editing will be enabled in a future release."
+      "descriptionPlaceholder": "A short description of the banner (optional)",
+      "editTitle": "Edit banner #{{id}}",
+      "sortOrder": "Display order",
+      "sortOrderHint": "Lower numbers show first within the placement",
+      "isActive": "Visible in the app",
+      "linkHint": "Optional. It is saved, but the app does not open banner links yet.",
+      "linkInvalid": "Enter a full URL starting with https://"
     }
   },
   "points": {
