@@ -50,7 +50,7 @@ const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i
  *   storeSelectLocked?: boolean
  *   form: ProductEditorFormValues
  *   setForm: (updater: (prev: object) => object) => void
- *   categories?: { id: string, name: string, isActive?: boolean }[]
+ *   categories?: { id: string, name: string, isActive?: boolean, scope?: string }[]
  *   subcategories?: { id: string, name: string, categoryId?: string, isActive?: boolean }[]
  *   categoriesLoading?: boolean
  *   categoriesError?: string | null
@@ -120,13 +120,25 @@ export function ProductEditorForm({
         ? t('shared.storeNamed', { name: s.name, id: s.id })
         : t('shared.storeNumber', { id: s.id }),
   }))
-  const categoryOptions = (Array.isArray(categories) ? categories : []).map((c) => ({
-    value: String(c.id),
-    label:
-      c.isActive === false
-        ? `${c.name} (${t('shared.inactive')})`
-        : c.name,
-  }))
+  const categoryList = Array.isArray(categories) ? categories : []
+  // The same name can exist in two sections ("أجهزة كهربائية" for stores and
+  // for malls). Only those get their section appended, so the picker can tell
+  // them apart while every other name stays as it was.
+  const nameCounts = categoryList.reduce((counts, c) => {
+    const key = String(c.name ?? '').trim()
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+    return counts
+  }, new Map())
+  const categoryOptions = categoryList.map((c) => {
+    const name =
+      c.scope && nameCounts.get(String(c.name ?? '').trim()) > 1
+        ? `${c.name} ${t(`categories.scopes.${c.scope}`)}`
+        : c.name
+    return {
+      value: String(c.id),
+      label: c.isActive === false ? `${name} (${t('shared.inactive')})` : name,
+    }
+  })
   const subcategoryOptions = (Array.isArray(subcategories) ? subcategories : [])
     .filter((sc) => !form.categoryId || String(sc.categoryId) === String(form.categoryId))
     .map((sc) => ({
