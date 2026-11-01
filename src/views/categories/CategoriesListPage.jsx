@@ -18,7 +18,7 @@ import {
   Tag,
   message,
 } from 'antd'
-import { EyeOutlined } from '@ant-design/icons'
+import { EyeOutlined, PercentageOutlined } from '@ant-design/icons'
 import { Card } from '../../components/ui/Card'
 import { DashboardTableToolbar } from '../../components/tables/DashboardTableToolbar.jsx'
 import { ColumnTextFilterDropdown } from '../../components/tables/ColumnTextFilterDropdown.jsx'
@@ -31,6 +31,7 @@ import { CATEGORY_SCOPES } from '../../models/Category.js'
 import { rowMatchesSearch } from '../../utils/tableFilters.js'
 import { resolvePublicMediaUrl } from '../../utils/mediaUrl.js'
 import { CategoryLogoField } from '../../components/categories/CategoryLogoField.jsx'
+import { CategoryOfferModal } from '../../components/categories/CategoryOfferModal.jsx'
 import { ProductTableThumbnail } from '../../components/products/ProductTableThumbnail.jsx'
 import { fetchProductsList } from '../../query/fetchers/productList.js'
 import { queryKeys } from '../../query/queryKeys.js'
@@ -158,6 +159,7 @@ export function CategoriesListPage() {
   const [subLogoFile, setSubLogoFile] = useState(/** @type {File | null} */ (null))
   const [logoRemoving, setLogoRemoving] = useState(false)
   const [productViewer, setProductViewer] = useState(null)
+  const [offerCategory, setOfferCategory] = useState(/** @type {{ id: number | string, name: string } | null} */ (null))
   const [productSearch, setProductSearch] = useState('')
   const [productSearchQuery, setProductSearchQuery] = useState('')
   const [productPage, setProductPage] = useState(1)
@@ -565,13 +567,16 @@ export function CategoriesListPage() {
     {
       title: t('shared.actions'),
       key: 'actions',
-      width: 330,
+      width: 440,
       align: 'left',
       fixed: 'right',
       render: (_, row) => (
         <Space size="small" wrap>
           <AntButton icon={<EyeOutlined />} onClick={() => openProductViewer(row, 'category')}>
             {t('categories.viewProducts')}
+          </AntButton>
+          <AntButton icon={<PercentageOutlined />} onClick={() => setOfferCategory({ id: row.id, name: row.name })}>
+            {t('categories.offerAction')}
           </AntButton>
           <TableRowActions
             onEdit={() => openEditCategory(row)}
@@ -659,13 +664,16 @@ export function CategoriesListPage() {
     {
       title: t('shared.actions'),
       key: 'actions',
-      width: 330,
+      width: 440,
       align: 'left',
       fixed: 'right',
       render: (_, row) => (
         <Space size="small" wrap>
           <AntButton icon={<EyeOutlined />} onClick={() => openProductViewer(row, 'subcategory')}>
             {t('categories.viewProducts')}
+          </AntButton>
+          <AntButton icon={<PercentageOutlined />} onClick={() => setOfferCategory({ id: row.id, name: row.name })}>
+            {t('categories.offerAction')}
           </AntButton>
           <TableRowActions
             onEdit={() => openEditSubcategory(row)}
@@ -929,6 +937,12 @@ export function CategoriesListPage() {
           </Form.Item>
         </Form>
       </Modal>
+
+      <CategoryOfferModal
+        key={offerCategory ? String(offerCategory.id) : 'closed'}
+        category={offerCategory}
+        onClose={() => setOfferCategory(null)}
+      />
     </div>
   )
 }

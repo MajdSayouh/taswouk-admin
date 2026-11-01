@@ -838,7 +838,18 @@
     "formLogoUpload": "اختر صورة",
     "formLogoRemove": "إزالة الشعار",
     "logoUploadErr": "تم حفظ التصنيف، لكن فشل رفع الشعار",
-    "logoRemoved": "تمت إزالة الشعار"
+    "logoRemoved": "تمت إزالة الشعار",
+    "offerAction": "خصم على الفئة",
+    "offerTitle": "خصم على كل منتجات «{{name}}»",
+    "offerPercent": "نسبة الخصم",
+    "offerStore": "المتجر",
+    "offerAllStores": "كل المتاجر",
+    "offerIncludeSubcategories": "يشمل التصنيفات الفرعية",
+    "offerDone": "طُبّق الخصم على {{count}} منتج",
+    "offerRemoved": "أُلغي العرض عن {{count}} منتج",
+    "offerRemove": "إلغاء العروض",
+    "offerRemoveTitle": "إلغاء عروض الفئة",
+    "offerRemoveConfirm": "سيُلغى العرض عن كل منتجات «{{name}}» وتعود إلى سعرها الأصلي."
   },
   "stores": {
     "currency": {

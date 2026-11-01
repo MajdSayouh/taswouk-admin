@@ -10,6 +10,7 @@ import {
 } from '../utils/productWritePayload.js'
 import { parseVariantIdFromDto, variantStatusForApiRow } from '../utils/productVariants.js'
 import { buildBulkOfferPayload, normalizeBulkOfferResult } from '../utils/bulkOffer.js'
+import { buildCategoryOfferPayload } from '../utils/categoryOffer.js'
 
 function waitForRetry(delayMs) {
   return new Promise((resolve) => globalThis.setTimeout(resolve, delayMs))
@@ -211,6 +212,17 @@ export async function deleteProduct(productId) {
  */
 export async function bulkOffer(input) {
   const { data } = await apiClient.post('/api/products/bulk-offer', buildBulkOfferPayload(input))
+  return normalizeBulkOfferResult(data)
+}
+
+/**
+ * Put every product of a category (and, by default, its subcategories) on a
+ * percentage offer, or take them all off. Optionally limited to one store.
+ *
+ * @param {{ categoryId: number | string, action: 'apply' | 'remove', percent?: number, storeId?: number | string | null, includeSubcategories?: boolean }} input
+ */
+export async function categoryOffer(input) {
+  const { data } = await apiClient.post('/api/products/category-offer', buildCategoryOfferPayload(input))
   return normalizeBulkOfferResult(data)
 }
 

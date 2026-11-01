@@ -842,7 +842,18 @@
     "formLogoHint": "PNG, JPG, or WebP. Saved after you create or save the category.",
     "formLogoUpload": "Choose image",
     "formLogoRemove": "Remove logo",
-    "logoUploadErr": "Category saved, but logo upload failed"
+    "logoUploadErr": "Category saved, but logo upload failed",
+    "offerAction": "Category discount",
+    "offerTitle": "Discount every product in “{{name}}”",
+    "offerPercent": "Discount percentage",
+    "offerStore": "Store",
+    "offerAllStores": "All stores",
+    "offerIncludeSubcategories": "Include subcategories",
+    "offerDone": "Discount applied to {{count}} products",
+    "offerRemoved": "Offer removed from {{count}} products",
+    "offerRemove": "Remove offers",
+    "offerRemoveTitle": "Remove category offers",
+    "offerRemoveConfirm": "Every product in “{{name}}” will go back to its original price."
   },
   "stores": {
     "currency": {
