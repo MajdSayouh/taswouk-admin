@@ -1,8 +1,9 @@
 // View: stores — toolbar + column filter dropdowns, left-aligned.
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Table, Tag, Space, Alert, Spin, Select, Switch, message, Button as AntButton } from 'antd'
+import { ShopOutlined } from '@ant-design/icons'
 import { useStoresViewModel } from '../../viewmodels/useStoresViewModel'
 import { DashboardTableToolbar } from '../../components/tables/DashboardTableToolbar.jsx'
 import { ColumnTextFilterDropdown } from '../../components/tables/ColumnTextFilterDropdown.jsx'
@@ -17,6 +18,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { TruncatedTextCell } from '../../components/tables/TruncatedTextCell.jsx'
 import { filterStoresByType } from '../../utils/storeFilters.js'
+import { resolvePublicMediaUrl } from '../../utils/mediaUrl.js'
 import { storeSection } from './storeSections.js'
 
 const DEFAULT_PAGE_SIZE = 10
@@ -292,6 +294,30 @@ export function StoresListPage({ section: sectionType = null, mallMode = false }
       : t('shared.count', { count: displayTotal })
 
   const columns = [
+    {
+      title: t('stores.list.colLogo'),
+      key: 'logo',
+      align: 'left',
+      width: 72,
+      render: (_, row) => (
+        <Link
+          to={`/products?store_id=${encodeURIComponent(row.id)}`}
+          title={t('stores.list.openProducts', { name: row.name })}
+          aria-label={t('stores.list.openProducts', { name: row.name })}
+          className="flex h-10 w-10 items-center justify-center overflow-hidden rounded border border-slate-200 bg-slate-50 text-slate-400 transition-colors hover:border-[#FF7D29] hover:text-[#FF7D29]"
+        >
+          {row.logoUrl ? (
+            <img
+              src={resolvePublicMediaUrl(row.logoUrl)}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <ShopOutlined />
+          )}
+        </Link>
+      ),
+    },
     {
       title: t('stores.list.colStore'),
       key: 'name',

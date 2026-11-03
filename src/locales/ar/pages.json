@@ -862,6 +862,8 @@
       "suffixFiltered": "{{shown}} معروض · {{total}} الإجمالي",
       "suffixCount": "{{total}}",
       "newStore": "+ متجر جديد",
+      "colLogo": "الصورة",
+      "openProducts": "عرض منتجات {{name}}",
       "searchPlaceholder": "بحث بالاسم، المعرف، البائع، الهاتف، العنوان…",
       "activeAny": "نشط: أي",
       "activeYes": "نشط: نعم",

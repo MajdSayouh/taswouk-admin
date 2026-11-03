@@ -7,6 +7,7 @@
  * @property {string} [phone]
  * @property {string} [address]
  * @property {string} [description]
+ * @property {string | null} logoUrl
  * @property {number | null} exchangeRate
  * @property {boolean} isActive
  * @property {boolean} isBrand
@@ -35,6 +36,7 @@ export function mapStoreFromApi(raw) {
       phone: '',
       address: '',
       description: '',
+      logoUrl: null,
       exchangeRate: null,
       isActive: false,
       isBrand: false,
@@ -57,6 +59,7 @@ export function mapStoreFromApi(raw) {
     phone: raw.phone ?? '',
     address: raw.address ?? '',
     description: raw.description ?? '',
+    logoUrl: raw.logo ?? null,
     exchangeRate: parseExchangeRate(raw.exchange_rate ?? raw.exchangeRate),
     isActive: Boolean(raw.is_active),
     isBrand: Boolean(raw.is_brand),

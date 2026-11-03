@@ -866,6 +866,8 @@
       "suffixFiltered": "{{shown}} shown · {{total}} total",
       "suffixCount": "{{total}}",
       "newStore": "+ New store",
+      "colLogo": "Image",
+      "openProducts": "View products of {{name}}",
       "searchPlaceholder": "Search name, ID, seller, phone, address…",
       "activeAny": "Active: any",
       "activeYes": "Active: yes",

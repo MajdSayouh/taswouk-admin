@@ -509,11 +509,24 @@ export function StoreEditPage({ section: sectionType = null }) {
           </label>
           {newLogoPreview || existingLogo ? (
             <div className="md:col-span-2 flex items-center gap-3">
-              <img
-                src={newLogoPreview || existingLogo}
-                alt={t('stores.edit.logoAlt')}
-                className="h-24 w-24 rounded-lg border border-slate-200 object-cover"
-              />
+              {newLogoPreview ? (
+                <img
+                  src={newLogoPreview}
+                  alt={t('stores.edit.logoAlt')}
+                  className="h-24 w-24 rounded-lg border border-slate-200 object-cover"
+                />
+              ) : (
+                <Link
+                  to={`/products?store_id=${encodeURIComponent(id)}`}
+                  title={t('stores.list.openProducts', { name: raw?.name ?? '' })}
+                >
+                  <img
+                    src={existingLogo}
+                    alt={t('stores.edit.logoAlt')}
+                    className="h-24 w-24 rounded-lg border border-slate-200 object-cover transition-colors hover:border-[#FF7D29]"
+                  />
+                </Link>
+              )}
               {newLogoPreview ? (
                 <span className="text-xs text-slate-500">{t('stores.edit.newPreview')}</span>
               ) : null}
