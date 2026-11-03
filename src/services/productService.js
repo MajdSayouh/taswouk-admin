@@ -175,7 +175,8 @@ export async function createProduct(payload) {
  *   rate?: number | null
  *   is_active?: boolean | null
  * }} payload
- * @param {{ signal?: AbortSignal }} [options]
+ * @param {{ signal?: AbortSignal, editPending?: boolean }} [options] `editPending` writes name,
+ *   description and category to the merchant's pending edit instead of the published copy.
  * @returns {Promise<ProductDto>}
  */
 export async function updateProduct(productId, payload, options = {}) {
@@ -189,6 +190,7 @@ export async function updateProduct(productId, payload, options = {}) {
   }
   const { data } = await apiClient.put(`/api/products/${productId}`, body, {
     signal: options.signal,
+    params: options.editPending ? { edit_pending: true } : undefined,
   })
   return data
 }

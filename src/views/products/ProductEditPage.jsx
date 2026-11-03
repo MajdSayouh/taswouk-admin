@@ -134,7 +134,8 @@ export function ProductEditPage() {
   const [searchParams] = useSearchParams()
   const returnToParam = searchParams.get('return_to')
   const productsReturnTo =
-    typeof returnToParam === 'string' && returnToParam.startsWith('/products')
+    typeof returnToParam === 'string' &&
+    (returnToParam.startsWith('/products') || returnToParam.startsWith('/moderation'))
       ? returnToParam
       : '/products'
   const variantsAnchorRef = useRef(/** @type {HTMLDivElement | null} */ (null))
@@ -247,7 +248,26 @@ export function ProductEditPage() {
   const variantPricingManaged =
     validVariantRows.length > 0 || variantRows.some((row) => row.variantId != null)
 
-  const raw = productQuery.data
+  const pendingChanges = productQuery.data?.pending_changes ?? null
+  // A merchant's pending edit is what is being reviewed, so the form opens on it rather than on
+  // the published copy. Saving then corrects that edit (see `editPending` below).
+  const raw = useMemo(() => {
+    const product = productQuery.data
+    if (!product || !pendingChanges) return product
+    const { category_id: categoryId, ...content } = pendingChanges
+    return {
+      ...product,
+      ...content,
+      ...(categoryId != null
+        ? {
+            category_id: categoryId,
+            category: undefined,
+            sub_category: undefined,
+            category_details: undefined,
+          }
+        : null),
+    }
+  }, [productQuery.data, pendingChanges])
 
   useEffect(() => {
     setVariantsUiReady(false)
@@ -581,8 +601,11 @@ export function ProductEditPage() {
         baselineCategoryId,
         hasVariants: validVariants.length > 0,
       }
+      const editPending = pendingChanges != null
       try {
-        await productService.updateProduct(id, buildProductUpdatePayload(form, updateOptions))
+        await productService.updateProduct(id, buildProductUpdatePayload(form, updateOptions), {
+          editPending,
+        })
       } catch (err) {
         const detail = String(err?.message ?? '')
         if (!detail.includes('pricing is managed by variants')) throw err
@@ -592,6 +615,7 @@ export function ProductEditPage() {
             ...updateOptions,
             hasVariants: true,
           }),
+          { editPending },
         )
       }
       const files = Array.isArray(form.imageFiles) ? form.imageFiles : []
@@ -673,7 +697,8 @@ export function ProductEditPage() {
         queryKey: queryKeys.products.root,
         refetchType: 'none',
       })
-      navigate(productsReturnTo)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.moderationQueue.root })
+      navigate(productsReturnTo, { state: location.state })
     } catch (err) {
       const detail = String(err?.message ?? '')
       if (detail.includes('no field "category"') || detail.includes("no field 'category'")) {
@@ -714,6 +739,10 @@ export function ProductEditPage() {
   return (
     <div className="space-y-6">
       {storesError ? <Alert type="warning" title={storesError} showIcon className="mb-2" /> : null}
+
+      {pendingChanges ? (
+        <Alert type="info" title={t('products.edit.pendingEditNotice')} showIcon />
+      ) : null}
 
       <Card title={t('products.edit.title', { id })}>
         <form onSubmit={handleSubmit}>
@@ -783,7 +812,7 @@ export function ProductEditPage() {
               )
             }
           >
-            <Button type="button" variant="ghost" as={Link} to={productsReturnTo}>
+            <Button type="button" variant="ghost" as={Link} to={productsReturnTo} state={location.state}>
               {t('products.edit.cancel')}
             </Button>
             <Button

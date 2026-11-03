@@ -191,6 +191,7 @@
     },
     "edit": {
       "title": "Edit product #{{id}}",
+      "pendingEditNotice": "This product has a merchant edit awaiting review, and the form shows the merchant's version. Name, description and category reach customers only after approval; price, images and variants apply as soon as you save.",
       "cancel": "Cancel",
       "submit": "Save changes",
       "saving": "Saving…",
@@ -547,6 +548,7 @@
     },
     "review": {
       "backToQueue": "Back to queue",
+      "edit": "Edit before approving",
       "previous": "Previous",
       "next": "Next",
       "waiting": "Waiting {{time}}",

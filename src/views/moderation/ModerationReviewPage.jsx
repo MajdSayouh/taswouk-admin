@@ -273,6 +273,14 @@ export function ModerationReviewPage() {
             {t('moderation.queue.reject')}
           </Button>
           <Button
+            as={Link}
+            variant="ghost"
+            to={`/products/${id}/edit?return_to=${encodeURIComponent(`/moderation/${id}`)}`}
+            state={{ queueIds }}
+          >
+            {t('moderation.review.edit')}
+          </Button>
+          <Button
             type="button"
             variant="primary"
             onClick={handleApprove}
