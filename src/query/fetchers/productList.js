@@ -39,13 +39,14 @@ export function mapProductListItem(item) {
       name: item.name ?? '',
       sku: item.id != null ? `PRD-${item.id}` : '',
       category: formatCategoryLabel(item),
-      // Public list responses already calculate the effective product/variant price. Using it
-      // prevents the products table from issuing one variants request for every visible row.
+      // List responses already calculate the effective product/variant price. Using it prevents
+      // the products table from issuing one variants request for every visible row.
       price: effectivePrice,
       stock: 0,
       isActive: item.is_active ?? true,
     }),
     storeId: storeId != null ? String(storeId) : '',
+    currency: item.currency != null ? String(item.currency) : '',
     description: item.description != null ? String(item.description) : '',
     isOffer: Boolean(item.is_offer),
     newPrice: item.new_price != null ? Number(item.new_price) : null,
@@ -56,21 +57,22 @@ export function mapProductListItem(item) {
   }
 }
 
-/** Shared GET /api/products/ list fetch — one cache entry for dashboard + products page. */
+/** A list row's price with its store's currency: this list does not convert to SYP. */
+export function formatListPrice(price, currency) {
+  const amount = Number(price ?? 0).toFixed(2)
+  return currency ? `${amount} ${currency}` : amount
+}
+
+/**
+ * Shared GET /api/products/ list fetch — one cache entry for dashboard + products page. Staff need
+ * every product, so not the public list: it leaves out inactive, unapproved and sold-out ones.
+ */
 export async function fetchProductsList({ signal, params = {} } = {}) {
   const q =
     Object.keys(params).length > 0
       ? Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
       : undefined
-  const raw =
-    q?.q != null && String(q.q).trim() !== ''
-      ? await productService.searchPublicProducts(
-          /** @type {{ q: string }} */ (q),
-          { signal },
-        )
-      : q?.page != null || q?.page_size != null
-        ? await productService.getPublicProducts(q, { signal })
-        : await productService.getProducts(q, { signal })
+  const raw = await productService.getProducts(q, { signal })
   const items = normalizeProductList(raw)
   const rows = items.map(mapProductListItem)
   const exactTotal = normalizeProductTotal(raw)

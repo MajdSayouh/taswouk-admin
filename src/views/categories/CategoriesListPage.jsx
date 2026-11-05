@@ -33,7 +33,7 @@ import { resolvePublicMediaUrl } from '../../utils/mediaUrl.js'
 import { CategoryLogoField } from '../../components/categories/CategoryLogoField.jsx'
 import { CategoryOfferModal } from '../../components/categories/CategoryOfferModal.jsx'
 import { ProductTableThumbnail } from '../../components/products/ProductTableThumbnail.jsx'
-import { fetchProductsList } from '../../query/fetchers/productList.js'
+import { fetchProductsList, formatListPrice } from '../../query/fetchers/productList.js'
 import { queryKeys } from '../../query/queryKeys.js'
 
 function CategoryActiveSwitch({ row, mutation, t }) {
@@ -234,7 +234,9 @@ export function CategoriesListPage() {
       dataIndex: 'price',
       key: 'price',
       width: 130,
-      render: (value) => <span className="tabular-nums">{Number(value ?? 0).toFixed(2)}</span>,
+      render: (value, row) => (
+        <span className="tabular-nums">{formatListPrice(value, row.currency)}</span>
+      ),
     },
     {
       title: t('products.list.colStatus'),

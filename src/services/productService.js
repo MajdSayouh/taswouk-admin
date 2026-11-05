@@ -73,61 +73,6 @@ export async function getProducts(params, options = {}) {
   return data
 }
 
-function normalizePublicProductParams(params = {}) {
-  const { page_size: pageSize, ...rest } = params
-  return {
-    ...rest,
-    ...(pageSize != null && pageSize !== '' ? { limit: pageSize } : {}),
-  }
-}
-
-/**
- * GET /api/products/public
- * Public catalog list. The v2 API names its page-size parameter `limit`.
- *
- * @param {Record<string, unknown>} [params]
- * @param {{ signal?: AbortSignal }} [options]
- * @returns {Promise<ProductDto[]>}
- */
-export async function getPublicProducts(params, options = {}) {
-  const { data } = await apiClient.get('/api/products/public', {
-    params: normalizePublicProductParams(params),
-    signal: options.signal,
-    skipAuthHeader: true,
-  })
-  return data
-}
-
-/**
- * GET /api/products/public/search
- * Uses the v2 unified products search endpoint and returns its raw response shape.
- *
- * @param {{
- *   q: string
- *   name?: string | null
- *   store_id?: number | null
- *   category?: string | null
- *   sub_category?: string | null
- *   category_id?: number | null
- *   min_price?: number | null
- *   max_price?: number | null
- *   color?: string | null
- *   size?: string | null
- *   is_offer?: boolean | null
- *   brand_only?: boolean
- *   sort?: string | null
- * }} params
- * @param {{ signal?: AbortSignal }} [options]
- */
-export async function searchPublicProducts(params, options = {}) {
-  const { data } = await apiClient.get('/api/products/public/search', {
-    params: normalizePublicProductParams(params),
-    signal: options.signal,
-    skipAuthHeader: true,
-  })
-  return data
-}
-
 /**
  * GET /api/products/{product_id}
  * @param {number | string} productId

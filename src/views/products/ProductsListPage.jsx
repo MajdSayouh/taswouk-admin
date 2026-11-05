@@ -16,6 +16,7 @@ import {
 import { queryKeys } from '../../query/queryKeys.js'
 import { useAuthStore, isAdminRole, isSellerRole } from '../../store/authStore.js'
 import { useProductsViewModel } from '../../viewmodels/useProductsViewModel'
+import { formatListPrice } from '../../query/fetchers/productList.js'
 import { useCategoriesViewModel } from '../../viewmodels/useCategoriesViewModel.js'
 import { DashboardTableToolbar } from '../../components/tables/DashboardTableToolbar.jsx'
 import { ColumnTextFilterDropdown } from '../../components/tables/ColumnTextFilterDropdown.jsx'
@@ -642,8 +643,8 @@ export function ProductsListPage() {
             confirm={confirm}
           />
         ),
-        render: (v) => (
-          <span className="tabular-nums text-slate-900">{Number(v ?? 0).toFixed(2)}</span>
+        render: (v, row) => (
+          <span className="tabular-nums text-slate-900">{formatListPrice(v, row.currency)}</span>
         ),
       },
       {
