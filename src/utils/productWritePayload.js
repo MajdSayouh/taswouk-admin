@@ -6,6 +6,7 @@
  * Only whitelisted keys below may be sent on POST/PUT /api/products/.
  */
 import { isHtmlEmpty } from './htmlContent.js'
+import { categoryIdsChanged, productCategoryIds } from './productCategoryIds.js'
 
 const ALLOWED_KEYS = [
   'store_id',
@@ -260,6 +261,8 @@ export function buildProductCreatePayload(form, options = {}) {
   }
   logStrippedProductWriteFields(form)
   let payload = omitNullishProductWriteFields(sanitizeProductWritePayload(raw))
+  const categoryIds = productCategoryIds(raw.category_id, form.extraCategoryIds)
+  if (categoryIds.length > 1) payload.category_ids = categoryIds
   if (options.hasVariants) {
     payload = omitProductPricingWhenVariantsExist(payload)
   }
@@ -268,7 +271,9 @@ export function buildProductCreatePayload(form, options = {}) {
 
 /**
  * @param {Record<string, unknown>} form
- * @param {{ baselineCategoryId?: number | string | null, hasVariants?: boolean }} [options]
+ * @param {{ baselineCategoryId?: number | string | null, baselineCategoryIds?: (number | string)[], hasVariants?: boolean }} [options]
+ *   `category_ids` goes only when `baselineCategoryIds` is given and the set really changed: on a
+ *   published product even an unchanged list would read as an edit to review.
  *   When `baselineCategoryId` matches the resolved form category, `category_id` is omitted
  *   to avoid a known API bug that injects legacy `category` when `category_id` is sent.
  *   When `hasVariants` is true, `price` / `is_offer` / `new_price` are omitted (variant pricing only).
@@ -306,6 +311,14 @@ export function buildProductUpdatePayload(form, options = {}) {
 
   if (skipCategoryId || categoryUnchanged) {
     delete payload.category_id
+  }
+
+  if (Array.isArray(options.baselineCategoryIds)) {
+    const categoryIds = productCategoryIds(categoryId, form.extraCategoryIds)
+    if (categoryIdsChanged(categoryIds, options.baselineCategoryIds)) {
+      payload.category_ids = categoryIds
+      delete payload.category_id
+    }
   }
 
   if (options.hasVariants) {

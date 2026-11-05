@@ -40,6 +40,7 @@ function emptyForm() {
     category: '',
     subCategoryId: '',
     subCategory: '',
+    extraCategoryIds: [],
     sizes: [],
     colors: [],
     imageFiles: [],
@@ -95,7 +96,14 @@ export function ProductCreatePage() {
           next.storeId !== prev.storeId &&
           scopeForStoreId(next.storeId) !== scopeForStoreId(prev.storeId)
         ) {
-          return { ...next, categoryId: '', category: '', subCategoryId: '', subCategory: '' }
+          return {
+            ...next,
+            categoryId: '',
+            category: '',
+            subCategoryId: '',
+            subCategory: '',
+            extraCategoryIds: [],
+          }
         }
         return next
       }),

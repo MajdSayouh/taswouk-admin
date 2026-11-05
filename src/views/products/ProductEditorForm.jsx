@@ -6,6 +6,7 @@ import { DeleteOutlined, PlayCircleOutlined, UploadOutlined } from '@ant-design/
 import { Input } from '../../components/ui/Input'
 import { RichTextEditor } from '../../components/ui/RichTextEditor.jsx'
 import { ProductImagesField } from '../../components/products/ProductImagesField.jsx'
+import { MAX_PRODUCT_CATEGORIES, extraCategoryOptions } from '../../utils/productCategoryIds.js'
 
 /** Clothing + common numeric sizes (shoes). */
 export const PRODUCT_SIZE_OPTIONS = [
@@ -32,6 +33,7 @@ const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i
  * @property {string} category
  * @property {string} [subCategoryId]
  * @property {string} subCategory
+ * @property {string[]} [extraCategoryIds] — categories besides the primary pair above
  * @property {string[]} sizes — selected size values
  * @property {string[]} colors — hex strings e.g. #RRGGBB
  * @property {string} description
@@ -148,6 +150,15 @@ export function ProductEditorForm({
           ? `${sc.name} (${t('shared.inactive')})`
           : sc.name,
     }))
+
+  const selectedExtraIds = Array.isArray(form.extraCategoryIds) ? form.extraCategoryIds : []
+  const extraOptions = extraCategoryOptions({
+    categories: categoryList,
+    subcategories: Array.isArray(subcategories) ? subcategories : [],
+    primaryId: form.subCategoryId || form.categoryId,
+    selectedIds: selectedExtraIds,
+    unavailableLabel: (id) => t('products.editor.unavailableCategory', { id }),
+  })
 
   const imageFiles = Array.isArray(form.imageFiles) ? form.imageFiles : []
 
@@ -269,6 +280,27 @@ export function ProductEditorForm({
             }))
           }}
         />
+      </div>
+      <div className="md:col-span-2">
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          {t('products.editor.extraCategories')}
+        </label>
+        <Select
+          mode="multiple"
+          allowClear
+          optionFilterProp="label"
+          className="w-full"
+          size="large"
+          loading={categoriesLoading}
+          maxCount={MAX_PRODUCT_CATEGORIES - 1}
+          placeholder={t('products.editor.selectExtraCategories')}
+          value={selectedExtraIds.filter(
+            (id) => String(id) !== String(form.subCategoryId || form.categoryId || ''),
+          )}
+          options={extraOptions}
+          onChange={(values) => setForm((prev) => ({ ...prev, extraCategoryIds: values }))}
+        />
+        <p className="text-xs text-slate-500 mt-1">{t('products.editor.extraCategoriesHint')}</p>
       </div>
       <div className="md:col-span-2">
         <label className="block text-sm font-medium text-slate-700 mb-1.5">

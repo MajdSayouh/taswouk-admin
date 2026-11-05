@@ -247,6 +247,10 @@
       "subcategory": "Sub-category",
       "selectCategoryFirst": "Select category first",
       "selectSubcategory": "Select sub-category",
+      "extraCategories": "Additional categories",
+      "selectExtraCategories": "Choose other categories this product appears in",
+      "extraCategoriesHint": "Optional. The product also appears in these; the category above stays the primary one shown on its page.",
+      "unavailableCategory": "Unavailable category (#{{id}})",
       "sizes": "Sizes",
       "selectSizes": "e.g. S, M, L",
       "sizesHint": "Type the sizes for this product, separated by commas (e.g. S, M, L).",
@@ -1014,7 +1018,7 @@
     },
     "prices": {
       "title": "Price sheet (Excel)",
-      "hint": "Export the store's price sheet, edit prices in that same file (a row with an empty product_id adds a product), then import it back. Categories are matched within this store's section only.",
+      "hint": "Export the store's sheet, edit names, prices or categories in that same file (an empty cell changes nothing, and a row with an empty product_id adds a product), then import it back. Categories are matched within this store's section only.",
       "export": "Export prices (Excel)",
       "exportErr": "Could not export prices",
       "import": "Import prices (Excel)",
@@ -1372,7 +1376,7 @@
       "updateErr": "Could not update assignment",
       "removed": "Product deleted",
       "removeErr": "Could not delete the product",
-      "importPricesHint": "Export the current price file, edit prices in that same file, then import it to bulk-update this mall's product prices."
+      "importPricesHint": "Export the current file, edit names, prices or categories in that same file, then import it to bulk-update this mall's products."
     }
   },
   "externalShops": {

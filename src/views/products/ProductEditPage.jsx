@@ -10,6 +10,7 @@ import { queryKeys } from '../../query/queryKeys.js'
 import { useCategoriesViewModel } from '../../viewmodels/useCategoriesViewModel.js'
 import { useFeatures } from '../../hooks/useFeatures.js'
 import { buildProductUpdatePayload } from '../../utils/productWritePayload.js'
+import { extraCategoryIdsFromApi } from '../../utils/productCategoryIds.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { ProductEditorForm } from './ProductEditorForm.jsx'
@@ -190,6 +191,7 @@ export function ProductEditPage() {
     category: '',
     subCategoryId: '',
     subCategory: '',
+    extraCategoryIds: [],
     sizes: [],
     colors: [],
     imageFiles: [],
@@ -254,11 +256,14 @@ export function ProductEditPage() {
   const raw = useMemo(() => {
     const product = productQuery.data
     if (!product || !pendingChanges) return product
-    const { category_id: categoryId, ...content } = pendingChanges
+    const { category_id: pendingCategoryId, category_ids: pendingCategoryIds, ...content } = pendingChanges
+    // A full list carries the primary first, and may empty it.
+    const categoryId = pendingCategoryIds ? (pendingCategoryIds[0] ?? null) : pendingCategoryId
     return {
       ...product,
       ...content,
-      ...(categoryId != null
+      ...(pendingCategoryIds ? { category_ids: pendingCategoryIds } : null),
+      ...(categoryId != null || pendingCategoryIds
         ? {
             category_id: categoryId,
             category: undefined,
@@ -460,6 +465,7 @@ export function ProductEditPage() {
       category: raw?.category ?? raw?.category_details?.name ?? '',
       subCategoryId: '',
       subCategory: raw?.sub_category ?? '',
+      extraCategoryIds: extraCategoryIdsFromApi(raw),
       sizes: normalizeSizesFromApi(raw?.size),
       colors: normalizeColorsFromApi(raw?.colors),
       imageFiles: [],
@@ -599,6 +605,7 @@ export function ProductEditPage() {
       const baselineCategoryId = raw?.category_id ?? raw?.category_details?.id ?? null
       const updateOptions = {
         baselineCategoryId,
+        baselineCategoryIds: Array.isArray(raw?.category_ids) ? raw.category_ids : [],
         hasVariants: validVariants.length > 0,
       }
       const editPending = pendingChanges != null
