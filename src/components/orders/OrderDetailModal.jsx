@@ -7,6 +7,7 @@ import { DeleteOutlined } from '@ant-design/icons'
 import {
   getOrderById,
   getDeliveryAssignments,
+  getOrderSupplierSources,
   removeOrderItems,
   updateOrderStatus,
 } from '../../services/orderService.js'
@@ -17,6 +18,7 @@ import { queryKeys } from '../../query/queryKeys.js'
 import { useAuthStore, isAdminRole } from '../../store/authStore.js'
 import { normalizeOrderDetail, extractDriverLocation, coordsFromLatLng } from '../../utils/orderDetail.js'
 import { buildOrderItemProductUrl } from '../../utils/publicSiteLinks.js'
+import { normalizeSupplierSources } from '../../utils/supplierSources.js'
 import { ProductTableThumbnail } from '../products/ProductTableThumbnail.jsx'
 import { OrderTrackingMap } from '../maps/OrderTrackingMap.jsx'
 import { AssignmentRouteMap } from '../maps/AssignmentRouteMap.jsx'
@@ -148,6 +150,21 @@ export function OrderDetailModal({
 
   const detail = isMockPreview ? mockDetail : detailQuery.data
   const assignment = assignmentQuery.data
+
+  // Only store lines carry `order_id`, so a mall order (whose id may collide with an
+  // unrelated store order) never asks.
+  const storeRowId = detail?.items?.find((item) => item.orderId != null)?.orderId ?? null
+  const supplierSourcesQuery = useQuery({
+    queryKey: queryKeys.orders.supplierSources(storeRowId),
+    queryFn: () => getOrderSupplierSources(Number(storeRowId)),
+    enabled: canFetch && isAdmin && storeRowId != null,
+    retry: false,
+  })
+  const supplierSources = useMemo(
+    () => normalizeSupplierSources(supplierSourcesQuery.data),
+    [supplierSourcesQuery.data],
+  )
+
   // The route endpoint is admin-only; everyone else keeps the destination-only map.
   const routeAssignmentId =
     user && isAdminRole(user.role) && assignment?.assignment_id != null ? assignment.assignment_id : null
@@ -369,6 +386,25 @@ export function OrderDetailModal({
         width: 110,
         render: (v) => <span className="tabular-nums font-medium">{Number(v).toFixed(2)}</span>,
       },
+      ...(supplierSources.byItemId.size > 0
+        ? [
+            {
+              title: t('orders.detail.supplierColumn'),
+              key: 'supplierLink',
+              width: 110,
+              render: (_value, row) => {
+                const url = supplierSources.byItemId.get(String(row.itemId))
+                return url ? (
+                  <a href={url} target="_blank" rel="noopener noreferrer">
+                    {t('orders.detail.supplierOpenProduct')}
+                  </a>
+                ) : (
+                  t('shared.emDash')
+                )
+              },
+            },
+          ]
+        : []),
       ...(removableItemKeys.size > 0
         ? [
             {
@@ -401,7 +437,7 @@ export function OrderDetailModal({
     ],
     // The handlers are recreated each render but only read state already listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, detail?.isExternal, detail?.orderType, detail?.mallId, removableItemKeys, removing],
+    [t, detail?.isExternal, detail?.orderType, detail?.mallId, removableItemKeys, removing, supplierSources],
   )
 
   const selectedItems = (detail?.items ?? []).filter(
@@ -584,6 +620,35 @@ export function OrderDetailModal({
                 orderId={detail.parts[0]?.orderId ?? numericId}
                 delivered={detail.status === 'delivered'}
               />
+            </div>
+          ) : null}
+
+          {supplierSourcesQuery.isError ? (
+            <Alert type="warning" showIcon message={t('orders.detail.supplierLoadError')} />
+          ) : null}
+          {supplierSources.stores.length > 0 ? (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-800 mb-2">{t('orders.detail.supplierTitle')}</h4>
+              <Alert type="info" showIcon className="!mb-2" message={t('orders.detail.supplierHint')} />
+              <ul className="space-y-1 text-sm">
+                {supplierSources.stores.map((store) => (
+                  <li key={store.storeId} className="flex flex-wrap items-center gap-3">
+                    <span className="font-medium">{store.storeName}</span>
+                    {store.whatsappUrl ? (
+                      <a href={store.whatsappUrl} target="_blank" rel="noopener noreferrer" dir="ltr">
+                        {t('orders.detail.supplierWhatsapp')}: {store.whatsapp}
+                      </a>
+                    ) : (
+                      <span className="text-slate-500">{t('orders.detail.supplierNoWhatsapp')}</span>
+                    )}
+                    {store.storeUrl ? (
+                      <a href={store.storeUrl} target="_blank" rel="noopener noreferrer">
+                        {t('orders.detail.supplierOpenStore')}
+                      </a>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
 

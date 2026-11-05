@@ -30,6 +30,17 @@ export async function getOrderById(orderId, orderType) {
 }
 
 /**
+ * GET /api/orders/{order_id}/supplier-sources — admin only. Merchant contact and product
+ * link for lines from a supplier's store. `orderId` is a store row (`items[].order_id`).
+ * @param {number} orderId
+ * @returns {Promise<unknown[]>}
+ */
+export async function getOrderSupplierSources(orderId) {
+  const { data } = await apiClient.get(`/api/orders/${orderId}/supplier-sources`)
+  return Array.isArray(data) ? data : []
+}
+
+/**
  * GET /api/delivery/assignments — admin list of assigned orders (includes delivery_user_id).
  * @returns {Promise<unknown[]>}
  */

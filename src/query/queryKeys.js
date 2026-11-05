@@ -23,6 +23,7 @@ export const queryKeys = {
   orders: {
     all: () => ['orders'],
     detail: (id, orderType) => ['orders', 'detail', String(id ?? ''), String(orderType ?? '')],
+    supplierSources: (id) => ['orders', 'supplierSources', String(id ?? '')],
   },
   externalInvoices: {
     root: ['externalInvoices'],
