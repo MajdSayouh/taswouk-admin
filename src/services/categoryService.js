@@ -162,3 +162,78 @@ export async function deleteCategoryLogo(categoryId) {
   const { data } = await apiClient.delete(withId(getCategoryLogoPathTemplate(), categoryId))
   return data
 }
+
+// ── Tree management (categories page) ───────────────────────────────────────
+// Every call names the section it was made from (`expected_scope`), and the
+// backend refuses a parent or a target from another section.
+
+/**
+ * One section's tree with product counts, for the management page.
+ * @param {{ scope: string, signal?: AbortSignal }} options
+ */
+export async function listCategoryTree({ scope, signal }) {
+  const { data } = await apiClient.get(getCategoriesListPath(), {
+    signal,
+    params: { scope, with_counts: true },
+  })
+  return normalizeListResponse(data)
+}
+
+/** @param {number | string} id */
+export async function getCategoryImpact(id) {
+  const { data } = await apiClient.get(`${withId(getCategoryDetailPathTemplate(), id)}/impact`)
+  return data
+}
+
+/**
+ * @param {number | string} id
+ * @param {{ scope: string, expected_scope: string, dry_run?: boolean, confirm_name?: string }} payload
+ */
+export async function changeCategoryScope(id, payload) {
+  const { data } = await apiClient.post(
+    `${withId(getCategoryDetailPathTemplate(), id)}/change-scope`,
+    payload,
+  )
+  return data
+}
+
+/**
+ * @param {number | string} id
+ * @param {{ reassignTo?: number | string | null, expectedScope?: string }} [options]
+ */
+export async function deleteCategoryWithOptions(id, options = {}) {
+  const params = {}
+  if (options.reassignTo != null) params.reassign_to = Number(options.reassignTo)
+  if (options.expectedScope) params.expected_scope = options.expectedScope
+  await apiClient.delete(withId(getCategoryDetailPathTemplate(), id), { params })
+}
+
+/**
+ * @param {number | string} id
+ * @param {number | string} targetId
+ */
+export async function moveCategoryProducts(id, targetId) {
+  const { data } = await apiClient.post(
+    `${withId(getCategoryDetailPathTemplate(), id)}/move-products`,
+    { target_category_id: Number(targetId) },
+  )
+  return data
+}
+
+/** @param {{ scope: string, parent_id: number | null, ordered_ids: number[] }} payload */
+export async function reorderCategories(payload) {
+  const { data } = await apiClient.post(`${getCategoryCreatePath()}/reorder`, payload)
+  return data
+}
+
+/** @param {{ scope?: string, categoryId?: number | string, limit?: number, signal?: AbortSignal }} [options] */
+export async function listCategoryChangeLog(options = {}) {
+  const params = { limit: options.limit ?? 100 }
+  if (options.scope) params.scope = options.scope
+  if (options.categoryId != null) params.category_id = Number(options.categoryId)
+  const { data } = await apiClient.get(`${getCategoryCreatePath()}/change-log`, {
+    params,
+    signal: options.signal,
+  })
+  return normalizeListResponse(data)
+}
