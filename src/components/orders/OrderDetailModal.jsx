@@ -57,6 +57,9 @@ function buildMockDetailPayload(record) {
   }
 }
 
+// An external order can be priced once it is confirmed — the backend's rule too.
+const EXTERNAL_PRICEABLE_STATUSES = new Set(['confirmed', 'preparing', 'out_for_delivery', 'delivered'])
+
 // A line can come off an order until it is delivered — the backend's rule too.
 const ITEM_REMOVABLE_STATUSES = new Set(['pending', 'confirmed', 'preparing', 'out_for_delivery'])
 
@@ -618,7 +621,7 @@ export function OrderDetailModal({
               </h4>
               <ExternalInvoicePanel
                 orderId={detail.parts[0]?.orderId ?? numericId}
-                delivered={detail.status === 'delivered'}
+                priceable={EXTERNAL_PRICEABLE_STATUSES.has(detail.status)}
               />
             </div>
           ) : null}

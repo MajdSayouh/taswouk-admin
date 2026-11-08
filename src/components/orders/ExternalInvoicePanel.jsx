@@ -18,9 +18,10 @@ function formatSyp(value) {
 }
 
 /**
- * @param {{ orderId: number | string, delivered: boolean, onSaved?: () => void }} props
+ * @param {{ orderId: number | string, priceable: boolean, onSaved?: () => void }} props
+ * `priceable`: the order is confirmed or further along (and not cancelled) — the backend's rule.
  */
-export function ExternalInvoicePanel({ orderId, delivered, onSaved }) {
+export function ExternalInvoicePanel({ orderId, priceable, onSaved }) {
   const { t } = useTranslation('pages')
   const invoiceQuery = useExternalInvoice(orderId)
 
@@ -60,8 +61,8 @@ export function ExternalInvoicePanel({ orderId, delivered, onSaved }) {
     )
   }
 
-  if (!delivered) {
-    return <Alert type="info" showIcon title={t('externalInvoices.afterDelivery')} />
+  if (!priceable) {
+    return <Alert type="info" showIcon title={t('externalInvoices.afterConfirmation')} />
   }
 
   return <ExternalInvoiceForm orderId={orderId} onSaved={onSaved} />

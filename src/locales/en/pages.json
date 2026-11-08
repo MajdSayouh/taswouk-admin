@@ -1781,7 +1781,7 @@
     "note": "Note",
     "enteredBy": "Entered by",
     "locked": "Final — cannot be edited",
-    "afterDelivery": "The price can be entered only after the order is delivered.",
+    "afterConfirmation": "The price can be entered only after the order is confirmed.",
     "finalWarning": "Note: the price is final and cannot be edited or deleted once saved.",
     "review": "Review and save",
     "confirmTitle": "Confirm price for order #{{id}}",

@@ -102,7 +102,7 @@ export function ExternalInvoicesPage() {
         {activeOrderId != null ? (
           <ExternalInvoicePanel
             orderId={activeOrderId}
-            delivered
+            priceable
             onSaved={() => setActiveOrderId(null)}
           />
         ) : null}

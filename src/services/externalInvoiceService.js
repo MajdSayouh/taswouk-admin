@@ -1,5 +1,5 @@
 /**
- * External-order invoices — the price of a delivered external-shop order, entered once.
+ * External-order invoices — the price of a confirmed (or later) external-shop order, entered once.
  * The backend refuses any edit after creation (409), so there is no update/delete call here.
  */
 import { apiClient } from './apiClient.js'
