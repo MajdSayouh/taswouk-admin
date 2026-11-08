@@ -1,17 +1,30 @@
-// Delivered external-shop orders that still have no price. Each one is a sale the accounting
-// system counts at 0 until an admin enters its price and invoice here.
-import { useState } from 'react'
+// Purchase batches price external-shop orders: upload one here, see earlier ones, and see the
+// delivered orders no batch has covered yet (the accounting system counts those at 0).
 import { useTranslation } from 'react-i18next'
-import { Alert, Empty, Modal, Table } from 'antd'
+import { Alert, Empty, Table } from 'antd'
+import { PaperClipOutlined } from '@ant-design/icons'
 import { Card } from '../../components/ui/Card'
-import { Button } from '../../components/ui/Button'
-import { ExternalInvoicePanel } from '../../components/orders/ExternalInvoicePanel.jsx'
-import { usePendingExternalInvoices } from '../../viewmodels/useExternalInvoicesViewModel.js'
+import {
+  usePendingExternalInvoices,
+  usePurchaseBatches,
+} from '../../viewmodels/useExternalInvoicesViewModel.js'
+import { formatSyp } from '../../utils/externalOrder.js'
+import { PurchaseBatchForm } from './PurchaseBatchForm.jsx'
+
+function FileLink({ url, name }) {
+  if (!url) return null
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+      <PaperClipOutlined className="me-1" />
+      {name}
+    </a>
+  )
+}
 
 export function ExternalInvoicesPage() {
   const { t } = useTranslation('pages')
   const query = usePendingExternalInvoices()
-  const [activeOrderId, setActiveOrderId] = useState(/** @type {number | null} */ (null))
+  const batchesQuery = usePurchaseBatches()
 
   const rows = query.data?.items ?? []
   const count = query.data?.count ?? 0
@@ -54,13 +67,35 @@ export function ExternalInvoicesPage() {
       dataIndex: 'delivered_at',
       render: (v) => (v ? new Date(v).toLocaleString() : '—'),
     },
+  ]
+
+  const batchColumns = [
+    { title: t('externalInvoices.batch'), dataIndex: 'id', render: (id) => `#${id}` },
+    { title: t('externalInvoices.purchaseTotal'), dataIndex: 'purchase_total', render: formatSyp },
+    { title: t('externalInvoices.saleTotal'), dataIndex: 'sale_total', render: formatSyp },
     {
-      title: '',
-      key: 'action',
+      title: t('externalInvoices.col.delivered'),
+      key: 'delivered',
+      render: (_, r) => `${r.delivered_orders_count} / ${r.orders_count}`,
+    },
+    {
+      title: t('externalInvoices.col.files'),
+      key: 'files',
       render: (_, r) => (
-        <Button variant="primary" onClick={() => setActiveOrderId(r.order_id)}>
-          {t('externalInvoices.enterPrice')}
-        </Button>
+        <>
+          <FileLink url={r.items_file_url} name={r.items_filename} />
+          <FileLink url={r.receipt_url} name={r.receipt_filename} />
+        </>
+      ),
+    },
+    {
+      title: t('externalInvoices.enteredBy'),
+      key: 'by',
+      render: (_, r) => (
+        <span>
+          {r.created_by_name || `#${r.created_by_id}`}
+          <span className="block text-xs text-slate-500">{new Date(r.created_at).toLocaleString()}</span>
+        </span>
       ),
     },
   ]
@@ -69,6 +104,10 @@ export function ExternalInvoicesPage() {
     <div className="space-y-6">
       <Card title={t('externalInvoices.title')}>
         <p className="text-sm text-slate-600 mb-4 max-w-2xl">{t('externalInvoices.intro')}</p>
+        <PurchaseBatchForm />
+      </Card>
+
+      <Card title={t('externalInvoices.pendingTitle')}>
         {query.isError ? (
           <Alert type="error" showIcon className="mb-4" title={query.error?.message} />
         ) : null}
@@ -92,21 +131,21 @@ export function ExternalInvoicesPage() {
         />
       </Card>
 
-      <Modal
-        open={activeOrderId != null}
-        title={t('externalInvoices.modalTitle', { id: activeOrderId })}
-        footer={null}
-        onCancel={() => setActiveOrderId(null)}
-        destroyOnHidden
-      >
-        {activeOrderId != null ? (
-          <ExternalInvoicePanel
-            orderId={activeOrderId}
-            priceable
-            onSaved={() => setActiveOrderId(null)}
-          />
+      <Card title={t('externalInvoices.batchesTitle')}>
+        {batchesQuery.isError ? (
+          <Alert type="error" showIcon className="mb-4" title={batchesQuery.error?.message} />
         ) : null}
-      </Modal>
+        <Table
+          rowKey="id"
+          size="small"
+          loading={batchesQuery.isLoading}
+          columns={batchColumns}
+          dataSource={batchesQuery.data?.items ?? []}
+          pagination={false}
+          scroll={{ x: true }}
+          locale={{ emptyText: <Empty description={t('externalInvoices.batchesEmpty')} /> }}
+        />
+      </Card>
     </div>
   )
 }

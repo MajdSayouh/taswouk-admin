@@ -28,6 +28,7 @@ export const queryKeys = {
   externalInvoices: {
     root: ['externalInvoices'],
     pending: () => ['externalInvoices', 'pending'],
+    batches: () => ['externalInvoices', 'batches'],
     detail: (orderId) => ['externalInvoices', 'detail', String(orderId ?? '')],
   },
   categories: {

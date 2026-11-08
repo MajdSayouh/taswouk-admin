@@ -63,3 +63,7 @@ export function formatExternalProductDisplay(value) {
     return s.length > 72 ? `${s.slice(0, 72)}…` : s
   }
 }
+
+export function formatSyp(value) {
+  return `${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })} SYP`
+}

@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '../query/queryKeys.js'
 import {
-  createExternalInvoice,
+  createPurchaseBatch,
   getExternalInvoice,
   getPendingExternalInvoices,
+  getPurchaseBatches,
 } from '../services/externalInvoiceService.js'
 
 /** Delivered external orders still waiting for a price — polled so the alert stays current. */
@@ -31,12 +32,18 @@ export function useExternalInvoice(orderId, options = {}) {
   })
 }
 
-export function useCreateExternalInvoice() {
+export function usePurchaseBatches() {
+  return useQuery({
+    queryKey: queryKeys.externalInvoices.batches(),
+    queryFn: ({ signal }) => getPurchaseBatches({ signal, limit: 200 }),
+  })
+}
+
+export function useCreatePurchaseBatch() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ orderId, ...payload }) => createExternalInvoice(orderId, payload),
+    mutationFn: createPurchaseBatch,
     onSettled: () => {
-      // A 409 means someone else priced it meanwhile — refresh either way.
       queryClient.invalidateQueries({ queryKey: queryKeys.externalInvoices.root })
     },
   })
