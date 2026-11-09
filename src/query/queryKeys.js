@@ -25,6 +25,11 @@ export const queryKeys = {
     detail: (id, orderType) => ['orders', 'detail', String(id ?? ''), String(orderType ?? '')],
     supplierSources: (id) => ['orders', 'supplierSources', String(id ?? '')],
   },
+  finance: {
+    entries: () => ['finance', 'entries'],
+    awaitingCost: (scope) => ['finance', 'awaitingCost', scope],
+    drivers: () => ['finance', 'drivers'],
+  },
   externalInvoices: {
     root: ['externalInvoices'],
     pending: () => ['externalInvoices', 'pending'],

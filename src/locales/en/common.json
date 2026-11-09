@@ -27,11 +27,13 @@
     "profile": "Profile",
     "progressiveCoupons": "Progressive coupons",
     "liveDrivers": "Live map",
-    "externalInvoices": "Global order prices"
+    "externalInvoices": "Global order prices",
+    "finance": "Finance"
   },
   "mobile": {
     "menu": "Menu",
-    "navigation": "Navigation"
+    "navigation": "Navigation",
+    "finance": "Finance and costs"
   },
   "titles": {
     "editSeller": "Edit seller",

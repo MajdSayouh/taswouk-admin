@@ -1,4 +1,5 @@
 import {
+  AccountBookOutlined,
   AppstoreOutlined,
   BellOutlined,
   BankOutlined,
@@ -203,6 +204,13 @@ const ADMIN_ONLY_NAV = /** @type {NavItemDef[]} */ ([
     match: 'exact',
     labelKey: 'nav.externalInvoices',
     Icon: FileDoneOutlined,
+  },
+  {
+    key: 'finance',
+    to: '/finance',
+    match: 'exact',
+    labelKey: 'nav.finance',
+    Icon: AccountBookOutlined,
   },
 ])
 

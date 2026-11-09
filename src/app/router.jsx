@@ -140,6 +140,11 @@ const ExchangeRateSettingsPage = lazy(() =>
     default: m.ExchangeRateSettingsPage,
   })),
 )
+const FinancePage = lazy(() =>
+  import('../views/finance/FinancePage.jsx').then((m) => ({
+    default: m.FinancePage,
+  })),
+)
 const ExternalInvoicesPage = lazy(() =>
   import('../views/external-invoices/ExternalInvoicesPage.jsx').then((m) => ({
     default: m.ExternalInvoicesPage,
@@ -406,6 +411,14 @@ export function AppRouter() {
               element={
                 <LazyPage>
                   <ExchangeRateSettingsPage />
+                </LazyPage>
+              }
+            />
+            <Route
+              path="finance"
+              element={
+                <LazyPage>
+                  <FinancePage />
                 </LazyPage>
               }
             />

@@ -27,11 +27,13 @@
     "profile": "الملف الشخصي",
     "progressiveCoupons": "كوبونات تصاعدية",
     "liveDrivers": "الخريطة الحية",
-    "externalInvoices": "أسعار الطلبات العالمية"
+    "externalInvoices": "أسعار الطلبات العالمية",
+    "finance": "المالية"
   },
   "mobile": {
     "menu": "القائمة",
-    "navigation": "التنقل"
+    "navigation": "التنقل",
+    "finance": "المالية والتكاليف"
   },
   "titles": {
     "editSeller": "تعديل بائع",
