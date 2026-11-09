@@ -178,6 +178,24 @@ export function placementOptions(tree, moving, opts = {}) {
 
 export const ROOT_PARENT_VALUE = '__root__'
 
+/** The table's nested-rows field; see `toCategoryRows`. */
+export const CATEGORY_ROW_CHILDREN = 'childRows'
+
+/**
+ * Tree nodes as antd table rows. antd draws an expand arrow for an empty array,
+ * so leaves must have no nested rows -- but they go in their own field, because
+ * each row is also the node handed to the columns and dialogs, which rely on
+ * `children` always being an array.
+ * @param {CategoryNode[]} nodes
+ */
+export function toCategoryRows(nodes) {
+  return nodes.map((n) => ({
+    ...n,
+    key: n.id,
+    [CATEGORY_ROW_CHILDREN]: n.children.length ? toCategoryRows(n.children) : undefined,
+  }))
+}
+
 /** May a child be added under this node? @param {CategoryNode} node */
 export function canAddChild(node) {
   return node.depth < MAX_CATEGORY_LEVELS - 1

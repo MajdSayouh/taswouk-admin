@@ -9,6 +9,7 @@ import {
   mapCategoryTree,
   placementOptions,
   reorderedSiblingIds,
+  toCategoryRows,
 } from '../src/models/CategoryTree.js'
 
 // إلكترونيات > هواتف > ذكية      ملابس > رجالي
@@ -73,6 +74,15 @@ test('reorder swaps with the neighbour and stops at the ends', () => {
   assert.deepEqual(reorderedSiblingIds(tree, findNode(tree, 4), -1), ['4', '1'])
   assert.equal(reorderedSiblingIds(tree, findNode(tree, 4), 1), null)
   assert.equal(reorderedSiblingIds(tree, findNode(tree, 3), 1), null)
+})
+
+test('table rows stay usable as nodes, leaves included', () => {
+  const tree = mapCategoryTree([...RAW, { id: 6, name: 'ورقة' }])
+  const leaf = toCategoryRows(tree).at(-1)
+  assert.deepEqual(leaf.children, [])
+  assert.equal(leaf.childRows, undefined)
+  assert.equal(heightOf(leaf), 0)
+  assert.ok(placementOptions(tree, leaf, { rootLabel: 'root' }).length > 0)
 })
 
 test('search keeps ancestors of a match', () => {

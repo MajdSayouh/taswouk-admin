@@ -43,7 +43,7 @@ import { DashboardAddTriggerButton } from '../../components/tables/DashboardAddB
 import { buildDashboardPagination, DASHBOARD_TABLE_PROPS, DEFAULT_PAGE_SIZE } from '../../components/tables/tableDefaults.js'
 import { useCategoryTreeViewModel } from '../../viewmodels/useCategoryTreeViewModel.js'
 import { CATEGORY_SCOPES } from '../../models/Category.js'
-import { canAddChild, filterTree, reorderedSiblingIds, walkTree } from '../../models/CategoryTree.js'
+import { CATEGORY_ROW_CHILDREN, canAddChild, filterTree, reorderedSiblingIds, toCategoryRows, walkTree } from '../../models/CategoryTree.js'
 import { resolvePublicMediaUrl } from '../../utils/mediaUrl.js'
 import { CategoryOfferModal } from '../../components/categories/CategoryOfferModal.jsx'
 import {
@@ -81,11 +81,6 @@ function ActiveSwitch({ node, vm, t }) {
   )
 }
 
-/** antd shows an expand arrow for `children: []`, so leaves get none. */
-function toRows(nodes) {
-  return nodes.map((n) => ({ ...n, key: n.id, children: n.children.length ? toRows(n.children) : undefined }))
-}
-
 function renderLogo(logoUrl) {
   return logoUrl ? (
     <img
@@ -117,7 +112,7 @@ export function CategoriesListPage() {
   const [logOpen, setLogOpen] = useState(false)
 
   const visibleTree = useMemo(() => filterTree(tree, search), [tree, search])
-  const rows = useMemo(() => toRows(visibleTree), [visibleTree])
+  const rows = useMemo(() => toCategoryRows(visibleTree), [visibleTree])
 
   // While searching, every branch that holds a match is open.
   const searching = search.trim() !== ''
@@ -392,6 +387,7 @@ export function CategoriesListPage() {
                 if (!searching) setExpandedKeys(keys.map(String))
               },
               indentSize: 28,
+              childrenColumnName: CATEGORY_ROW_CHILDREN,
             }}
             pagination={buildDashboardPagination({
               page,
