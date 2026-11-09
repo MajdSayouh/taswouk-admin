@@ -12,6 +12,7 @@ const ALLOWED_KEYS = [
   'store_id',
   'name',
   'category_id',
+  'category_ids',
   'size',
   'colors',
   'description',
