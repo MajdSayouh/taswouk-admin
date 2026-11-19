@@ -84,6 +84,15 @@ export function findNode(nodes, id) {
   return found
 }
 
+/** Ids of every node that has children, at any depth. @param {CategoryNode[]} nodes */
+export function branchIds(nodes) {
+  const out = []
+  walkTree(nodes, (n) => {
+    if (n.children.length) out.push(n.id)
+  })
+  return out
+}
+
 /** Ids of the node and everything beneath it. @param {CategoryNode} node */
 export function subtreeIds(node) {
   const out = new Set()

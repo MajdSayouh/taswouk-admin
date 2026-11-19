@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   MAX_CATEGORY_LEVELS,
+  branchIds,
   canAddChild,
   filterTree,
   findNode,
@@ -49,6 +50,12 @@ test('a category cannot be placed inside itself or too deep', () => {
   assert.equal(opts['2'], true) // itself
   assert.equal(opts['3'], true) // its own child
   assert.equal(opts['5'], true) // depth 1 → would reach depth 3
+})
+
+test('branchIds lists every node with children, at every depth', () => {
+  const tree = mapCategoryTree(RAW)
+  assert.deepEqual(branchIds(tree), ['1', '2', '4'])
+  assert.deepEqual(branchIds(filterTree(tree, 'رجالي')), ['4'])
 })
 
 test('a new category can go under any node above the last level', () => {

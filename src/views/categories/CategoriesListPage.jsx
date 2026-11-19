@@ -30,9 +30,13 @@ import {
   EditOutlined,
   EyeOutlined,
   HistoryOutlined,
+  MinusSquareOutlined,
   MoreOutlined,
+  NodeCollapseOutlined,
+  NodeExpandOutlined,
   PercentageOutlined,
   PlusOutlined,
+  PlusSquareOutlined,
   SwapOutlined,
   ApartmentOutlined,
 } from '@ant-design/icons'
@@ -43,7 +47,15 @@ import { DashboardAddTriggerButton } from '../../components/tables/DashboardAddB
 import { buildDashboardPagination, DASHBOARD_TABLE_PROPS, DEFAULT_PAGE_SIZE } from '../../components/tables/tableDefaults.js'
 import { useCategoryTreeViewModel } from '../../viewmodels/useCategoryTreeViewModel.js'
 import { CATEGORY_SCOPES } from '../../models/Category.js'
-import { CATEGORY_ROW_CHILDREN, canAddChild, filterTree, reorderedSiblingIds, toCategoryRows, walkTree } from '../../models/CategoryTree.js'
+import {
+  CATEGORY_ROW_CHILDREN,
+  branchIds,
+  canAddChild,
+  filterTree,
+  reorderedSiblingIds,
+  toCategoryRows,
+  walkTree,
+} from '../../models/CategoryTree.js'
 import { resolvePublicMediaUrl } from '../../utils/mediaUrl.js'
 import { CategoryOfferModal } from '../../components/categories/CategoryOfferModal.jsx'
 import {
@@ -81,6 +93,9 @@ function ActiveSwitch({ node, vm, t }) {
   )
 }
 
+/** How far each level sits in from its parent, in the name column. */
+const CATEGORY_INDENT_PX = 28
+
 function renderLogo(logoUrl) {
   return logoUrl ? (
     <img
@@ -104,7 +119,10 @@ export function CategoriesListPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
-  const [expandedKeys, setExpandedKeys] = useState(/** @type {string[]} */ ([]))
+  // The tree opens fully: what is tracked is the branches the admin closed, so
+  // sub-categories are on screen without hunting for a toggle, and branches
+  // added later open too.
+  const [collapsedKeys, setCollapsedKeys] = useState(() => new Set())
 
   const [dialog, setDialog] = useState(null)
   const close = () => setDialog(null)
@@ -114,17 +132,27 @@ export function CategoriesListPage() {
   const visibleTree = useMemo(() => filterTree(tree, search), [tree, search])
   const rows = useMemo(() => toCategoryRows(visibleTree), [visibleTree])
 
-  // While searching, every branch that holds a match is open.
   const searching = search.trim() !== ''
-  const searchExpandedKeys = useMemo(() => {
-    const keys = []
-    if (searching) walkTree(visibleTree, (n) => n.children.length && keys.push(n.id))
-    return keys
-  }, [searching, visibleTree])
+  const visibleBranchIds = useMemo(() => branchIds(visibleTree), [visibleTree])
+  const expandedRowKeys = useMemo(
+    () => visibleBranchIds.filter((id) => !collapsedKeys.has(id)),
+    [visibleBranchIds, collapsedKeys],
+  )
 
+  function toggleBranch(id) {
+    setCollapsedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // A new search opens every branch again, so each match is on screen.
   function onSearchChange(value) {
     setSearch(value)
     setPage(1)
+    setCollapsedKeys(new Set())
   }
 
   const counts = useMemo(() => {
@@ -232,22 +260,50 @@ export function CategoriesListPage() {
     {
       title: t('categories.colCategory'),
       key: 'name',
-      render: (_, node) => (
-        <div className="inline-flex items-center gap-3 align-middle">
-          {renderLogo(node.logoUrl)}
-          <div>
-            <p className="font-medium text-slate-900">
-              {node.name}
-              {node.depth > 0 ? (
-                <Tag className="ms-2" bordered={false}>
-                  {t('categories.tree.level', { level: node.depth + 1 })}
-                </Tag>
-              ) : null}
-            </p>
-            <p className="text-xs text-slate-500">{t('categories.idLine', { id: node.id })}</p>
+      // The toggle and the indent are drawn here rather than by antd: antd lays
+      // them out left-to-right, so in Arabic its toggle ended up at the far end
+      // of the cell and sub-categories were not indented at all.
+      render: (_, node) => {
+        const hasChildren = node.children.length > 0
+        const open = hasChildren && !collapsedKeys.has(node.id)
+        return (
+          <div
+            className="flex items-center gap-2"
+            style={{ paddingInlineStart: node.depth * CATEGORY_INDENT_PX }}
+          >
+            {hasChildren ? (
+              <AntButton
+                size="small"
+                type="text"
+                icon={open ? <MinusSquareOutlined /> : <PlusSquareOutlined />}
+                aria-expanded={open}
+                aria-label={open ? t('categories.tree.collapse') : t('categories.tree.expand')}
+                title={open ? t('categories.tree.collapse') : t('categories.tree.expand')}
+                onClick={() => toggleBranch(node.id)}
+              />
+            ) : (
+              <span className="inline-block w-6 shrink-0" aria-hidden />
+            )}
+            {renderLogo(node.logoUrl)}
+            <div>
+              <p className="font-medium text-slate-900">
+                {node.name}
+                {node.depth > 0 ? (
+                  <Tag className="ms-2" bordered={false}>
+                    {t('categories.tree.level', { level: node.depth + 1 })}
+                  </Tag>
+                ) : null}
+                {hasChildren ? (
+                  <Tag className="ms-2 cursor-pointer" color="orange" bordered={false} onClick={() => toggleBranch(node.id)}>
+                    {t('categories.tree.childCount', { count: node.children.length })}
+                  </Tag>
+                ) : null}
+              </p>
+              <p className="text-xs text-slate-500">{t('categories.idLine', { id: node.id })}</p>
+            </div>
           </div>
-        </div>
-      ),
+        )
+      },
     },
     {
       title: t('categories.tree.colProducts'),
@@ -347,7 +403,7 @@ export function CategoriesListPage() {
             setScope(next)
             setSearch('')
             setPage(1)
-            setExpandedKeys([])
+            setCollapsedKeys(new Set())
             setDialog(null)
           }}
           options={CATEGORY_SCOPES.map((value) => ({ value, label: t(`categories.scopes.${value}`) }))}
@@ -376,17 +432,36 @@ export function CategoriesListPage() {
             searchPlaceholder={t('categories.searchCategories')}
             searchValue={search}
             onSearchChange={onSearchChange}
+            filterSlot={
+              visibleBranchIds.length ? (
+                <>
+                  <AntButton
+                    icon={<NodeExpandOutlined />}
+                    disabled={collapsedKeys.size === 0}
+                    onClick={() => setCollapsedKeys(new Set())}
+                  >
+                    {t('categories.tree.expandAll')}
+                  </AntButton>
+                  <AntButton
+                    icon={<NodeCollapseOutlined />}
+                    disabled={expandedRowKeys.length === 0}
+                    onClick={() => setCollapsedKeys(new Set(visibleBranchIds))}
+                  >
+                    {t('categories.tree.collapseAll')}
+                  </AntButton>
+                </>
+              ) : null
+            }
           />
           <Table
             rowKey="id"
             columns={columns}
             dataSource={rows}
             expandable={{
-              expandedRowKeys: searching ? searchExpandedKeys : expandedKeys,
-              onExpandedRowsChange: (keys) => {
-                if (!searching) setExpandedKeys(keys.map(String))
-              },
-              indentSize: 28,
+              expandedRowKeys,
+              // Drawn in the name column instead; see its render.
+              expandIcon: () => null,
+              indentSize: 0,
               childrenColumnName: CATEGORY_ROW_CHILDREN,
             }}
             pagination={buildDashboardPagination({
