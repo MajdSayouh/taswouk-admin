@@ -10,7 +10,6 @@ import { queryKeys } from '../../query/queryKeys.js'
 import { useProductsViewModel } from '../../viewmodels/useProductsViewModel'
 import { useCategoriesViewModel } from '../../viewmodels/useCategoriesViewModel.js'
 import { useAuthStore, isSellerRole } from '../../store/authStore.js'
-import { useFeatures } from '../../hooks/useFeatures.js'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { ProductEditorForm } from './ProductEditorForm.jsx'
@@ -71,20 +70,20 @@ export function ProductCreatePage() {
   const storesLoading = storesQuery.isFetching
   const storesError = storesQuery.error?.message ?? null
   const [form, setRawForm] = useState(emptyForm)
-  const { features } = useFeatures()
-  const scopeEnforced = features.category_scope_enforced
 
-  // Once the backend enforces sections, a product's category must be in its store's
-  // section, so only that section is offered. Before that the whole tree, as always.
+  // Only the chosen store's section is offered (store / restaurant / pharmacy / mall), so a
+  // restaurant's product cannot land in a store category. This does not wait for the
+  // backend's `category_scope_enforced` switch: that one decides what the server refuses,
+  // not what is worth offering. With no store yet, the pickers wait for one.
   const scopeForStoreId = useCallback(
     (storeId) => {
-      if (!scopeEnforced) return undefined
       const store = stores.find((s) => String(s?.id) === String(storeId))
       return categoryScopeForStoreType(store?.store_type)
     },
-    [scopeEnforced, stores],
+    [stores],
   )
   const categoryScope = scopeForStoreId(form.storeId)
+  const categoriesNeedStore = !form.storeId
 
   // Switching to a store in another section drops the chosen category: it would no longer
   // be offered, and the backend refuses it.
@@ -115,7 +114,7 @@ export function ProductCreatePage() {
     subcategories,
     loading: categoriesLoading,
     error: categoriesError,
-  } = useCategoriesViewModel({ scope: categoryScope })
+  } = useCategoriesViewModel({ scope: categoryScope, enabled: !categoriesNeedStore })
 
   const pickerCategories = useMemo(
     () => categoriesForProductPicker(categories, {}),
@@ -262,6 +261,7 @@ export function ProductCreatePage() {
             subcategories={pickerSubcategories}
             categoriesLoading={categoriesLoading}
             categoriesError={categoriesError}
+            categoriesNeedStore={categoriesNeedStore}
             variantPricingManaged={variantPricingManaged}
             videoUploading={videoUploading}
             variantsSlot={

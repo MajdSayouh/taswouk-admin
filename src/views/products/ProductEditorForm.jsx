@@ -56,6 +56,8 @@ const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i
  *   subcategories?: { id: string, name: string, categoryId?: string, isActive?: boolean }[]
  *   categoriesLoading?: boolean
  *   categoriesError?: string | null
+ *   categoriesNeedStore?: boolean — no store picked yet, so the category pickers wait for it
+ *     (they only list the store's section)
  *   children: React.ReactNode
  *   existingImages?: { id?: number | string; storagePath?: string; url?: string; isFeatured?: boolean }[]
  *   productId?: string | number
@@ -83,6 +85,7 @@ export function ProductEditorForm({
   subcategories = [],
   categoriesLoading = false,
   categoriesError = null,
+  categoriesNeedStore = false,
   children,
   existingImages,
   productId,
@@ -230,10 +233,13 @@ export function ProductEditorForm({
           className="w-full"
           size="large"
           loading={categoriesLoading}
+          disabled={categoriesNeedStore}
           placeholder={
-            categoriesLoading
-              ? t('products.editor.loadingCategories')
-              : t('products.editor.selectCategory')
+            categoriesNeedStore
+              ? t('products.editor.selectStoreFirst')
+              : categoriesLoading
+                ? t('products.editor.loadingCategories')
+                : t('products.editor.selectCategory')
           }
           value={form.categoryId || undefined}
           options={categoryOptions}
@@ -292,8 +298,13 @@ export function ProductEditorForm({
           className="w-full"
           size="large"
           loading={categoriesLoading}
+          disabled={categoriesNeedStore}
           maxCount={MAX_PRODUCT_CATEGORIES - 1}
-          placeholder={t('products.editor.selectExtraCategories')}
+          placeholder={
+            categoriesNeedStore
+              ? t('products.editor.selectStoreFirst')
+              : t('products.editor.selectExtraCategories')
+          }
           value={selectedExtraIds.filter(
             (id) => String(id) !== String(form.subCategoryId || form.categoryId || ''),
           )}

@@ -246,6 +246,7 @@
       "nameRequired": "اسم المنتج مطلوب",
       "subcategory": "التصنيف الفرعي",
       "selectCategoryFirst": "اختر التصنيف أولاً",
+      "selectStoreFirst": "اختر المتجر أولاً — تظهر فئات قسمه فقط",
       "selectSubcategory": "اختر التصنيف الفرعي",
       "extraCategories": "تصنيفات إضافية",
       "selectExtraCategories": "اختر تصنيفات أخرى يظهر فيها المنتج",

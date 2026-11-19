@@ -246,6 +246,7 @@
       "nameRequired": "Product name is required",
       "subcategory": "Sub-category",
       "selectCategoryFirst": "Select category first",
+      "selectStoreFirst": "Select the store first — only its section's categories are listed",
       "selectSubcategory": "Select sub-category",
       "extraCategories": "Additional categories",
       "selectExtraCategories": "Choose other categories this product appears in",

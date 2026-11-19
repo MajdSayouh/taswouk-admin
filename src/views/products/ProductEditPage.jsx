@@ -8,7 +8,6 @@ import * as productService from '../../services/productService.js'
 import * as storeService from '../../services/storeService.js'
 import { queryKeys } from '../../query/queryKeys.js'
 import { useCategoriesViewModel } from '../../viewmodels/useCategoriesViewModel.js'
-import { useFeatures } from '../../hooks/useFeatures.js'
 import { buildProductUpdatePayload } from '../../utils/productWritePayload.js'
 import { extraCategoryIdsFromApi } from '../../utils/productCategoryIds.js'
 import { Card } from '../../components/ui/Card'
@@ -203,14 +202,12 @@ export function ProductEditPage() {
     videoFile: null,
   })
 
-  // Once the backend enforces sections, only the store's section is offered. Without a
-  // scope this is the same query as the whole tree above, so nothing extra is fetched.
-  const { features } = useFeatures()
-  const categoryScope = features.category_scope_enforced
-    ? categoryScopeForStoreType(
-        stores.find((s) => String(s?.id) === String(form.storeId))?.store_type,
-      )
-    : undefined
+  // Only the store's section is offered, whether or not the backend enforces sections yet
+  // (see ProductCreatePage). Without a scope (no store, or a store with no type) this is
+  // the same query as the whole tree above, so nothing extra is fetched.
+  const categoryScope = categoryScopeForStoreType(
+    stores.find((s) => String(s?.id) === String(form.storeId))?.store_type,
+  )
   const {
     categories: scopedCategories,
     subcategories: scopedSubcategories,
