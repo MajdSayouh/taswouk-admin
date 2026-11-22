@@ -9,6 +9,7 @@
  * @property {string} [description]
  * @property {string | null} logoUrl
  * @property {number | null} exchangeRate
+ * @property {number} contractPercent — «نسبة العقد» %, added to every customer price (0 = none)
  * @property {boolean} isActive
  * @property {boolean} isBrand
  * @property {string} storeType
@@ -38,6 +39,7 @@ export function mapStoreFromApi(raw) {
       description: '',
       logoUrl: null,
       exchangeRate: null,
+      contractPercent: 0,
       isActive: false,
       isBrand: false,
       storeType: 'global',
@@ -61,6 +63,7 @@ export function mapStoreFromApi(raw) {
     description: raw.description ?? '',
     logoUrl: raw.logo ?? null,
     exchangeRate: parseExchangeRate(raw.exchange_rate ?? raw.exchangeRate),
+    contractPercent: Number(raw.contract_percent ?? raw.contractPercent ?? 0) || 0,
     isActive: Boolean(raw.is_active),
     isBrand: Boolean(raw.is_brand),
     storeType: raw.store_type ?? 'global',

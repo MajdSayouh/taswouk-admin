@@ -1,4 +1,5 @@
-// View: edit store — general fields use PUT /api/stores/{id}; the custom exchange rate uses its dedicated admin endpoint.
+// View: edit store — general fields use PUT /api/stores/{id}; the custom exchange rate and the
+// contract percent («نسبة العقد») use their dedicated admin endpoints.
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -22,6 +23,8 @@ import {
 } from '../../constants/syrianGovernorates.js'
 import { useFeatures } from '../../hooks/useFeatures.js'
 import { StoreMallFields } from './StoreMallFields.jsx'
+import { StoreContractField } from './StoreContractField.jsx'
+import { parseContractPercentInput } from './contractPercent.js'
 import { storeSection } from './storeSections.js'
 
 const STORE_CURRENCY_OPTIONS = [
@@ -88,6 +91,7 @@ export function StoreEditPage({ section: sectionType = null }) {
     minimumOrder: '',
     contactEmail: '',
     priceMatch: false,
+    contractPercent: '',
   })
   const [logoFile, setLogoFile] = useState(/** @type {File | null} */ (null))
   const [existingLogo, setExistingLogo] = useState('')
@@ -131,6 +135,7 @@ export function StoreEditPage({ section: sectionType = null }) {
       minimumOrder: raw?.minimum_order == null ? '' : String(raw.minimum_order),
       contactEmail: raw?.contact_email ?? '',
       priceMatch: Boolean(raw?.price_match),
+      contractPercent: raw?.contract_percent == null ? '' : String(raw.contract_percent),
     })
     if (nextRate) setLastUsdExchangeRate(nextRate)
     setUseSystemExchangeRate(nextCurrency === 'usd' && raw?.exchange_rate == null)
@@ -147,9 +152,13 @@ export function StoreEditPage({ section: sectionType = null }) {
   }, [newLogoPreview])
 
   const updateMutation = useMutation({
-    mutationFn: async ({ fields, exchangeRate, logo, storeType }) => {
+    mutationFn: async ({ fields, exchangeRate, contractPercent, logo, storeType }) => {
       await storeService.updateStore(id, fields)
       await storeService.updateStoreExchangeRate(id, exchangeRate)
+      // Admin only (the endpoint refuses sellers), and only when it changed.
+      if (isAdmin && contractPercent !== Number(raw?.contract_percent ?? 0)) {
+        await storeService.updateStoreContractPercent(id, contractPercent)
+      }
       if (isAdmin && storeType !== (raw?.store_type ?? 'global')) {
         await storeService.setStoreType(id, storeType)
       }
@@ -223,6 +232,11 @@ export function StoreEditPage({ section: sectionType = null }) {
       setSubmitError(t('stores.validation.minimumOrder'))
       return
     }
+    const contractPercent = parseContractPercentInput(form.contractPercent)
+    if (isAdmin && contractPercent == null) {
+      setSubmitError(t('stores.validation.contractPercent'))
+      return
+    }
     const latNum = form.latitude === '' ? null : Number(form.latitude)
     const lngNum = form.longitude === '' ? null : Number(form.longitude)
     updateMutation.mutate({
@@ -257,6 +271,7 @@ export function StoreEditPage({ section: sectionType = null }) {
           : {}),
       },
       exchangeRate,
+      contractPercent,
       logo: logoFile,
       storeType: form.storeType,
     })
@@ -429,6 +444,9 @@ export function StoreEditPage({ section: sectionType = null }) {
                 {t('stores.edit.useSystemExchangeRate')}
               </span>
             </label>
+          ) : null}
+          {isAdmin ? (
+            <StoreContractField value={form.contractPercent} onChange={handleChange} />
           ) : null}
           <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">

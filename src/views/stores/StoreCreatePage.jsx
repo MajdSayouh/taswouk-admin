@@ -16,6 +16,8 @@ import { useSellersViewModel } from '../../viewmodels/useSellersViewModel.js'
 import { SYRIAN_GOVERNORATE_OPTIONS } from '../../constants/syrianGovernorates.js'
 import { useFeatures } from '../../hooks/useFeatures.js'
 import { StoreMallFields } from './StoreMallFields.jsx'
+import { StoreContractField } from './StoreContractField.jsx'
+import { parseContractPercentInput } from './contractPercent.js'
 import { storeSection } from './storeSections.js'
 
 const STORE_CURRENCY_OPTIONS = [
@@ -60,6 +62,8 @@ function emptyForm(lockedType = null) {
     minimumOrder: '',
     contactEmail: '',
     priceMatch: false,
+    // «نسبة العقد» -- admin only, empty = 0.
+    contractPercent: '',
     // Explicit — the admin/seller create endpoints don't set this on their own, and the store
     // otherwise stays invisible on the public site/app until someone remembers a separate
     // "toggle active" step after creation.
@@ -223,6 +227,11 @@ export function StoreCreatePage({ section: sectionType = null }) {
       setError(t('stores.validation.minimumOrder'))
       return
     }
+    const contractPercent = parseContractPercentInput(form.contractPercent)
+    if (isAdmin && contractPercent == null) {
+      setError(t('stores.validation.contractPercent'))
+      return
+    }
 
     const restaurantFields = {
       store_type: storeType,
@@ -256,6 +265,7 @@ export function StoreCreatePage({ section: sectionType = null }) {
           latitude: lat != null && !Number.isNaN(lat) ? lat : null,
           longitude: lng != null && !Number.isNaN(lng) ? lng : null,
           exchange_rate: exchangeRate,
+          contract_percent: contractPercent,
           ...restaurantFields,
           logo: logoFile || undefined,
           is_active: form.isActive,
@@ -445,6 +455,9 @@ export function StoreCreatePage({ section: sectionType = null }) {
             disabled={form.currency === 'syp'}
             required={form.currency === 'usd'}
           />
+          {isAdmin ? (
+            <StoreContractField value={form.contractPercent} onChange={handleChange} />
+          ) : null}
 
           <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
             <h3 className="text-sm font-semibold text-slate-900">

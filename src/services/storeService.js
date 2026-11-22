@@ -73,7 +73,7 @@ export async function getStore(storeId) {
 
 /**
  * POST /api/stores/admin/create-with-logo — multipart/form-data (admin JWT).
- * Fields: seller_id, name, description?, phone?, address?, latitude?, longitude?, exchange_rate?, is_active?, logo? (binary).
+ * Fields: seller_id, name, description?, phone?, address?, latitude?, longitude?, exchange_rate?, contract_percent?, is_active?, logo? (binary).
  *
  * `price_match` goes out as the string "true"/"false" like every other form field; the
  * backend's `Form[StoreCreateByAdminSchema]` parses those into a bool (as it does `is_active`).
@@ -92,6 +92,7 @@ export async function getStore(storeId) {
  *   latitude?: number | null
  *   longitude?: number | null
  *   exchange_rate?: number | null
+ *   contract_percent?: number | null
  *   currency?: 'USD' | 'SYP' | null
  *   store_type?: 'syrian' | 'global' | 'restaurant' | 'pharmacy' | 'mall' | null
  *   start_working_at?: string | null
@@ -116,6 +117,7 @@ export async function adminCreateStore(payload) {
     longitude: payload.longitude,
     currency: payload.currency,
     exchange_rate: payload.exchange_rate,
+    contract_percent: payload.contract_percent,
     store_type: payload.store_type,
     start_working_at: payload.start_working_at,
     end_working_at: payload.end_working_at,
@@ -202,6 +204,21 @@ export async function updateStore(storeId, payload) {
 export async function updateStoreExchangeRate(storeId, exchangeRate) {
   const { data } = await apiClient.put(`/api/stores/${storeId}/exchange-rate`, {
     exchange_rate: exchangeRate,
+  })
+  return data
+}
+
+/**
+ * PUT /api/stores/{store_id}/contract-percent — admin only.
+ * «نسبة العقد»: added to every price the store's customers see
+ * (customer price = store price + percent). 0 means none; at most 100.
+ * Stored prices are not rewritten and placed orders keep the percent they were bought at.
+ * @param {number | string} storeId
+ * @param {number} contractPercent
+ */
+export async function updateStoreContractPercent(storeId, contractPercent) {
+  const { data } = await apiClient.put(`/api/stores/${storeId}/contract-percent`, {
+    contract_percent: contractPercent,
   })
   return data
 }

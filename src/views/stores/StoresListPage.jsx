@@ -532,6 +532,22 @@ export function StoresListPage({ section: sectionType = null, mallMode = false }
       render: (_, row) => <StoreBrandSwitch row={row} mutation={setStoreBrandMutation} />,
     },
     {
+      title: t('stores.list.colContract'),
+      dataIndex: 'contractPercent',
+      key: 'contractPercent',
+      align: 'left',
+      width: 110,
+      sorter: (a, b) => (a.contractPercent ?? 0) - (b.contractPercent ?? 0),
+      render: (value) =>
+        value ? (
+          <Tag color="gold" style={{ marginInlineEnd: 0 }}>
+            {`${value}%`}
+          </Tag>
+        ) : (
+          <span className="text-sm text-slate-400">0%</span>
+        ),
+    },
+    {
       title: t('shared.actions'),
       key: 'actions',
       align: 'left',
