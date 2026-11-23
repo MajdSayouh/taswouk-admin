@@ -18,7 +18,7 @@ import { useFeatures } from '../../hooks/useFeatures.js'
 import { StoreMallFields } from './StoreMallFields.jsx'
 import { StoreContractField } from './StoreContractField.jsx'
 import { parseContractPercentInput } from './contractPercent.js'
-import { storeSection } from './storeSections.js'
+import { storeSection, typesWithOwnSection } from './storeSections.js'
 
 const STORE_CURRENCY_OPTIONS = [
   { value: 'usd', i18nKey: 'stores.currency.usd' },
@@ -99,13 +99,16 @@ export function StoreCreatePage({ section: sectionType = null }) {
   const [logoFile, setLogoFile] = useState(/** @type {File | null} */ (null))
   const [lastUsdExchangeRate, setLastUsdExchangeRate] = useState('1')
   const { features } = useFeatures()
-  const typeOptions = features.mall_cutover
-    ? [...STORE_TYPE_OPTIONS, 'mall']
-    : STORE_TYPE_OPTIONS
+  const isAdmin = useMemo(() => (user ? isAdminRole(user.role) : false), [user])
+  // An admin adds restaurants and pharmacies from their own pages; the stores
+  // page no longer lists them, so it does not offer them either.
+  const ownSectionTypes = sectionMode ? [] : typesWithOwnSection(isAdmin)
+  const typeOptions = (
+    features.mall_cutover ? [...STORE_TYPE_OPTIONS, 'mall'] : STORE_TYPE_OPTIONS
+  ).filter((value) => !ownSectionTypes.includes(value))
   const storeType = section.storeType ?? form.storeType
   const isMall = storeType === 'mall'
 
-  const isAdmin = useMemo(() => (user ? isAdminRole(user.role) : false), [user])
   const isSeller = useMemo(() => (user ? isSellerRole(user.role) : false), [user])
   const {
     sellers,

@@ -17,9 +17,10 @@ import {
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { TruncatedTextCell } from '../../components/tables/TruncatedTextCell.jsx'
-import { filterStoresByType } from '../../utils/storeFilters.js'
+import { excludeStoreTypes, filterStoresByType } from '../../utils/storeFilters.js'
 import { resolvePublicMediaUrl } from '../../utils/mediaUrl.js'
-import { storeSection } from './storeSections.js'
+import { isAdminRole, useAuthStore } from '../../store/authStore.js'
+import { storeSection, typesWithOwnSection } from './storeSections.js'
 
 const DEFAULT_PAGE_SIZE = 10
 
@@ -30,9 +31,9 @@ const STORE_TYPE_FILTER_OPTIONS = ['global', 'syrian', 'restaurant', 'pharmacy',
 const STORE_TYPE_TAG_COLORS = { restaurant: 'orange', pharmacy: 'green', mall: 'purple' }
 
 /** `?type=mall` (the legacy mall routes redirect here with it) → type filter. */
-function typeFilterFromParams(searchParams) {
+function typeFilterFromParams(searchParams, options) {
   const value = searchParams.get('type')
-  return STORE_TYPE_FILTER_OPTIONS.includes(value) ? value : 'all'
+  return options.includes(value) ? value : 'all'
 }
 
 function TriStateColumnFilter({ options, value, onApply, confirm }) {
@@ -140,6 +141,18 @@ export function StoresListPage({ section: sectionType = null, mallMode = false }
   const { t } = useTranslation('pages')
   const section = storeSection(sectionType)
   const sectionMode = section.storeType != null
+  const user = useAuthStore((s) => s.user)
+  const isAdmin = Boolean(user && isAdminRole(user.role))
+  // Restaurants and pharmacies have their own pages (admins only), so the
+  // general stores page leaves them out instead of listing them twice.
+  const excludedTypes = useMemo(
+    () => (sectionMode || mallMode ? [] : typesWithOwnSection(isAdmin)),
+    [sectionMode, mallMode, isAdmin],
+  )
+  const typeFilterOptions = useMemo(
+    () => STORE_TYPE_FILTER_OPTIONS.filter((value) => !excludedTypes.includes(value)),
+    [excludedTypes],
+  )
   const {
     stores,
     loading,
@@ -157,7 +170,7 @@ export function StoresListPage({ section: sectionType = null, mallMode = false }
   // Kept in the URL rather than in state, so a redirect from /malls lands filtered and
   // the filter survives a reload or a shared link.
   const [searchParams, setSearchParams] = useSearchParams()
-  const typeFilter = typeFilterFromParams(searchParams)
+  const typeFilter = typeFilterFromParams(searchParams, typeFilterOptions)
   function setTypeFilter(next) {
     setSearchParams(
       (prev) => {
@@ -184,8 +197,8 @@ export function StoresListPage({ section: sectionType = null, mallMode = false }
 
   const scopedType = section.storeType ?? (mallMode ? 'mall' : null)
   const scopedStores = useMemo(
-    () => filterStoresByType(stores, scopedType),
-    [stores, scopedType],
+    () => excludeStoreTypes(filterStoresByType(stores, scopedType), excludedTypes),
+    [stores, scopedType, excludedTypes],
   )
 
   const displayData = useMemo(() => {
@@ -647,7 +660,7 @@ export function StoresListPage({ section: sectionType = null, mallMode = false }
                     className="min-w-[150px]"
                     options={[
                       { value: 'all', label: t('stores.list.typeAny') },
-                      ...STORE_TYPE_FILTER_OPTIONS.map((value) => ({
+                      ...typeFilterOptions.map((value) => ({
                         value,
                         label: t(`stores.types.${value}`),
                       })),

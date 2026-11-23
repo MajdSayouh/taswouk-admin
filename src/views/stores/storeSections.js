@@ -49,6 +49,18 @@ export const STORE_SECTIONS = {
 }
 
 /**
+ * Store types that have a page of their own, so the general stores pages leave
+ * them out. Those pages are admin-only, so only admins get the split: a seller
+ * keeps seeing (and creating) every type on the stores page.
+ *
+ * @param {boolean} isAdmin
+ * @returns {string[]}
+ */
+export function typesWithOwnSection(isAdmin) {
+  return isAdmin ? Object.keys(STORE_SECTIONS) : []
+}
+
+/**
  * @param {string | null | undefined} storeType — the page's `section` prop
  * @returns {StoreSection}
  */

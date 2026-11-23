@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { storeSection } from '../src/views/stores/storeSections.js'
+import { storeSection, typesWithOwnSection } from '../src/views/stores/storeSections.js'
 
 test('the pharmacies tab scopes the store pages to pharmacies', () => {
   const section = storeSection('pharmacy')
@@ -22,4 +22,9 @@ test('no section is the plain stores pages', () => {
   assert.equal(section.storeType, null)
   assert.equal(section.path, '/stores')
   assert.equal(section.newKey, 'stores.list.newStore')
+})
+
+test('admins get restaurants and pharmacies split off the stores page; sellers do not', () => {
+  assert.deepEqual(typesWithOwnSection(true).sort(), ['pharmacy', 'restaurant'])
+  assert.deepEqual(typesWithOwnSection(false), [])
 })
