@@ -27,6 +27,7 @@
     "profile": "الملف الشخصي",
     "progressiveCoupons": "كوبونات تصاعدية",
     "liveDrivers": "الخريطة الحية",
+    "deliveryRuns": "جداول التسليم",
     "externalInvoices": "أسعار الطلبات العالمية",
     "finance": "المالية"
   },
@@ -77,6 +78,7 @@
     "editExternalShop": "تعديل متجر خارجي",
     "defaultApp": "إدارة جومران",
     "liveDrivers": "الخريطة الحية لعمال التوصيل",
+    "deliveryRuns": "جداول تسليم الطلبات المحلية",
     "externalInvoices": "أسعار طلبات المتاجر العالمية"
   },
   "topbar": {

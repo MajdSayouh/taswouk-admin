@@ -27,6 +27,7 @@
     "profile": "Profile",
     "progressiveCoupons": "Progressive coupons",
     "liveDrivers": "Live map",
+    "deliveryRuns": "Delivery runs",
     "externalInvoices": "Global order prices",
     "finance": "Finance"
   },
@@ -77,6 +78,7 @@
     "editExternalShop": "Edit external shop",
     "defaultApp": "Jomran Admin",
     "liveDrivers": "Live drivers map",
+    "deliveryRuns": "Local order delivery runs",
     "externalInvoices": "Global store order prices"
   },
   "topbar": {

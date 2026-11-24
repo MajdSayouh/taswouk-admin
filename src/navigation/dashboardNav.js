@@ -8,6 +8,7 @@ import {
   FileDoneOutlined,
   FolderOutlined,
   CarOutlined,
+  CarryOutOutlined,
   CoffeeOutlined,
   GlobalOutlined,
   GiftOutlined,
@@ -223,6 +224,15 @@ const LIVE_DRIVERS_ITEM = /** @type {NavItemDef} */ ({
   Icon: EnvironmentOutlined,
 })
 
+/** Admin-only (the API is): «جداول تسليم الطلبات» for local orders, right after the live map. */
+const DELIVERY_RUNS_ITEM = /** @type {NavItemDef} */ ({
+  key: 'deliveryRuns',
+  to: '/delivery-runs',
+  match: 'exact',
+  labelKey: 'nav.deliveryRuns',
+  Icon: CarryOutOutlined,
+})
+
 const SELLERS_ITEM = /** @type {NavItemDef} */ ({
   key: 'sellers',
   to: '/sellers',
@@ -255,7 +265,7 @@ export function getDashboardNavItems(user, options = {}) {
     const adminNav = options.mallCutover
       ? ADMIN_ONLY_NAV.filter((item) => !LEGACY_MALL_NAV_KEYS.has(item.key))
       : ADMIN_ONLY_NAV
-    const mainNav = MAIN_NAV.flatMap((item) => (item.key === 'drivers' ? [item, LIVE_DRIVERS_ITEM] : [item]))
+    const mainNav = MAIN_NAV.flatMap((item) => (item.key === 'drivers' ? [item, LIVE_DRIVERS_ITEM, DELIVERY_RUNS_ITEM] : [item]))
     return [...mainNav, ...adminNav, SELLERS_ITEM, PROFILE_ITEM]
   }
   return [...MAIN_NAV, PROFILE_ITEM]

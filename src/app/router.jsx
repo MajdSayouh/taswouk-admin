@@ -145,6 +145,9 @@ const FinancePage = lazy(() =>
     default: m.FinancePage,
   })),
 )
+const DeliveryRunsPage = lazy(() =>
+  import('../views/delivery-runs/DeliveryRunsPage.jsx').then((m) => ({ default: m.DeliveryRunsPage })),
+)
 const ExternalInvoicesPage = lazy(() =>
   import('../views/external-invoices/ExternalInvoicesPage.jsx').then((m) => ({
     default: m.ExternalInvoicesPage,
@@ -419,6 +422,14 @@ export function AppRouter() {
               element={
                 <LazyPage>
                   <FinancePage />
+                </LazyPage>
+              }
+            />
+            <Route
+              path="delivery-runs"
+              element={
+                <LazyPage>
+                  <DeliveryRunsPage />
                 </LazyPage>
               }
             />
