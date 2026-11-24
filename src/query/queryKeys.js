@@ -30,6 +30,12 @@ export const queryKeys = {
     awaitingCost: (scope) => ['finance', 'awaitingCost', scope],
     drivers: () => ['finance', 'drivers'],
   },
+  deliveryRuns: {
+    root: ['deliveryRuns'],
+    list: (day) => ['deliveryRuns', 'list', String(day ?? '')],
+    detail: (id) => ['deliveryRuns', 'detail', String(id ?? '')],
+    candidates: () => ['deliveryRuns', 'candidates'],
+  },
   externalInvoices: {
     root: ['externalInvoices'],
     pending: () => ['externalInvoices', 'pending'],

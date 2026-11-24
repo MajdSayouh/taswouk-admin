@@ -63,6 +63,7 @@ export function DashboardLayout() {
     if (p.match(/^\/external-shops\/[^/]+\/edit$/)) return t('titles.editExternalShop')
     if (p.startsWith('/external-shops/create')) return t('titles.createExternalShop')
     if (p.startsWith('/external-shops')) return t('titles.externalShops')
+    if (p.startsWith('/delivery-runs')) return t('titles.deliveryRuns')
     if (p.startsWith('/external-invoices')) return t('titles.externalInvoices')
     if (p === '/' || p.startsWith('/home')) return t('titles.dashboard')
     if (p.startsWith('/profile')) return t('titles.profile')
