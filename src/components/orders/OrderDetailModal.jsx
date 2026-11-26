@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Modal, Descriptions, Table, Tag, Spin, Alert, Button, Popconfirm, message } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
+import { DeliveryTimeCell } from './DeliveryTimeCell.jsx'
 import {
   getOrderById,
   getDeliveryAssignments,
@@ -539,6 +540,9 @@ export function OrderDetailModal({
               {detail.createdAt
                 ? new Date(detail.createdAt).toLocaleString()
                 : t('shared.emDash')}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('orders.colDeliveredAt')}>
+              <DeliveryTimeCell order={detail} />
             </Descriptions.Item>
             <Descriptions.Item label={t('orders.detail.address')} span={2}>
               {detail.addressText}

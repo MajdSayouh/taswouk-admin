@@ -702,7 +702,15 @@
       "delivered": "تم التسليم",
       "cancelled": "ملغى"
     },
-    "colCoupon": "كوبون"
+    "colCoupon": "كوبون",
+    "colDeliveredAt": "وقت التسليم",
+    "deliveredConfirmedByDriver": "أكّد السائق التسليم من تطبيق التوصيل",
+    "deliveryDuration": "خلال {{duration}} من الطلب",
+    "partsDelivered": "سُلِّم {{delivered}} من {{total}}",
+    "awaitingDeliveryConfirm": "بانتظار تأكيد السائق",
+    "durationDays": "{{count}} ي",
+    "durationHours": "{{count}} س",
+    "durationMinutes": "{{count}} د"
   },
   "notifications": {
     "nav": {

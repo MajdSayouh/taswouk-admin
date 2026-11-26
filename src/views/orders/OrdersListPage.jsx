@@ -16,6 +16,8 @@ import { OrderFulfillmentStepper } from '../../components/orders/OrderFulfillmen
 import { OrderDetailModal } from '../../components/orders/OrderDetailModal.jsx'
 import { ExternalOrderTag } from '../../components/orders/ExternalOrderTag.jsx'
 import { ExternalOrderProductCell } from '../../components/orders/ExternalOrderProductCell.jsx'
+import { DeliveryTimeCell } from '../../components/orders/DeliveryTimeCell.jsx'
+import { deliveredAtSortValue } from '../../utils/deliveryTime.js'
 import { useOrderDriverAssignments } from '../../hooks/useOrderDriverAssignments.js'
 import { getMockDriverById, MOCK_DRIVERS } from '../../mock/driversAndOrdersMock.js'
 import { useDriversViewModel } from '../../viewmodels/useDriversViewModel.js'
@@ -798,6 +800,17 @@ export function OrdersListPage() {
           }
         },
       },
+      {
+        // «وقت التسليم»: stamped by the server when the driver confirms the
+        // delivery in the delivery app (status → delivered).
+        title: t('orders.colDeliveredAt'),
+        dataIndex: 'deliveredAt',
+        key: 'deliveredAt',
+        align: 'left',
+        width: 190,
+        sorter: (a, b) => deliveredAtSortValue(a.deliveredAt) - deliveredAtSortValue(b.deliveredAt),
+        render: (_, record) => <DeliveryTimeCell order={record} />,
+      },
     ],
     [
       t,
@@ -1040,6 +1053,10 @@ export function OrdersListPage() {
                       <div className="min-w-0">
                         <dt className="text-xs text-slate-500">{t('orders.colCoupon')}</dt>
                         <dd className="mt-1 truncate">{renderOrderColumn('coupon', record)}</dd>
+                      </div>
+                      <div className="col-span-2 min-w-0">
+                        <dt className="text-xs text-slate-500">{t('orders.colDeliveredAt')}</dt>
+                        <dd className="mt-1">{renderOrderColumn('deliveredAt', record)}</dd>
                       </div>
                     </dl>
 

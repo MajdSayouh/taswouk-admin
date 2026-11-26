@@ -702,7 +702,15 @@
       "delivered": "Delivered",
       "cancelled": "Cancelled"
     },
-    "colCoupon": "Coupon"
+    "colCoupon": "Coupon",
+    "colDeliveredAt": "Delivered at",
+    "deliveredConfirmedByDriver": "Driver confirmed delivery in the delivery app",
+    "deliveryDuration": "{{duration}} after ordering",
+    "partsDelivered": "{{delivered}} of {{total}} delivered",
+    "awaitingDeliveryConfirm": "Awaiting driver confirmation",
+    "durationDays": "{{count}}d",
+    "durationHours": "{{count}}h",
+    "durationMinutes": "{{count}}m"
   },
   "notifications": {
     "nav": {

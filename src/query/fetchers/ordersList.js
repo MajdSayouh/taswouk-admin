@@ -63,6 +63,9 @@ export function normalizeOrderListItem(raw) {
     progressiveTierApplied:
       r.progressive_tier_applied != null ? Number(r.progressive_tier_applied) : null,
     discountAmount: Number(r.discount_amount ?? 0),
+    // «وقت التسليم»: stamped by the server when the driver confirms delivery.
+    // Empty for a split cart until every live part is delivered.
+    deliveredAt: r.delivered_at ?? r.deliveredAt ?? null,
     progressiveDiscountApplied: Number(r.progressive_discount_applied ?? 0),
     // A cart split across sellers is one row here and several orders behind it.
     // `id` above names only the row the cart is numbered after, so anything that
@@ -79,6 +82,7 @@ export function normalizeOrderListItem(raw) {
         .trim()
         .toLowerCase(),
       total: Number(part.total ?? 0),
+      deliveredAt: part.delivered_at ?? part.deliveredAt ?? null,
     })),
   }
 }

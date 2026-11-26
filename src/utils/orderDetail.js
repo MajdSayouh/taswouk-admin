@@ -221,6 +221,7 @@ export function normalizeOrderDetail(raw) {
     driverLocation: extractDriverLocation(r),
     items,
     createdAt: String(r.created_at ?? r.createdAt ?? ''),
+    deliveredAt: r.delivered_at ?? r.deliveredAt ?? null,
     isMock: Boolean(r.isMock),
     isExternal: isExternalOrderRaw(r),
     // A cart split across sellers arrives as one order with everyone's lines in
@@ -243,6 +244,7 @@ export function normalizeOrderDetail(raw) {
       contractPercent: optionalNumber(part.contract_percent),
       contractAmount: optionalNumber(part.contract_amount),
       storeSubtotal: optionalNumber(part.store_subtotal),
+      deliveredAt: part.delivered_at ?? part.deliveredAt ?? null,
     })),
     // A single row (`?split=true`) carries its percent on the order itself.
     contractPercent: optionalNumber(r.contract_percent),
