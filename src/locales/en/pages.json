@@ -686,7 +686,13 @@
       "removeStoreConfirm": "Remove {{store}}'s items from this order?",
       "removeStoreDesc": "Only this store's part is cancelled and its stock returned; the other stores in the order carry on.",
       "removeStoreSuccess": "Removed {{store}} from the order.",
-      "removeStoreError": "Could not remove the store from the order."
+      "removeStoreError": "Could not remove the store from the order.",
+      "colStorePrice": "Store price (before %)",
+      "colCustomerPrice": "Customer price (after %)",
+      "contractPercent": "Contract percentage",
+      "contractStoreSubtotal": "Subtotal at store prices",
+      "contractAmount": "Contract total for the order",
+      "contractAmountHint": "Customer price minus store price, before discounts."
     },
     "status": {
       "pending": "Pending",

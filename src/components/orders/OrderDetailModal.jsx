@@ -17,6 +17,7 @@ import { deliveryUserDisplayName } from '../../viewmodels/useDriversViewModel.js
 import { queryKeys } from '../../query/queryKeys.js'
 import { useAuthStore, isAdminRole } from '../../store/authStore.js'
 import { normalizeOrderDetail, extractDriverLocation, coordsFromLatLng } from '../../utils/orderDetail.js'
+import { contractBreakdown } from '../../utils/orderContract.js'
 import { buildOrderItemProductUrl } from '../../utils/publicSiteLinks.js'
 import { normalizeSupplierSources } from '../../utils/supplierSources.js'
 import { ProductTableThumbnail } from '../products/ProductTableThumbnail.jsx'
@@ -151,6 +152,9 @@ export function OrderDetailModal({
 
   const detail = isMockPreview ? mockDetail : detailQuery.data
   const assignment = assignmentQuery.data
+  // «نسبة العقد»: the backend sends it to the admin only; null hides every contract column/row.
+  const contract = useMemo(() => contractBreakdown(detail), [detail])
+  const showContract = contract != null
 
   // Only store lines carry `order_id`, so a mall order (whose id may collide with an
   // unrelated store order) never asks.
@@ -373,11 +377,26 @@ export function OrderDetailModal({
         width: 72,
         align: 'center',
       },
+      ...(showContract
+        ? [
+            {
+              title: t('orders.detail.colStorePrice'),
+              dataIndex: 'storePrice',
+              key: 'storePrice',
+              width: 110,
+              render: (v) => (
+                <span className="tabular-nums text-slate-600">
+                  {v == null ? t('shared.emDash') : Number(v).toFixed(2)}
+                </span>
+              ),
+            },
+          ]
+        : []),
       {
-        title: t('orders.detail.colPrice'),
+        title: showContract ? t('orders.detail.colCustomerPrice') : t('orders.detail.colPrice'),
         dataIndex: 'productPrice',
         key: 'productPrice',
-        width: 100,
+        width: showContract ? 110 : 100,
         render: (v) => <span className="tabular-nums">{Number(v).toFixed(2)}</span>,
       },
       {
@@ -438,7 +457,7 @@ export function OrderDetailModal({
     ],
     // The handlers are recreated each render but only read state already listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, detail?.isExternal, detail?.orderType, detail?.mallId, removableItemKeys, removing, supplierSources],
+    [t, detail?.isExternal, detail?.orderType, detail?.mallId, removableItemKeys, removing, supplierSources, showContract],
   )
 
   const selectedItems = (detail?.items ?? []).filter(
@@ -597,6 +616,36 @@ export function OrderDetailModal({
             <Descriptions.Item label={t('orders.detail.total')} span={2}>
               <span className="font-semibold text-slate-900">{detail.total.toFixed(2)} SYP</span>
             </Descriptions.Item>
+            {showContract ? (
+              <>
+                <Descriptions.Item label={t('orders.detail.contractPercent')} span={2}>
+                  {contract.stores.length > 1 ? (
+                    <span className="flex flex-wrap items-center gap-2">
+                      {contract.stores.map((store) => (
+                        <Tag key={store.key} color="gold" className="!m-0">
+                          {store.name || t('shared.emDash')}: {store.percent}%
+                        </Tag>
+                      ))}
+                    </span>
+                  ) : (
+                    <Tag color="gold" className="!m-0">
+                      {contract.stores[0]?.percent ?? 0}%
+                    </Tag>
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('orders.detail.contractStoreSubtotal')}>
+                  {contract.storeSubtotal.toFixed(2)} SYP
+                </Descriptions.Item>
+                <Descriptions.Item label={t('orders.detail.contractAmount')}>
+                  <span className="font-semibold text-amber-700">
+                    {contract.amount.toFixed(2)} SYP
+                  </span>
+                  <span className="block text-xs text-slate-500">
+                    {t('orders.detail.contractAmountHint')}
+                  </span>
+                </Descriptions.Item>
+              </>
+            ) : null}
             <Descriptions.Item label={t('orders.driver')} span={2}>
               {effectiveDriverId ? (
                 resolvedDriverName ? (

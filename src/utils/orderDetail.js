@@ -79,6 +79,13 @@ export function extractDriverLocation(raw) {
 /**
  * @param {unknown} raw
  */
+/** A number, or null when the field is absent. */
+function optionalNumber(value) {
+  if (value == null || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
 export function normalizeOrderDetail(raw) {
   if (raw == null || typeof raw !== 'object') {
     return null
@@ -135,6 +142,9 @@ export function normalizeOrderDetail(raw) {
       variantSku: row.variant_sku != null ? String(row.variant_sku) : null,
       variantAttributes: attrLabel,
       productPrice: Number(row.product_price ?? row.price ?? 0),
+      // Admin only: the unit price at the store's own prices, before the contract percent
+      // («نسبة العقد»). `productPrice` is then the customer's price after it. Null for anyone else.
+      storePrice: optionalNumber(row.store_price),
       quantity: Number(row.quantity ?? 0),
       lineTotal: Number(row.line_total ?? row.lineTotal ?? 0),
       // External-store items (product_source: 'store') have no product_id — the backend gives a
@@ -200,6 +210,10 @@ export function normalizeOrderDetail(raw) {
       r.progressive_tier_applied != null ? Number(r.progressive_tier_applied) : null,
     progressiveDiscountApplied: Number(r.progressive_discount_applied ?? 0),
     total: Number(r.total ?? r.amount ?? 0),
+    // Admin only («نسبة العقد»): the basket at store prices and the percent's total, before
+    // discounts. Null when the backend did not send them (non-admin viewers, legacy mall rows).
+    storeSubtotal: optionalNumber(r.store_subtotal),
+    contractAmount: optionalNumber(r.contract_amount),
     addressText: String(r.address_text ?? r.address ?? '—'),
     destination: coordsFromLatLng(r),
     deliveryUserId:
@@ -226,6 +240,11 @@ export function normalizeOrderDetail(raw) {
         .trim()
         .toLowerCase(),
       total: Number(part.total ?? 0),
+      contractPercent: optionalNumber(part.contract_percent),
+      contractAmount: optionalNumber(part.contract_amount),
+      storeSubtotal: optionalNumber(part.store_subtotal),
     })),
+    // A single row (`?split=true`) carries its percent on the order itself.
+    contractPercent: optionalNumber(r.contract_percent),
   }
 }

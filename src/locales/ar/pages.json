@@ -686,7 +686,13 @@
       "removeStoreConfirm": "إزالة طلبات {{store}} من هذا الطلب؟",
       "removeStoreDesc": "يُلغى جزء هذا المتجر فقط ويُعاد مخزونه، وتبقى بقية المتاجر في الطلب كما هي.",
       "removeStoreSuccess": "تمت إزالة {{store}} من الطلب.",
-      "removeStoreError": "تعذر إزالة المتجر من الطلب."
+      "removeStoreError": "تعذر إزالة المتجر من الطلب.",
+      "colStorePrice": "سعر المتجر (قبل النسبة)",
+      "colCustomerPrice": "سعر الزبون (بعد النسبة)",
+      "contractPercent": "نسبة العقد",
+      "contractStoreSubtotal": "المجموع بأسعار المتجر",
+      "contractAmount": "مجمل النسبة للطلب",
+      "contractAmountHint": "الفرق بين سعر الزبون وسعر المتجر، قبل الخصومات."
     },
     "status": {
       "pending": "قيد الانتظار",
