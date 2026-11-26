@@ -563,7 +563,16 @@
       "imagesTitle": "Images",
       "detailsTitle": "Details",
       "category": "Category",
-      "categoryIdOnly": "Category #{{id}}"
+      "categoryIdOnly": "Category #{{id}}",
+      "diffCurrent": "{{label}} — current",
+      "diffProposed": "{{label}} — proposed",
+      "price": "Price",
+      "isOffer": "On offer",
+      "newPrice": "Offer price",
+      "sizes": "Sizes",
+      "colors": "Colors",
+      "categories": "Categories",
+      "active": "Active"
     }
   },
   "orders": {

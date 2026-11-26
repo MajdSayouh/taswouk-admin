@@ -27,11 +27,12 @@ const REJECT_REASON_PRESET_KEYS = [
  * present in `pending_changes` (see product-moderation-dashboard-spec.md §2: "only edited fields
  * appear in this object"). */
 function DiffRow({ label, current, proposed, html = false }) {
+  const { t } = useTranslation('pages')
   return (
     <div className="grid grid-cols-1 gap-3 border-t border-slate-100 py-3 first:border-t-0 sm:grid-cols-2">
       <div>
         <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-          {label} — current
+          {t('moderation.review.diffCurrent', { label })}
         </div>
         {html ? (
           <HtmlContent html={current} className="text-slate-600" />
@@ -41,7 +42,7 @@ function DiffRow({ label, current, proposed, html = false }) {
       </div>
       <div className="rounded-md bg-amber-50 p-2 ring-1 ring-amber-200">
         <div className="mb-1 text-xs font-medium uppercase tracking-wide text-amber-700">
-          {label} — proposed
+          {t('moderation.review.diffProposed', { label })}
         </div>
         {html ? (
           <HtmlContent html={proposed} className="text-slate-900" />
@@ -52,6 +53,40 @@ function DiffRow({ label, current, proposed, html = false }) {
     </div>
   )
 }
+
+function formatPrice(value) {
+  if (value == null || value === '') return ''
+  const n = Number(value)
+  return Number.isFinite(n) ? n.toFixed(2) : String(value)
+}
+
+/** Renders any pending value as plain text — arrays of strings or `{name}`/`{hex}` objects
+ * (sizes, colors) are joined, other objects fall back to JSON so nothing is shown blank. */
+function formatPlain(value, t) {
+  if (value == null || value === '') return ''
+  if (typeof value === 'boolean') return value ? t('shared.yes') : t('shared.no')
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => (v && typeof v === 'object' ? v.name ?? v.label ?? v.hex ?? JSON.stringify(v) : String(v)))
+      .join('، ')
+  }
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+/** Fields of `pending_changes` with a dedicated row. `category_id` is handled separately (the
+ * proposed side only carries an id). Any key not listed here still gets a generic row, so an
+ * edited field is never silently hidden from the reviewer. */
+const PENDING_FIELD_ROWS = [
+  { key: 'price', labelKey: 'moderation.review.price', format: (v) => formatPrice(v) },
+  { key: 'is_offer', labelKey: 'moderation.review.isOffer' },
+  { key: 'new_price', labelKey: 'moderation.review.newPrice', format: (v) => formatPrice(v) },
+  { key: 'size', labelKey: 'moderation.review.sizes' },
+  { key: 'colors', labelKey: 'moderation.review.colors' },
+  { key: 'category_ids', labelKey: 'moderation.review.categories' },
+  { key: 'is_active', labelKey: 'moderation.review.active' },
+]
+const DEDICATED_PENDING_KEYS = new Set(['name', 'description', 'category_id', ...PENDING_FIELD_ROWS.map((f) => f.key)])
 
 export function ModerationReviewPage() {
   const { t } = useTranslation('pages')
@@ -227,6 +262,27 @@ export function ModerationReviewPage() {
                 proposed={t('moderation.review.categoryIdOnly', { id: pendingChanges.category_id })}
               />
             ) : null}
+            {PENDING_FIELD_ROWS.filter((f) => f.key in pendingChanges).map((f) => {
+              const format = f.format ?? ((v) => formatPlain(v, t))
+              return (
+                <DiffRow
+                  key={f.key}
+                  label={t(f.labelKey)}
+                  current={format(product[f.key])}
+                  proposed={format(pendingChanges[f.key])}
+                />
+              )
+            })}
+            {Object.keys(pendingChanges)
+              .filter((key) => !DEDICATED_PENDING_KEYS.has(key))
+              .map((key) => (
+                <DiffRow
+                  key={key}
+                  label={key}
+                  current={formatPlain(product[key], t)}
+                  proposed={formatPlain(pendingChanges[key], t)}
+                />
+              ))}
           </div>
         ) : (
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">

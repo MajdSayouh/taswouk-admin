@@ -563,7 +563,16 @@
       "imagesTitle": "الصور",
       "detailsTitle": "التفاصيل",
       "category": "التصنيف",
-      "categoryIdOnly": "التصنيف رقم {{id}}"
+      "categoryIdOnly": "التصنيف رقم {{id}}",
+      "diffCurrent": "{{label}} — الحالي",
+      "diffProposed": "{{label}} — المقترح",
+      "price": "السعر",
+      "isOffer": "عليه عرض",
+      "newPrice": "سعر العرض",
+      "sizes": "المقاسات",
+      "colors": "الألوان",
+      "categories": "التصنيفات",
+      "active": "مفعّل"
     }
   },
   "orders": {

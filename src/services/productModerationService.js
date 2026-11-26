@@ -11,6 +11,11 @@ import { apiClient } from './apiClient.js'
  * @property {string} [name]
  * @property {string} [description]
  * @property {number} [category_id]
+ * @property {number[]} [category_ids]
+ * @property {number} [price]
+ * @property {boolean} [is_offer]
+ * @property {number | null} [new_price]
+ * Only edited fields are present; the review screen renders every key it finds, not only these.
  */
 
 /**
